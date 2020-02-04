@@ -5,7 +5,7 @@ GUI for Picoquant Picoharp300 in TCSPC histogramming mode. Uses phlib so interfa
 ## udev
 Add a udev rule for the Picoharp: ACTION=="add", SUBSYSTEM=="usb", ATTRS{idVendor}=="0e0d", ATTRS{idProduct}=="0003", MODE="0666"
 ## Libraries
-In the interest of not sharing code that isn't mine, you'll have to provide your own phlib .dll (Windows) or .so (Linux). Drop it in this folder and the script will detect which one it needs.
+In the interest of not sharing code that isn't mine, you'll have to provide your own phlib library. In Linux it looks in the location that the phlib installer puts it ("/usr/local/lib(64)/ph300/phlib.so"), I'm yet to sit down with a Windows system to find out where it puts the dll.
 ## Python packages
 Using your favourite technique, install pyqt5, pyqtgraph and numpy.
 
