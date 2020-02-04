@@ -38,7 +38,7 @@ class LD_PharpDLL:
             else:
                 dll_Path = os.path.abspath("/usr/local/lib/ph300/phlib.so")
         elif os_Name == "Windows":
-            if arch= == "64bit":
+            if arch == "64bit":
                 dll_Path = os.path.abspath("C:\Windows\System32\phlib64.dll")
             else:
                 dll_Path = os.path.abspath("C:\Windows\SysWOW64\phlib.dll")
