@@ -38,8 +38,10 @@ class LD_PharpDLL:
             else:
                 dll_Path = os.path.abspath("/usr/local/lib/ph300/phlib.so")
         elif os_Name == "Windows":
-            # TODO: Get the paths for Windows
-            pass
+            if arch= == "64bit":
+                dll_Path = os.path.abspath("C:\Windows\SysWOW64\phlib.dll")
+            else:
+                print("Don't know where the dll lives in 32 bit windows")
 
         self.phlib = ctypes.CDLL(dll_Path)
         self.device_Number_ct = ctypes.c_int(device_Number)
