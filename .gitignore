@@ -9,3 +9,5 @@ __pycache__/
 
 # Data files.
 *.csv
+
+data/*
