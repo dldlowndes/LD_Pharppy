@@ -1,5 +1,5 @@
 import numpy as np
-from PyQt5 import QtWidgets, QtCore
+from PyQt5 import QtWidgets
 import sys
 
 import counter
@@ -12,9 +12,13 @@ import LD_Pharp
     Make histogram bins correspond to time. (currently bin#)
     Limit plot x width to a maximum value
     Option to disable ClearHistMem() for cumulative histograms
+    Speed up plotting, it's super slow right now.
+    Dont plot empty bins? Cull end of histo data if empty? something...
+    Add auto scale button for plot.
 
     Interact with plot via settings window. (live?)
-    Grey out boxes when histogramming is running
+    Grey out settings boxes when histogramming is running
+        Or at least have settings not try to update.
     Auto scale with window size!
     To be honest, counter and plotter probably don't need to be separate
         Combine them into one thing. If possible without duplicate code.
@@ -44,6 +48,12 @@ class my_Window(QtWidgets.QMainWindow):
         self.ui.button_StartStop.clicked.connect(self.start_Stop)
         self.ui.button_SaveHisto.clicked.connect(self.on_Save_Histo)
 
+        # Modify the plot window
+        self.ui.graph_Widget.plotItem.setLabel("left", "Counts")
+        self.ui.graph_Widget.plotItem.setLabel("bottom", "Time", "s")
+        self.ui.graph_Widget.plotItem.showGrid(x=True, y=True)
+        self.ui.graph_Widget.plotItem.showButtons()
+
         # Set up some default settings.
         self.current_Options = {}
         self.default_Settings()
@@ -58,8 +68,6 @@ class my_Window(QtWidgets.QMainWindow):
         # Start the counter thread
         self.counter.start()
         self.histogram_Running = False
-
-
 
     def apply_Settings(self):
         resolution_Req = self.ui.resolution.currentText()
@@ -76,9 +84,16 @@ class my_Window(QtWidgets.QMainWindow):
                 "acq_Time": int(self.ui.acq_Time.value())
                 }
 
-        print(options)  # TODO: replace with code to push settings to Picoharp
+        print(options)
         self.my_Pharp.Update_Settings(**options)
+
         self.current_Options = options
+
+        x_Min = 0
+        x_Max = 65536 * self.my_Pharp.resolution
+        x_Step = self.my_Pharp.resolution
+        self.x_Data = np.arange(x_Min, x_Max, x_Step)
+        self.x_Data /= 1e12  # convert to seconds
 
     def default_Settings(self):
         default_Options = {
@@ -95,7 +110,7 @@ class my_Window(QtWidgets.QMainWindow):
         binning = default_Options["binning"]
         resolution = self.base_Resolution * (2 ** binning)
 
-        self.ui.resolution.setCurrentText(f"resolution")
+        self.ui.resolution.setCurrentText(f"{resolution}")
         self.ui.sync_Offset.setValue(default_Options["sync_Offset"])
         self.ui.sync_Divider.setCurrentText(str(default_Options["sync_Divider"]))
         self.ui.CFD0_Level.setValue(default_Options["CFD0_Level"])
@@ -127,11 +142,14 @@ class my_Window(QtWidgets.QMainWindow):
         self.ui.counts_Ch1.setText(f"{ch1:.2E}")
 
     def on_Histo_Signal(self, histogram_Data):
-        #self.ui.counts_Ch0.setText(f"{ch0:.2E}")
         ch1 = histogram_Data.sum()
         self.ui.counts_Ch1.setText(f"{ch1:.2E}")
 
-        self.ui.graph_Widget.plot(histogram_Data, clear=True)
+        n_Bins = histogram_Data.shape[0]
+
+        self.ui.graph_Widget.plot(self.x_Data[:n_Bins],
+                                  histogram_Data,
+                                  clear=True)
         self.last_Histogram = histogram_Data
 
     def on_Save_Histo(self):
@@ -141,6 +159,7 @@ class my_Window(QtWidgets.QMainWindow):
                    self.last_Histogram,
                    delimiter=", "
                    )
+
 
 app = QtWidgets.QApplication([])
 

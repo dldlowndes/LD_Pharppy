@@ -18,7 +18,6 @@ class PlotThread(QtCore.QThread):
         self.thread_Active = True
         while self.thread_Active:
             histo = self.my_Pharp.Get_A_Histogram()
-            counts1 = self.my_Pharp.options["acq_Time"] * sum(histo)
 
             self.plot_Signal.emit(np.array(histo, dtype=np.int))
             time.sleep(1)

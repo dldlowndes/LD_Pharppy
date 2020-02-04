@@ -1,6 +1,3 @@
-import matplotlib.pyplot as plt
-import matplotlib.animation as animation
-
 import LD_PharpDLL
 
 # Dunno what to do with this right now but it's in the source code now
@@ -154,9 +151,6 @@ class LD_Pharp:
         # Pass dictionary as kwargs
         self.Update_Settings(**self._default_Options)
 
-        self.fig, self.ax = plt.subplots()
-        self.plot, = self.ax.plot([])
-
     def __del__(self):
         print(f"Bye")
         self.my_PharpDLL.Close()
@@ -187,11 +181,11 @@ class LD_Pharp:
         self.my_PharpDLL.Set_Binning(self.options["binning"])
         self.my_PharpDLL.Set_SyncOffset(self.options["sync_Offset"])
 
-#        new_Resolution = self.base_Resolution * (2 ** self.options["binning"])
-#        print(f"Asked for resolution {new_Resolution}")
-#
-#        self.resolution = self.my_PharpDLL.Get_Resolution()
-#        print(f"New resolution is {self.resolution}")
+        new_Resolution = self.base_Resolution * (2 ** self.options["binning"])
+        print(f"Asked for resolution {new_Resolution}")
+
+        self.resolution = self.my_PharpDLL.Get_Resolution()
+        print(f"New resolution is {self.resolution}")
 
     def Get_CountRate(self):
         count_Channels = self.my_PharpDLL.Get_CountRate()
@@ -209,32 +203,13 @@ class LD_Pharp:
         self.my_PharpDLL.Stop()
 
         histogram = self.my_PharpDLL.Get_Histogram(n_Channels)
-        flags = self.my_PharpDLL.Get_Flags()
-        time = self.my_PharpDLL.Get_ElapsedMeasTime()
-        #print(f"Flags {flags}")
+        # flags = self.my_PharpDLL.Get_Flags()
+        # time = self.my_PharpDLL.Get_ElapsedMeasTime()
+        # print(f"Flags {flags}")
         return histogram
-
-    def Live_Histogram(self, x_bins):
-        """
-        Quick and dirty live plot.
-        """
-
-        while True:
-            hist = self.Get_A_Histogram()[:x_bins]
-
-            # TODO: Set x limit properly re: number of used bins.
-            self.ax.set_xlim(0, len(hist))
-            self.ax.set_ylim(0, 1.2 * max(hist))
-
-            self.plot.set_data(range(len(hist)), hist)
-            plt.pause(0.01)
-
-            # TODO: Add options controls.
-            # TODO: Add break.
 
 
 if __name__ == "__main__":
     my_LDPharp = LD_Pharp()
 
     print(f"Count rate: {my_LDPharp.Get_CountRate()}")
-    #my_LDPharp.Live_Histogram(25000)

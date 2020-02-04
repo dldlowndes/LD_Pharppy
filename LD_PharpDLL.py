@@ -184,8 +184,9 @@ class LD_PharpDLL:
         extern int _stdcall PH_GetElapsedMeasTime(int devidx, double* elapsed);
         """
         meas_Time_ct = ctypes.c_double()
-        return_Code = self.phlib.PH_GetElapsedMeasTime(self.device_Number_ct,
-                                                       ctypes.byref(meas_Time_ct))
+        return_Code = self.phlib.PH_GetElapsedMeasTime(
+                                                    self.device_Number_ct,
+                                                    ctypes.byref(meas_Time_ct))
         self.ProcessReturnCode(return_Code)
 
         return meas_Time_ct.value
@@ -257,14 +258,14 @@ class LD_PharpDLL:
         extern int _stdcall PH_GetHistogram(int devidx, unsigned int* chcount,
         int block);
         """
-        #print(f"Get histogram")
+        # print(f"Get histogram")
         counts_ct = (ctypes.c_uint * histogram_Channels)()
         return_Code = self.phlib.PH_GetHistogram(self.device_Number_ct,
                                                  ctypes.byref(counts_ct),
                                                  ctypes.c_int(0))
         self.ProcessReturnCode(return_Code)
 
-        #print(f"Process histogram")
+        # print(f"Process histogram")
         histogram = [x for x in counts_ct]
         return histogram
 
@@ -300,7 +301,7 @@ class LD_PharpDLL:
 
 #    def Get_RoutingChannels(self):
 #        """
-#        extern int _stdcall PH_GetRoutingChannels(int devidx, int* rtchannels);
+#        extern int _stdcall PH_GetRoutingChannels(int devidx, int* rtchannels)
 #        """
 #        raise NotImplementedError
 
@@ -401,8 +402,8 @@ class LD_PharpDLL:
 
 #    def Set_RoutingChannelOffset(self):
 #        """
-#        extern int _stdcall PH_SetRoutingChannelOffset(int devidx, int channel,
-#        int offset);
+#        extern int _stdcall PH_SetRoutingChannelOffset(int devidx, int channel
+#        , int offset);
 #        """
 #        raise NotImplementedError
 

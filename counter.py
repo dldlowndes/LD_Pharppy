@@ -1,6 +1,5 @@
 from PyQt5 import QtCore
 
-import random
 import time
 
 
