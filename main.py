@@ -9,11 +9,7 @@ from settings_gui import Ui_Settings
 import LD_Pharp
 
 """ TODO List:
-    Make histogram bins correspond to time. (currently bin#)
     Option to disable ClearHistMem() for cumulative histograms
-    Speed up plotting, it's super slow right now.
-    Add auto scale button in menu for plot.
-
     Interact with plot via settings window. (live?)
     Grey out settings boxes when histogramming is running
         Or at least have settings not try to update.
@@ -33,14 +29,11 @@ class my_Window(QtWidgets.QMainWindow):
 
         self.my_Pharp = LD_Pharp.LD_Pharp(0)
 
-        # TODO: Get this from the device.
         self.base_Resolution = self.my_Pharp.base_Resolution
         allowed_Resolutions = [self.base_Resolution * (2**n) for n in range(8)]
         for i, res in enumerate(allowed_Resolutions):
             self.ui.resolution.addItem(f"{res}")
         self.ui.resolution.setCurrentText(f"self.base_Resolution")
-
-        self.ui.filename.setText(f"save_filename.csv")
 
         # Connect UI elements to functions
         self.ui.button_ApplySettings.clicked.connect(self.apply_Settings)
@@ -56,7 +49,10 @@ class my_Window(QtWidgets.QMainWindow):
         self.ui.graph_Widget.plotItem.showButtons()
         #self.ui.graph_Widget.plotItem.
 
+        self.ui.filename.setText(f"save_filename.csv")
+
         # Set up some default settings.
+        self.histogram_Running = False
         self.current_Options = {}
         self.default_Settings()
 
@@ -69,33 +65,36 @@ class my_Window(QtWidgets.QMainWindow):
 
         # Start the counter thread
         self.counter.start()
-        self.histogram_Running = False
+
 
     def apply_Settings(self):
-        resolution_Req = self.ui.resolution.currentText()
-        binning = np.log2(float(resolution_Req) / self.base_Resolution)
+        if self.histogram_Running:
+            print("Settings not pushed, histogram is running")
+        else:
+            resolution_Req = self.ui.resolution.currentText()
+            binning = np.log2(float(resolution_Req) / self.base_Resolution)
 
-        options = {
-                "binning": int(binning),
-                "sync_Offset": int(self.ui.sync_Offset.value()),
-                "sync_Divider": int(self.ui.sync_Divider.currentText()),
-                "CFD0_ZeroCross": int(self.ui.CFD0_Zerocross.value()),
-                "CFD0_Level": int(self.ui.CFD0_Level.value()),
-                "CFD1_ZeroCross": int(self.ui.CFD1_Zerocross.value()),
-                "CFD1_Level": int(self.ui.CFD1_Level.value()),
-                "acq_Time": int(self.ui.acq_Time.value())
-                }
+            options = {
+                    "binning": int(binning),
+                    "sync_Offset": int(self.ui.sync_Offset.value()),
+                    "sync_Divider": int(self.ui.sync_Divider.currentText()),
+                    "CFD0_ZeroCross": int(self.ui.CFD0_Zerocross.value()),
+                    "CFD0_Level": int(self.ui.CFD0_Level.value()),
+                    "CFD1_ZeroCross": int(self.ui.CFD1_Zerocross.value()),
+                    "CFD1_Level": int(self.ui.CFD1_Level.value()),
+                    "acq_Time": int(self.ui.acq_Time.value())
+                    }
 
-        print(options)
-        self.my_Pharp.Update_Settings(**options)
+            print(options)
+            self.my_Pharp.Update_Settings(**options)
 
-        self.current_Options = options
+            self.current_Options = options
 
-        x_Min = 0
-        x_Max = 65536 * self.my_Pharp.resolution
-        x_Step = self.my_Pharp.resolution
-        self.x_Data = np.arange(x_Min, x_Max, x_Step)
-        self.x_Data /= 1e12  # convert to seconds
+            x_Min = 0
+            x_Max = 65536 * self.my_Pharp.resolution
+            x_Step = self.my_Pharp.resolution
+            self.x_Data = np.arange(x_Min, x_Max, x_Step)
+            self.x_Data /= 1e12  # convert to seconds
 
     def default_Settings(self):
         default_Options = {
