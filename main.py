@@ -10,11 +10,9 @@ import LD_Pharp
 
 """ TODO List:
     Make histogram bins correspond to time. (currently bin#)
-    Limit plot x width to a maximum value
     Option to disable ClearHistMem() for cumulative histograms
     Speed up plotting, it's super slow right now.
-    Dont plot empty bins? Cull end of histo data if empty? something...
-    Add auto scale button for plot.
+    Add auto scale button in menu for plot.
 
     Interact with plot via settings window. (live?)
     Grey out settings boxes when histogramming is running
@@ -22,6 +20,8 @@ import LD_Pharp
     Auto scale with window size!
     To be honest, counter and plotter probably don't need to be separate
         Combine them into one thing. If possible without duplicate code.
+    Add a fitted gaussian (optionally other shapes?) onto plot
+        and display statistics
 """
 
 
@@ -47,12 +47,14 @@ class my_Window(QtWidgets.QMainWindow):
         self.ui.button_Defaults.clicked.connect(self.default_Settings)
         self.ui.button_StartStop.clicked.connect(self.start_Stop)
         self.ui.button_SaveHisto.clicked.connect(self.on_Save_Histo)
+        self.ui.button_AutoRange.clicked.connect(self.on_Auto_Range)
 
         # Modify the plot window
         self.ui.graph_Widget.plotItem.setLabel("left", "Counts")
         self.ui.graph_Widget.plotItem.setLabel("bottom", "Time", "s")
         self.ui.graph_Widget.plotItem.showGrid(x=True, y=True)
         self.ui.graph_Widget.plotItem.showButtons()
+        #self.ui.graph_Widget.plotItem.
 
         # Set up some default settings.
         self.current_Options = {}
@@ -141,14 +143,15 @@ class my_Window(QtWidgets.QMainWindow):
         self.ui.counts_Ch0.setText(f"{ch0:.2E}")
         self.ui.counts_Ch1.setText(f"{ch1:.2E}")
 
-    def on_Histo_Signal(self, histogram_Data):
-        ch1 = histogram_Data.sum()
+    def on_Histo_Signal(self, ch0, ch1, histogram_Data):
+        self.ui.counts_Ch0.setText(f"{ch0:.2E}")
         self.ui.counts_Ch1.setText(f"{ch1:.2E}")
 
         n_Bins = histogram_Data.shape[0]
+        last_Full_Bin = histogram_Data.nonzero()[0][-1]
 
-        self.ui.graph_Widget.plot(self.x_Data[:n_Bins],
-                                  histogram_Data,
+        self.ui.graph_Widget.plot(self.x_Data[:last_Full_Bin],
+                                  histogram_Data[:last_Full_Bin],
                                   clear=True)
         self.last_Histogram = histogram_Data
 
@@ -159,6 +162,9 @@ class my_Window(QtWidgets.QMainWindow):
                    self.last_Histogram,
                    delimiter=", "
                    )
+
+    def on_Auto_Range(self):
+        self.ui.graph_Widget.plotItem.autoBtnClicked()
 
 
 app = QtWidgets.QApplication([])
