@@ -1,6 +1,8 @@
 # LD_Pharppy
 GUI for Picoquant Picoharp300 in TCSPC histogramming mode. Uses phlib so interface so *should* be cross platform.
 
+Comments/questions/etc welcome, email me at david@lownd.es
+
 # Setup
 ## udev
 Add a udev rule for the Picoharp: ACTION=="add", SUBSYSTEM=="usb", ATTRS{idVendor}=="0e0d", ATTRS{idProduct}=="0003", MODE="0666"
