@@ -148,8 +148,12 @@ class LD_Pharp:
         self.hardware_Info = self.my_PharpDLL.Get_HardwareInfo()
         self.my_PharpDLL.Calibrate()
 
-        # Base resolution is 4ps but read it off the device in case it isn't.
-        self.base_Resolution = self.my_PharpDLL.Get_BaseResolution()
+        # Get base resolution from the device.
+        #self.base_Resolution = self.my_PharpDLL.Get_BaseResolution()
+        # Base resolution is 4ps. For some reason Get_BaseResolution doesn't
+        # work on Windows so for now it's hard coded.
+        # TODO: Fix base resolution on Windows.
+        self.base_Resolution = 4.0  # picoseconds
         print(f"Base Resolution is {self.base_Resolution}ps")
         # Also read the resolution the Picoharp thinks it has (considering
         # also the binning)
