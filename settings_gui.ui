@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Form</string>
+   <string>Pharppy - GUI for the Picoharp300 histogramming mode</string>
   </property>
   <widget class="PlotWidget" name="graph_Widget" native="true">
    <property name="geometry">

@@ -173,7 +173,7 @@ class Ui_Settings(object):
 
     def retranslateUi(self, Settings):
         _translate = QtCore.QCoreApplication.translate
-        Settings.setWindowTitle(_translate("Settings", "Form"))
+        Settings.setWindowTitle(_translate("Settings", "Pharppy - GUI for the Picoharp300 histogramming mode"))
         self.groupBox_8.setTitle(_translate("Settings", "Settings"))
         self.groupBox.setTitle(_translate("Settings", "Ch0 (Sync)"))
         self.label.setText(_translate("Settings", "Zero crossing (mV)"))
