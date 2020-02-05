@@ -65,6 +65,7 @@ class my_Window(QtWidgets.QMainWindow):
         self.histogram_Running = False
         self.current_Options = {}
         self.default_Settings()
+        self.count_Precision = 3
 
         # Make the worker thread.
         self.acq_Thread = acq_Thread.Acq_Thread(self.my_Pharp)
@@ -170,8 +171,8 @@ class my_Window(QtWidgets.QMainWindow):
 
 
     def on_Count_Signal(self, ch0, ch1):
-        self.ui.counts_Ch0.setText(f"{ch0:.2E}")
-        self.ui.counts_Ch1.setText(f"{ch1:.2E}")
+        self.ui.counts_Ch0.setText(f"{ch0:.{self.count_Precision}E}")
+        self.ui.counts_Ch1.setText(f"{ch1:.{self.count_Precision}E}")
 
     def on_Histo_Signal(self, histogram_Data):
         # There are 65536 bins, but if (1/sync) is less than (65536*resolution)
