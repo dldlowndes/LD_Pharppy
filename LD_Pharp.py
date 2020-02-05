@@ -106,7 +106,8 @@ class LD_Pharp:
         """
         Binning:
             How many bins of width "resolution" to combine to output the
-            histogram. Number of bins bins are 2**binning
+            histogram. Number of bins combined are 2**binning. Changes the
+            resolution by this factor compared to the base resolution.
         Sync Offset:
             Emulates adding a cable delay to sync input (ch0)
             (+ve value is longer delay)
@@ -128,23 +129,25 @@ class LD_Pharp:
                 "CFD1_Level": 50,
                 "acq_Time": 500
                 }
-
         self.options = self._default_Options
 
-        self.my_PharpDLL = LD_PharpDLL.LD_PharpDLL(0)
+        # Connect to the Picoharp device.
+        self.my_PharpDLL = LD_PharpDLL.LD_PharpDLL(device_Number)
 
+        # TODO: Check this is the expected version.
         self.library_Version = self.my_PharpDLL.Get_LibraryVersion()
 
+        # Housekeeping for getting the Picoharp up.
         self.my_PharpDLL.Open()
-
         self.my_PharpDLL.Initialize(0)
-
         self.hardware_Info = self.my_PharpDLL.Get_HardwareInfo()
-
         self.my_PharpDLL.Calibrate()
 
+        # Base resolution is 4ps but read it off the device in case it isn't.
         self.base_Resolution = self.my_PharpDLL.Get_BaseResolution()
         print(f"Base Resolution is {self.base_Resolution}ps")
+        # Also read the resolution the Picoharp thinks it has (considering
+        # also the binning)
         self.resolution = self.my_PharpDLL.Get_Resolution()
         print(f"Resolution is {self.resolution}")
 
@@ -158,6 +161,12 @@ class LD_Pharp:
     def Update_Settings(self, sync_Divider, sync_Offset, CFD0_Level,
                         CFD0_ZeroCross, CFD1_Level, CFD1_ZeroCross, binning,
                         acq_Time):
+        """
+        Even though args are best sent as an unpacked dict, enforcing the
+        parameters separately enforces that they all get sent.
+        """
+
+        # Rebuild the options dict so it can be remembered.
         new_Options = {
                 "binning": binning,
                 "sync_Offset": sync_Offset,
@@ -168,7 +177,6 @@ class LD_Pharp:
                 "CFD1_Level": CFD1_Level,
                 "acq_Time": acq_Time
                 }
-
         # Put the new dictionary where the old one was
         self.options = new_Options
 
@@ -180,29 +188,47 @@ class LD_Pharp:
                                       self.options["CFD1_ZeroCross"])
         self.my_PharpDLL.Set_Binning(self.options["binning"])
         self.my_PharpDLL.Set_SyncOffset(self.options["sync_Offset"])
-
+        # Figure out the resolution that is implied by the requested binning.
         new_Resolution = self.base_Resolution * (2 ** self.options["binning"])
         print(f"Asked for resolution {new_Resolution}")
-
+        # Check that the resolution requested is the same as the resolution
+        # the Picoharp thinks it's providing.
         self.resolution = self.my_PharpDLL.Get_Resolution()
         print(f"New resolution is {self.resolution}")
 
     def Get_CountRate(self):
+        """
+        Returns both channel count rates in a python list.
+        """
         count_Channels = self.my_PharpDLL.Get_CountRate()
         return count_Channels
 
     def Get_A_Histogram(self, n_Channels=65536):
+        """
+        Returns the time tagging histogram as a python list. It's always the
+        full number of channels that can be supplied by the Picoharp. They can
+        be trimmed later.
+        """
+        # If this isn't called, the histogram is a cumulative one rather than
+        # a single shot.
+        # TODO: Optionally be able to clear this?
         self.my_PharpDLL.ClearHistMem()
 
         self.my_PharpDLL.Start(self.options["acq_Time"])
 
+        # Ask the Picoharp if it's done yet. Either because acq_Time has passed
+        # or because a bin in the histogram has been filled.
         # TODO: Start using 3.8 or whatever for walrus operator
         ctc = self.my_PharpDLL.Get_CTCStatus()
         while ctc == 0:
             ctc = self.my_PharpDLL.Get_CTCStatus()
+        # Manual says you still have to explicitly stop the Picoharp.
         self.my_PharpDLL.Stop()
 
+        # Pull the histogram off the Picoharp.
         histogram = self.my_PharpDLL.Get_Histogram(n_Channels)
+
+        # Some Picoharp status stuff that might be useful?
         # flags = self.my_PharpDLL.Get_Flags()
         # time = self.my_PharpDLL.Get_ElapsedMeasTime()
         # print(f"Flags {flags}")

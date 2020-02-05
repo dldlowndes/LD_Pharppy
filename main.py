@@ -67,9 +67,18 @@ class my_Window(QtWidgets.QMainWindow):
         self.counter.start()
 
     def apply_Settings(self):
+        """
+        Get the settings from the UI and tell the picoharp to update them.
+        """
+
+        # Hardware complains if you push settings while histogram is running,
+        # it might lead to it ending up in an undefined state so just forbid
+        # sending settings while the histogram is running
         if self.histogram_Running:
             print("Settings not pushed, histogram is running")
         else:
+            # Translate desired resolution to a "binning" number. Binning
+            # combines histogram bins to reduce the histogram resolution.
             resolution_Req = self.ui.resolution.currentText()
             binning = np.log2(float(resolution_Req) / self.base_Resolution)
 
@@ -87,8 +96,12 @@ class my_Window(QtWidgets.QMainWindow):
             print(options)
             self.my_Pharp.Update_Settings(**options)
 
+            # Remember the settings that were last pushed.
             self.current_Options = options
 
+            # If binning (resolution) changes, the histogram x axis labels
+            # change. Update this. The max number of bins is 65536, this will
+            # be trimmed in the plotting function.
             x_Min = 0
             x_Max = 65536 * self.my_Pharp.resolution
             x_Step = self.my_Pharp.resolution
@@ -96,6 +109,10 @@ class my_Window(QtWidgets.QMainWindow):
             self.x_Data /= 1e12  # convert to seconds
 
     def default_Settings(self):
+        """
+        Some sensible defaults of the options. Sets the UI elements to the
+        defaults and then calls the function that reads them and pushes.
+        """
         default_Options = {
                 "binning": 0,
                 "sync_Offset": 0,
@@ -146,14 +163,25 @@ class my_Window(QtWidgets.QMainWindow):
         self.ui.counts_Ch0.setText(f"{ch0:.2E}")
         self.ui.counts_Ch1.setText(f"{ch1:.2E}")
 
+        # There are 65536 bins, but if (1/sync) is less than (65536*resolution)
+        # then there will just be empty bins at the end of the histogram array.
+        # Look from the END of the array and find the index of the first non
+        # empty bin you find.
         last_Full_Bin = histogram_Data.nonzero()[0][-1]
 
+        # Trim the histogram and labels so the empty bins (that will never
+        # fill) are not plotted. Then plot them.
         self.ui.graph_Widget.plot(self.x_Data[:last_Full_Bin],
                                   histogram_Data[:last_Full_Bin],
                                   clear=True)
+        # Remember the last histogram, so it can be saved.
         self.last_Histogram = histogram_Data
 
     def on_Save_Histo(self):
+        """
+        This actually still works when histogramming is running but obviously
+        there won't be certainty as to exactly what the histogram looks like.
+        """
         filename = self.ui.filename.text()
 
         np.savetxt(filename,
@@ -162,6 +190,9 @@ class my_Window(QtWidgets.QMainWindow):
                    )
 
     def on_Auto_Range(self):
+        """
+        Tell the plot widget to fit the full histogram on the plot.
+        """
         self.ui.graph_Widget.plotItem.autoBtnClicked()
 
 
