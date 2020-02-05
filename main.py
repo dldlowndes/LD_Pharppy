@@ -1,6 +1,17 @@
+"""
+GUI for controlling the Picoharp300, choosing settings, visualizing and
+exporting histograms.
+
+This script is fairly alpha status at the moment. Comments/questions/requests
+are welcome - email david@lownd.es or through github.com/dldlowndes/LD_Pharppy)
+
+Requires: Python 3.7+, Numpy, PyQt5, PyQtGraph.
+"""
+
+import sys
+
 import numpy as np
 from PyQt5 import QtWidgets
-import sys
 
 import counter
 import plotter
@@ -176,6 +187,7 @@ class my_Window(QtWidgets.QMainWindow):
                                   clear=True)
         # Remember the last histogram, so it can be saved.
         self.last_Histogram = histogram_Data
+        self.last_X_Data = self.x_Data
 
     def on_Save_Histo(self):
         """
@@ -184,8 +196,11 @@ class my_Window(QtWidgets.QMainWindow):
         """
         filename = self.ui.filename.text()
 
+        # Zip the bins and counts together for export.
+        hist_Out = np.column_stack((self.last_X_Data, self.last_Histogram))
+
         np.savetxt(filename,
-                   self.last_Histogram,
+                   hist_Out,
                    delimiter=", "
                    )
 

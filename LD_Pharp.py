@@ -1,3 +1,8 @@
+"""
+Uses LD_PharpDLL to make an interface to the Picoharp300's histogramming
+mode for humans to use.
+"""
+
 import LD_PharpDLL
 
 # Dunno what to do with this right now but it's in the source code now

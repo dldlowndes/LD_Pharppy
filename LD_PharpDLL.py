@@ -4,12 +4,10 @@ intention would be to then use this to make a further class that is user
 friendly and actually does stuff.
 """
 
-import time
 import ctypes
-
 import os
 import platform
-# TODO: Copy defines from phdefin.h and errorcodes.h here somewhere.
+import time
 
 
 class LD_PharpDLL:
