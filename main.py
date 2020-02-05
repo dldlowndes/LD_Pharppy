@@ -13,8 +13,7 @@ import sys
 import numpy as np
 from PyQt5 import QtWidgets
 
-import counter
-import plotter
+import acq_Thread
 from settings_gui import Ui_Settings
 
 import LD_Pharp
@@ -67,15 +66,11 @@ class my_Window(QtWidgets.QMainWindow):
         self.current_Options = {}
         self.default_Settings()
 
-        # Make some threads to do work.
-        self.counter = counter.CountThread(self.my_Pharp)
-        self.counter.count_Signal.connect(self.on_Count_Signal)
-
-        self.plotter = plotter.PlotThread(self.my_Pharp)
-        self.plotter.plot_Signal.connect(self.on_Histo_Signal)
-
-        # Start the counter thread
-        self.counter.start()
+        # Make the worker thread.
+        self.acq_Thread = acq_Thread.Acq_Thread(self.my_Pharp)
+        self.acq_Thread.count_Signal.connect(self.on_Count_Signal)
+        self.acq_Thread.plot_Signal.connect(self.on_Histo_Signal)
+        self.acq_Thread.start()
 
     def apply_Settings(self):
         """
@@ -152,28 +147,33 @@ class my_Window(QtWidgets.QMainWindow):
 
     def start_Stop(self):
         # Switch modes from counting to histogramming.
-        if self.histogram_Running:
-            print("Stop histo")
-            self.histogram_Running = False
-            self.plotter.stop()
-            self.counter.start()
+#        if self.histogram_Running:
+#            print("Stop histo")
+#            self.histogram_Running = False
+#            self.plotter.stop()
+#            self.counter.start()
+#
+#        else:
+#            print("Start histo")
+#            self.ui.counts_Ch0.setText("---")
+#            self.ui.counts_Ch1.setText("---")
+#            self.histogram_Running = True
+#            self.counter.stop()
+#            self.plotter.start()
 
+        if self.acq_Thread.histogram_Active:
+            print("Stop histo")
+            self.acq_Thread.histogram_Active = False
         else:
             print("Start histo")
-            self.ui.counts_Ch0.setText("---")
-            self.ui.counts_Ch1.setText("---")
-            self.histogram_Running = True
-            self.counter.stop()
-            self.plotter.start()
+            self.acq_Thread.histogram_Active = True
+
 
     def on_Count_Signal(self, ch0, ch1):
         self.ui.counts_Ch0.setText(f"{ch0:.2E}")
         self.ui.counts_Ch1.setText(f"{ch1:.2E}")
 
-    def on_Histo_Signal(self, ch0, ch1, histogram_Data):
-        self.ui.counts_Ch0.setText(f"{ch0:.2E}")
-        self.ui.counts_Ch1.setText(f"{ch1:.2E}")
-
+    def on_Histo_Signal(self, histogram_Data):
         # There are 65536 bins, but if (1/sync) is less than (65536*resolution)
         # then there will just be empty bins at the end of the histogram array.
         # Look from the END of the array and find the index of the first non
