@@ -47,7 +47,7 @@ class my_Window(QtWidgets.QMainWindow):
         self.ui.graph_Widget.plotItem.setLabel("bottom", "Time", "s")
         self.ui.graph_Widget.plotItem.showGrid(x=True, y=True)
         self.ui.graph_Widget.plotItem.showButtons()
-        #self.ui.graph_Widget.plotItem.
+        # self.ui.graph_Widget.plotItem.
 
         self.ui.filename.setText(f"save_filename.csv")
 
@@ -65,7 +65,6 @@ class my_Window(QtWidgets.QMainWindow):
 
         # Start the counter thread
         self.counter.start()
-
 
     def apply_Settings(self):
         if self.histogram_Running:
@@ -113,7 +112,8 @@ class my_Window(QtWidgets.QMainWindow):
 
         self.ui.resolution.setCurrentText(f"{resolution}")
         self.ui.sync_Offset.setValue(default_Options["sync_Offset"])
-        self.ui.sync_Divider.setCurrentText(str(default_Options["sync_Divider"]))
+        self.ui.sync_Divider.setCurrentText(
+                str(default_Options["sync_Divider"]))
         self.ui.CFD0_Level.setValue(default_Options["CFD0_Level"])
         self.ui.CFD0_Zerocross.setValue(default_Options["CFD0_ZeroCross"])
         self.ui.CFD1_Level.setValue(default_Options["CFD1_Level"])
@@ -146,7 +146,6 @@ class my_Window(QtWidgets.QMainWindow):
         self.ui.counts_Ch0.setText(f"{ch0:.2E}")
         self.ui.counts_Ch1.setText(f"{ch1:.2E}")
 
-        n_Bins = histogram_Data.shape[0]
         last_Full_Bin = histogram_Data.nonzero()[0][-1]
 
         self.ui.graph_Widget.plot(self.x_Data[:last_Full_Bin],

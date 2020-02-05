@@ -1,11 +1,13 @@
 from PyQt5 import QtCore
 
 import numpy as np
-import time
 
 
 class PlotThread(QtCore.QThread):
-
+    """
+    Thread to get histograms (and counts) from the picoharp. Emits both as one
+    signal.
+    """
     plot_Signal = QtCore.pyqtSignal(int, int, np.ndarray)
 
     def __init__(self, my_Pharp):

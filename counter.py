@@ -4,6 +4,9 @@ import time
 
 
 class CountThread(QtCore.QThread):
+    """
+    Thread to get counts from the picoharp, when histogramming isn't running.
+    """
 
     count_Signal = QtCore.pyqtSignal(int, int)
 
@@ -19,6 +22,7 @@ class CountThread(QtCore.QThread):
             counts0, counts1 = self.my_Pharp.Get_CountRate()
 
             self.count_Signal.emit(counts0, counts1)
+            # TODO: Sleep necessary?
             time.sleep(1)
 
     def stop(self):
