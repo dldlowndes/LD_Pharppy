@@ -396,7 +396,7 @@
     </rect>
    </property>
    <property name="text">
-    <string>Right click on plot to interact; Mouse wheel on plot area to zoom; Mouse wheel on axes to zoom in one axis. Tiny little &quot;A&quot; button in the bottom left to auto range.</string>
+    <string>Right click on plot to interact; Mouse wheel on plot area to zoom; Mouse wheel on axes to zoom in one axis.</string>
    </property>
   </widget>
  </widget>

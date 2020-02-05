@@ -203,6 +203,6 @@ class Ui_Settings(object):
         self.label_9.setText(_translate("Settings", "Filename:"))
         self.button_SaveHisto.setText(_translate("Settings", "Save Histogram"))
         self.button_AutoRange.setText(_translate("Settings", "Auto Range"))
-        self.label_12.setText(_translate("Settings", "Right click on plot to interact; Mouse wheel on plot area to zoom; Mouse wheel on axes to zoom in one axis. Tiny little \"A\" button in the bottom left to auto range."))
+        self.label_12.setText(_translate("Settings", "Right click on plot to interact; Mouse wheel on plot area to zoom; Mouse wheel on axes to zoom in one axis."))
 
 from pyqtgraph import PlotWidget
