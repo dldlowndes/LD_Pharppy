@@ -15,7 +15,7 @@ Using your favourite technique, install pyqt5, pyqtgraph and numpy.
 
 # Running
 - (Linux) Run ./run_Pharpy and after a bit of setup, the gui will appear.
-- (Windows) todo. for now run "python3 main.py".
+- (Windows) todo. For now run "python3 main.py".
 - Initially the histogramming is off and the count rates of the two channels is displayed.
 - Set the input parameters etc and press start/stop to start the histogramming
 - Histogram will appear, the plot can be dragged around and variously controlled in the right click menu.
@@ -23,6 +23,7 @@ Using your favourite technique, install pyqt5, pyqtgraph and numpy.
 - Last histogram can be saved to file for offline analysis.
 
 # TODOs
+- Batch file to launch in Windows for those uncomfortable with the terminal.
 - Get crosshairs for reading exact data values from the histograms.
 - Set up a two click system like in the official software for reading deltas from the graph.
 - Estimate FWHM
