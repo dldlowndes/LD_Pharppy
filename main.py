@@ -12,6 +12,7 @@ import sys
 
 import numpy as np
 from PyQt5 import QtWidgets
+import pyqtgraph
 
 import acq_Thread
 from settings_gui import Ui_Settings
@@ -58,6 +59,14 @@ class my_Window(QtWidgets.QMainWindow):
         self.ui.graph_Widget.plotItem.showGrid(x=True, y=True)
         self.ui.graph_Widget.plotItem.showButtons()
         # self.ui.graph_Widget.plotItem.
+
+        # For getting x and y differences between clicked positions on the plot
+        self.first_Click = True
+        self.scene = pyqtgraph.GraphicsScene.GraphicsScene(parent=self.ui.graph_Widget)
+        self.scene.sigMouseClicked.connect(self.on_Graph_Click)
+
+        # This works but it's the wrong event.
+        #self.ui.graph_Widget.sigRangeChanged.connect(self.on_Graph_Click)
 
         self.ui.filename.setText(f"save_filename.csv")
 
@@ -148,27 +157,12 @@ class my_Window(QtWidgets.QMainWindow):
 
     def start_Stop(self):
         # Switch modes from counting to histogramming.
-#        if self.histogram_Running:
-#            print("Stop histo")
-#            self.histogram_Running = False
-#            self.plotter.stop()
-#            self.counter.start()
-#
-#        else:
-#            print("Start histo")
-#            self.ui.counts_Ch0.setText("---")
-#            self.ui.counts_Ch1.setText("---")
-#            self.histogram_Running = True
-#            self.counter.stop()
-#            self.plotter.start()
-
         if self.acq_Thread.histogram_Active:
             print("Stop histo")
             self.acq_Thread.histogram_Active = False
         else:
             print("Start histo")
             self.acq_Thread.histogram_Active = True
-
 
     def on_Count_Signal(self, ch0, ch1):
         self.ui.counts_Ch0.setText(f"{ch0:.{self.count_Precision}E}")
@@ -210,6 +204,14 @@ class my_Window(QtWidgets.QMainWindow):
         Tell the plot widget to fit the full histogram on the plot.
         """
         self.ui.graph_Widget.plotItem.autoBtnClicked()
+
+    def on_Graph_Click(self):
+        if self.first_Click:
+            self.first_Click = False
+            print("first")
+        else:
+            self.first_Click = True
+            print("second")
 
 
 app = QtWidgets.QApplication([])
