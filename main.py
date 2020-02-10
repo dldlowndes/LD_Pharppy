@@ -38,17 +38,9 @@ class my_Window(QtWidgets.QMainWindow):
         self.ui = Ui_Settings()
         self.ui.setupUi(self)
 
-        self.my_Pharp = LD_Pharp.LD_Pharp(0)
-
-        self.base_Resolution = self.my_Pharp.base_Resolution
-        allowed_Resolutions = [self.base_Resolution * (2**n) for n in range(8)]
-        for i, res in enumerate(allowed_Resolutions):
-            self.ui.resolution.addItem(f"{res}")
-        self.ui.resolution.setCurrentText(f"self.base_Resolution")
-
         # Connect UI elements to functions
         self.ui.button_ApplySettings.clicked.connect(self.apply_Settings)
-        self.ui.button_Defaults.clicked.connect(self.default_Settings)
+        self.ui.button_Defaults.clicked.connect(self.apply_Default_Settings)
         self.ui.button_StartStop.clicked.connect(self.start_Stop)
         self.ui.button_SaveHisto.clicked.connect(self.on_Save_Histo)
         self.ui.button_AutoRange.clicked.connect(self.on_Auto_Range)
@@ -62,18 +54,26 @@ class my_Window(QtWidgets.QMainWindow):
 
         # For getting x and y differences between clicked positions on the plot
         self.first_Click = True
-        self.scene = pyqtgraph.GraphicsScene.GraphicsScene(parent=self.ui.graph_Widget)
-        self.scene.sigMouseClicked.connect(self.on_Graph_Click)
+#        self.scene = pyqtgraph.GraphicsScene.GraphicsScene(parent=self.ui.graph_Widget)
+#        self.scene.sigMouseClicked.connect(self.on_Graph_Click)
 
         # This works but it's the wrong event.
         #self.ui.graph_Widget.sigRangeChanged.connect(self.on_Graph_Click)
 
         self.ui.filename.setText(f"save_filename.csv")
 
+        self.my_Pharp = LD_Pharp.LD_Pharp(0)
+
+        self.base_Resolution = self.my_Pharp.base_Resolution
+        allowed_Resolutions = [self.base_Resolution * (2**n) for n in range(8)]
+        for i, res in enumerate(allowed_Resolutions):
+            self.ui.resolution.addItem(f"{res}")
+        self.ui.resolution.setCurrentText(f"self.base_Resolution")
+
         # Set up some default settings.
         self.histogram_Running = False
         self.current_Options = {}
-        self.default_Settings()
+        self.apply_Default_Settings()
         self.count_Precision = 3
 
         # Make the worker thread.
@@ -124,7 +124,7 @@ class my_Window(QtWidgets.QMainWindow):
             self.x_Data = np.arange(x_Min, x_Max, x_Step)
             self.x_Data /= 1e12  # convert to seconds
 
-    def default_Settings(self):
+    def apply_Default_Settings(self):
         """
         Some sensible defaults of the options. Sets the UI elements to the
         defaults and then calls the function that reads them and pushes.
