@@ -1,5 +1,7 @@
 # LD_Pharppy
-GUI for Picoquant Picoharp300 in TCSPC histogramming mode. Uses phlib so interface so *should* be cross platform.
+Cross platform thanks to Picoquant's phlib. It's developed and tested in Ubuntu 18.04 so caution is advised for Windows users.
+
+Basically this was born from from a confluence of necessity and an adventure into writing GUIs. My lab is almost 100% Linux compatible so it was becoming frustrating every time I needed a TCSPC histogram to have to disconnect a load of hardware and switch PCs. 
 
 Comments/questions/etc welcome, email me at david@lownd.es
 
@@ -19,3 +21,10 @@ Using your favourite technique, install pyqt5, pyqtgraph and numpy.
 - Histogram will appear, the plot can be dragged around and variously controlled in the right click menu.
 - Last histogram acquired will persist in the graph when start/stop is pressed.
 - Last histogram can be saved to file for offline analysis.
+
+# TODOs
+- Get crosshairs for reading exact data values from the histograms.
+- Set up a two click system like in the official software for reading deltas from the graph.
+- Estimate FWHM
+- Optional curve fitting to the histogram
+- General QOL upgrades to the GUI, proper scaling of the window etc (at the moment I think it only works on 1920x1080 screens)
