@@ -11,25 +11,14 @@ Requires: Python 3.7+, Numpy, PyQt5, PyQtGraph.
 import sys
 
 import numpy as np
-from PyQt5 import QtWidgets
+from PyQt5 import QtWidgets, QtCore
 import pyqtgraph
 
 import acq_Thread
 from settings_gui import Ui_Settings
 
 import LD_Pharp
-
-""" TODO List:
-    Option to disable ClearHistMem() for cumulative histograms
-    Interact with plot via settings window. (live?)
-    Grey out settings boxes when histogramming is running
-        Or at least have settings not try to update.
-    Auto scale with window size!
-    To be honest, counter and plotter probably don't need to be separate
-        Combine them into one thing. If possible without duplicate code.
-    Add a fitted gaussian (optionally other shapes?) onto plot
-        and display statistics
-"""
+#import LD_Pharp_Dummy as LD_Pharp
 
 
 class my_Window(QtWidgets.QMainWindow):
@@ -50,20 +39,38 @@ class my_Window(QtWidgets.QMainWindow):
         self.ui.graph_Widget.plotItem.setLabel("bottom", "Time", "s")
         self.ui.graph_Widget.plotItem.showGrid(x=True, y=True)
         self.ui.graph_Widget.plotItem.showButtons()
-        # self.ui.graph_Widget.plotItem.
 
-        # For getting x and y differences between clicked positions on the plot
+        # Set up crosshairs for markers, one that follows the mouse and two
+        # that persist after click (for one click before they move again)
+        self.v_Line = pyqtgraph.InfiniteLine(angle=90, movable=False)
+        self.h_Line = pyqtgraph.InfiniteLine(angle=0, movable=False)
+        self.v_Line_1 = pyqtgraph.InfiniteLine(angle=90, movable=False, pen='r')
+        self.h_Line_1 = pyqtgraph.InfiniteLine(angle=0, movable=False, pen='r')
+        self.v_Line_2 = pyqtgraph.InfiniteLine(angle=90, movable=False, pen='g')
+        self.h_Line_2 = pyqtgraph.InfiniteLine(angle=0, movable=False, pen='g')
+        self.ui.graph_Widget.addItem(self.v_Line, ignoreBounds=True)
+        self.ui.graph_Widget.addItem(self.h_Line, ignoreBounds=True)
+
+        # Keep track of which crosshair should move on the next click.
         self.first_Click = True
-#        self.scene = pyqtgraph.GraphicsScene.GraphicsScene(parent=self.ui.graph_Widget)
-#        self.scene.sigMouseClicked.connect(self.on_Graph_Click)
+        # Last click has to be somewhere so just stick it at the origin.
+        # Holds the co-ordinates of the most previous click.
+        self.last_Click = QtCore.QPoint(0, 0)
 
-        # This works but it's the wrong event.
-        #self.ui.graph_Widget.sigRangeChanged.connect(self.on_Graph_Click)
+        # Mouse events
+        self.proxy = pyqtgraph.SignalProxy(
+                                self.ui.graph_Widget.sceneObj.sigMouseMoved,
+                                rateLimit=60,
+                                slot=self.on_Mouse_Move)
+        self.ui.graph_Widget.sceneObj.sigMouseClicked.connect(
+                                                        self.on_Graph_Click)
 
-        self.ui.filename.setText(f"save_filename.csv")
-
+        # Connect to the actual device.
         self.my_Pharp = LD_Pharp.LD_Pharp(0)
 
+        # The resolutions are all 2**n multiples of the base resolution so
+        # get the base resolution from the device and work out all of the
+        # resolutions to display in the dropdown box.
         self.base_Resolution = self.my_Pharp.base_Resolution
         allowed_Resolutions = [self.base_Resolution * (2**n) for n in range(8)]
         for i, res in enumerate(allowed_Resolutions):
@@ -71,7 +78,9 @@ class my_Window(QtWidgets.QMainWindow):
         self.ui.resolution.setCurrentText(f"self.base_Resolution")
 
         # Set up some default settings.
+        self.ui.filename.setText(f"save_filename.csv")
         self.histogram_Running = False
+        self.ui.status.setText("Counting")
         self.current_Options = {}
         self.apply_Default_Settings()
         self.count_Precision = 3
@@ -159,9 +168,11 @@ class my_Window(QtWidgets.QMainWindow):
         # Switch modes from counting to histogramming.
         if self.acq_Thread.histogram_Active:
             print("Stop histo")
+            self.ui.status.setText("Counting")
             self.acq_Thread.histogram_Active = False
         else:
             print("Start histo")
+            self.ui.status.setText("Histogramming")
             self.acq_Thread.histogram_Active = True
 
     def on_Count_Signal(self, ch0, ch1):
@@ -180,6 +191,8 @@ class my_Window(QtWidgets.QMainWindow):
         self.ui.graph_Widget.plot(self.x_Data[:last_Full_Bin],
                                   histogram_Data[:last_Full_Bin],
                                   clear=True)
+        self.ui.graph_Widget.addItem(self.v_Line, ignoreBounds=True)
+        self.ui.graph_Widget.addItem(self.h_Line, ignoreBounds=True)
         # Remember the last histogram, so it can be saved.
         self.last_Histogram = histogram_Data
         self.last_X_Data = self.x_Data
@@ -205,13 +218,54 @@ class my_Window(QtWidgets.QMainWindow):
         """
         self.ui.graph_Widget.plotItem.autoBtnClicked()
 
-    def on_Graph_Click(self):
+    def on_Mouse_Move(self, evt):
+        """
+        Move the crosshair that follows the mouse to the mouse position.
+        """
+
+        vb = self.ui.graph_Widget.plotItem.vb
+        coords = vb.mapSceneToView(evt[0])
+
+        self.v_Line.setPos(coords.x())
+        self.h_Line.setPos(coords.y())
+
+        self.ui.current_X.setText(f"{coords.x():3E}")
+        self.ui.current_Y.setText(f"{coords.y():3E}")
+
+    def on_Graph_Click(self, evt):
+        """
+        Put a crosshair on the plot in the click location. There are two
+        crosshairs so x and y differences can be calculated between click
+        positions. The crosshair that moves alternates and the difference
+        is calculated every click.
+        """
+
+        vb = self.ui.graph_Widget.plotItem.vb
+        coords = vb.mapSceneToView(evt.scenePos())
+
         if self.first_Click:
             self.first_Click = False
-            print("first")
+            print(f"first {coords}")
+            self.v_Line_1.setPos(coords.x())
+            self.h_Line_1.setPos(coords.y())
+            self.ui.graph_Widget.addItem(self.v_Line_1, ignoreBounds=True)
+            self.ui.graph_Widget.addItem(self.h_Line_1, ignoreBounds=True)
+            self.ui.click_1_X.setText(f"{coords.x():3E}")
+            self.ui.click_1_Y.setText(f"{coords.y():3E}")
+
         else:
             self.first_Click = True
-            print("second")
+            print(f"second {coords}")
+            self.v_Line_2.setPos(coords.x())
+            self.h_Line_2.setPos(coords.y())
+            self.ui.graph_Widget.addItem(self.v_Line_2, ignoreBounds=True)
+            self.ui.graph_Widget.addItem(self.h_Line_2, ignoreBounds=True)
+            self.ui.click_2_X.setText(f"{coords.x():3E}")
+            self.ui.click_2_Y.setText(f"{coords.y():3E}")
+
+        self.ui.delta_X.setText(f"{coords.x() - self.last_Click.x():3E}")
+        self.ui.delta_Y.setText(f"{coords.y() - self.last_Click.y():3E}")
+        self.last_Click = coords
 
 
 app = QtWidgets.QApplication([])
