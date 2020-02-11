@@ -33,23 +33,23 @@ class my_Window(QtWidgets.QMainWindow):
         self.ui.button_StartStop.clicked.connect(self.start_Stop)
         self.ui.button_SaveHisto.clicked.connect(self.on_Save_Histo)
         self.ui.button_AutoRange.clicked.connect(self.on_Auto_Range)
+        self.ui.option_Cursor.stateChanged.connect(self.on_Cursor_Button)
+        self.ui.option_Deltas.stateChanged.connect(self.on_Deltas_Button)
+        self.ui.button_ClearDeltas.clicked.connect(self.on_Clear_Deltas)
 
         # Modify the plot window
         self.ui.graph_Widget.plotItem.setLabel("left", "Counts")
         self.ui.graph_Widget.plotItem.setLabel("bottom", "Time", "s")
         self.ui.graph_Widget.plotItem.showGrid(x=True, y=True)
-        self.ui.graph_Widget.plotItem.showButtons()
+        # self.ui.graph_Widget.plotItem.showButtons() #does this do anything?
 
-        # Set up crosshairs for markers, one that follows the mouse and two
-        # that persist after click (for one click before they move again)
-        self.v_Line = pyqtgraph.InfiniteLine(angle=90, movable=False)
-        self.h_Line = pyqtgraph.InfiniteLine(angle=0, movable=False)
-        self.v_Line_1 = pyqtgraph.InfiniteLine(angle=90, movable=False, pen='r')
-        self.h_Line_1 = pyqtgraph.InfiniteLine(angle=0, movable=False, pen='r')
-        self.v_Line_2 = pyqtgraph.InfiniteLine(angle=90, movable=False, pen='g')
-        self.h_Line_2 = pyqtgraph.InfiniteLine(angle=0, movable=False, pen='g')
-        self.ui.graph_Widget.addItem(self.v_Line, ignoreBounds=True)
-        self.ui.graph_Widget.addItem(self.h_Line, ignoreBounds=True)
+        # Fix the plot area before anything else starts, otherwise the auto
+        # scaler goes crazy with the cursors.
+        self.ui.graph_Widget.plotItem.vb.setLimits(xMin=0,
+                                                   yMin=0,
+                                                   xMax=1,
+                                                   yMax=1)
+        self.ui.graph_Widget.plotItem.plot([0.5, 0.5])
 
         # Keep track of which crosshair should move on the next click.
         self.first_Click = True
@@ -57,13 +57,41 @@ class my_Window(QtWidgets.QMainWindow):
         # Holds the co-ordinates of the most previous click.
         self.last_Click = QtCore.QPoint(0, 0)
 
+        # Set up crosshairs for markers, one that follows the mouse and two
+        # that persist after click (for one click before they move again)
+        # TODO: Must be a more elegant/pythonic way to do this?
+        self.v_Line = pyqtgraph.InfiniteLine(angle=90, movable=False)
+        self.h_Line = pyqtgraph.InfiniteLine(angle=0, movable=False)
+        self.v_Line_1 = pyqtgraph.InfiniteLine(angle=90, movable=False, pen='r')
+        self.h_Line_1 = pyqtgraph.InfiniteLine(angle=0, movable=False, pen='r')
+        self.v_Line_2 = pyqtgraph.InfiniteLine(angle=90, movable=False, pen='g')
+        self.h_Line_2 = pyqtgraph.InfiniteLine(angle=0, movable=False, pen='g')
+        self.v_Line.setPos(0)
+        self.h_Line.setPos(0)
+        self.v_Line_1.setPos(0)
+        self.h_Line_1.setPos(0)
+        self.v_Line_2.setPos(0)
+        self.h_Line_2.setPos(0)
+        self.ui.graph_Widget.addItem(self.v_Line, ignoreBounds=False)
+        self.ui.graph_Widget.addItem(self.h_Line, ignoreBounds=False)
+        self.ui.graph_Widget.addItem(self.v_Line_1, ignoreBounds=False)
+        self.ui.graph_Widget.addItem(self.h_Line_1, ignoreBounds=False)
+        self.ui.graph_Widget.addItem(self.v_Line_2, ignoreBounds=False)
+        self.ui.graph_Widget.addItem(self.h_Line_2, ignoreBounds=False)
+
+        # Cursor option defaults
+        self.ui.option_Cursor.setChecked(True)
+        self.cursors_On = self.ui.option_Cursor.isChecked()
+        self.ui.option_Deltas.setChecked(True)
+        self.deltas_On = self.ui.option_Deltas.isChecked()
+
         # Mouse events
         self.proxy = pyqtgraph.SignalProxy(
                                 self.ui.graph_Widget.sceneObj.sigMouseMoved,
                                 rateLimit=60,
                                 slot=self.on_Mouse_Move)
         self.ui.graph_Widget.sceneObj.sigMouseClicked.connect(
-                                                        self.on_Graph_Click)
+                self.on_Graph_Click)
 
         # Connect to the actual device.
         self.my_Pharp = LD_Pharp.LD_Pharp(0)
@@ -191,8 +219,24 @@ class my_Window(QtWidgets.QMainWindow):
         self.ui.graph_Widget.plot(self.x_Data[:last_Full_Bin],
                                   histogram_Data[:last_Full_Bin],
                                   clear=True)
-        self.ui.graph_Widget.addItem(self.v_Line, ignoreBounds=True)
-        self.ui.graph_Widget.addItem(self.h_Line, ignoreBounds=True)
+        # Change the plot limits so that the auto scale doesn't go crazy with
+        # the cursors (if they're on) (plus a little margin so the labels show)
+        x_Limit = self.x_Data[last_Full_Bin] * 1.05
+        y_Limit = histogram_Data.max() * 1.05
+        self.ui.graph_Widget.plotItem.vb.setLimits(xMin=0,
+                                                   yMin=0,
+                                                   xMax=x_Limit,
+                                                   yMax=y_Limit)
+
+        if self.cursors_On:
+            self.ui.graph_Widget.addItem(self.v_Line, ignoreBounds=False)
+            self.ui.graph_Widget.addItem(self.h_Line, ignoreBounds=False)
+        if self.deltas_On:
+            self.ui.graph_Widget.addItem(self.v_Line_1, ignoreBounds=False)
+            self.ui.graph_Widget.addItem(self.h_Line_1, ignoreBounds=False)
+            self.ui.graph_Widget.addItem(self.v_Line_2, ignoreBounds=False)
+            self.ui.graph_Widget.addItem(self.h_Line_2, ignoreBounds=False)
+
         # Remember the last histogram, so it can be saved.
         self.last_Histogram = histogram_Data
         self.last_X_Data = self.x_Data
@@ -216,6 +260,7 @@ class my_Window(QtWidgets.QMainWindow):
         """
         Tell the plot widget to fit the full histogram on the plot.
         """
+        # pyqtgraph has our back on this one!
         self.ui.graph_Widget.plotItem.autoBtnClicked()
 
     def on_Mouse_Move(self, evt):
@@ -230,7 +275,7 @@ class my_Window(QtWidgets.QMainWindow):
         self.h_Line.setPos(coords.y())
 
         self.ui.current_X.setText(f"{coords.x():3E}")
-        self.ui.current_Y.setText(f"{coords.y():3E}")
+        self.ui.current_Y.setText(f"{coords.y():.0f}")
 
     def on_Graph_Click(self, evt):
         """
@@ -245,27 +290,90 @@ class my_Window(QtWidgets.QMainWindow):
 
         if self.first_Click:
             self.first_Click = False
-            print(f"first {coords}")
+            # print(f"first {coords}")
             self.v_Line_1.setPos(coords.x())
             self.h_Line_1.setPos(coords.y())
-            self.ui.graph_Widget.addItem(self.v_Line_1, ignoreBounds=True)
-            self.ui.graph_Widget.addItem(self.h_Line_1, ignoreBounds=True)
+            # self.ui.graph_Widget.addItem(self.v_Line_1, ignoreBounds=False)
+            # self.ui.graph_Widget.addItem(self.h_Line_1, ignoreBounds=False)
             self.ui.click_1_X.setText(f"{coords.x():3E}")
-            self.ui.click_1_Y.setText(f"{coords.y():3E}")
+            self.ui.click_1_Y.setText(f"{coords.y():.0f}")
 
         else:
             self.first_Click = True
-            print(f"second {coords}")
+            # print(f"second {coords}")
             self.v_Line_2.setPos(coords.x())
             self.h_Line_2.setPos(coords.y())
-            self.ui.graph_Widget.addItem(self.v_Line_2, ignoreBounds=True)
-            self.ui.graph_Widget.addItem(self.h_Line_2, ignoreBounds=True)
+            # self.ui.graph_Widget.addItem(self.v_Line_2, ignoreBounds=False)
+            # self.ui.graph_Widget.addItem(self.h_Line_2, ignoreBounds=False)
             self.ui.click_2_X.setText(f"{coords.x():3E}")
-            self.ui.click_2_Y.setText(f"{coords.y():3E}")
+            self.ui.click_2_Y.setText(f"{coords.y():.0f}")
 
         self.ui.delta_X.setText(f"{coords.x() - self.last_Click.x():3E}")
-        self.ui.delta_Y.setText(f"{coords.y() - self.last_Click.y():3E}")
+        self.ui.delta_Y.setText(f"{coords.y() - self.last_Click.y():.0f}")
         self.last_Click = coords
+
+    def on_Cursor_Button(self):
+        """
+        Toggle the live cursor on/off
+        """
+        self.cursors_On = self.ui.option_Cursor.isChecked()
+
+        if self.cursors_On:
+            # Redraw the cursor
+            print("Turn cursor on")
+            self.ui.graph_Widget.addItem(self.v_Line, ignoreBounds=False)
+            self.ui.graph_Widget.addItem(self.h_Line, ignoreBounds=False)
+            pass
+        else:
+            # Remove the cursor
+            print("Turn cursor off")
+            self.ui.graph_Widget.removeItem(self.v_Line)
+            self.ui.graph_Widget.removeItem(self.h_Line)
+            pass
+
+    def on_Deltas_Button(self):
+        """
+        Toggle the (display) of the cursors that appear on mouse clicks for
+        calculating deltas (deltas are still calculated - including new clicks
+        so clicking with deltas off and turning them back on will not re-show
+        the old deltas)
+        """
+        self.deltas_On = self.ui.option_Deltas.isChecked()
+
+        if self.deltas_On:
+            # Redraw the delta cursors
+            print("Turn deltas on")
+            self.ui.graph_Widget.addItem(self.v_Line_1, ignoreBounds=False)
+            self.ui.graph_Widget.addItem(self.h_Line_1, ignoreBounds=False)
+            self.ui.graph_Widget.addItem(self.v_Line_2, ignoreBounds=False)
+            self.ui.graph_Widget.addItem(self.h_Line_2, ignoreBounds=False)
+        else:
+            # Remove the delta cursors
+            print("Turn deltas off")
+            self.ui.graph_Widget.removeItem(self.v_Line_1)
+            self.ui.graph_Widget.removeItem(self.h_Line_1)
+            self.ui.graph_Widget.removeItem(self.v_Line_2)
+            self.ui.graph_Widget.removeItem(self.h_Line_2)
+
+    def on_Clear_Deltas(self):
+        """
+        Get rid of the current displayed deltas cursors without turning off
+        the deltas, also resets.
+        """
+        self.v_Line_1.setPos(0)
+        self.h_Line_1.setPos(0)
+        self.v_Line_2.setPos(0)
+        self.h_Line_2.setPos(0)
+
+        self.ui.click_1_X.setText(f"{0}")
+        self.ui.click_1_Y.setText(f"{0}")
+        self.ui.click_2_X.setText(f"{0}")
+        self.ui.click_2_Y.setText(f"{0}")
+        self.ui.delta_X.setText(f"{0}")
+        self.ui.delta_Y.setText(f"{0}")
+
+        self.last_Click = QtCore.QPoint(0, 0)
+        self.first_Click = True
 
 
 app = QtWidgets.QApplication([])

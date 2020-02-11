@@ -383,12 +383,12 @@
        </widget>
       </item>
       <item row="2" column="1">
-       <widget class="QPushButton" name="button_ClearCursors">
+       <widget class="QPushButton" name="button_ClearDeltas">
         <property name="enabled">
-         <bool>false</bool>
+         <bool>true</bool>
         </property>
         <property name="text">
-         <string>Clear Cursors</string>
+         <string>Clear Deltas</string>
         </property>
        </widget>
       </item>
@@ -402,7 +402,7 @@
       <item row="0" column="0">
        <widget class="QCheckBox" name="option_Cursor">
         <property name="enabled">
-         <bool>false</bool>
+         <bool>true</bool>
         </property>
         <property name="text">
          <string>Enable Cursor</string>
@@ -412,7 +412,7 @@
       <item row="0" column="1">
        <widget class="QCheckBox" name="option_Deltas">
         <property name="enabled">
-         <bool>false</bool>
+         <bool>true</bool>
         </property>
         <property name="text">
          <string>Enable Deltas</string>
