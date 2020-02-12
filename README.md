@@ -30,4 +30,3 @@ Using your favourite technique, install pyqt5, pyqtgraph and numpy.
 - Add support for cumulative histograms (disable ClearHistMem on Picoharp or do it in software?)
 - Disable right click functionality in plot and replicate desired features in the GUI. (repurpose right click for the deltas?)
 - Grey out boxes when they shouldn't be clicked.
-- Add a clear histogram button to GUI

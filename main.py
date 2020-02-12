@@ -18,7 +18,7 @@ import acq_Thread
 from settings_gui import Ui_Settings
 
 import LD_Pharp
-#import LD_Pharp_Dummy as LD_Pharp
+i#mport LD_Pharp_Dummy as LD_Pharp
 
 
 class my_Window(QtWidgets.QMainWindow):
@@ -26,6 +26,12 @@ class my_Window(QtWidgets.QMainWindow):
         super(my_Window, self).__init__()
         self.ui = Ui_Settings()
         self.ui.setupUi(self)
+
+        # Cursor option defaults
+        self.ui.option_Cursor.setChecked(True)
+        self.cursors_On = self.ui.option_Cursor.isChecked()
+        self.ui.option_Deltas.setChecked(True)
+        self.deltas_On = self.ui.option_Deltas.isChecked()
 
         # Connect UI elements to functions
         self.ui.button_ApplySettings.clicked.connect(self.apply_Settings)
@@ -36,6 +42,7 @@ class my_Window(QtWidgets.QMainWindow):
         self.ui.option_Cursor.stateChanged.connect(self.on_Cursor_Button)
         self.ui.option_Deltas.stateChanged.connect(self.on_Deltas_Button)
         self.ui.button_ClearDeltas.clicked.connect(self.on_Clear_Deltas)
+        self.ui.button_ClearHistogram.clicked.connect(self.on_Clear_Histogram)
 
         # Modify the plot window
         self.ui.graph_Widget.plotItem.setLabel("left", "Counts")
@@ -72,18 +79,11 @@ class my_Window(QtWidgets.QMainWindow):
         self.h_Line_1.setPos(0)
         self.v_Line_2.setPos(0)
         self.h_Line_2.setPos(0)
-        self.ui.graph_Widget.addItem(self.v_Line, ignoreBounds=False)
-        self.ui.graph_Widget.addItem(self.h_Line, ignoreBounds=False)
-        self.ui.graph_Widget.addItem(self.v_Line_1, ignoreBounds=False)
-        self.ui.graph_Widget.addItem(self.h_Line_1, ignoreBounds=False)
-        self.ui.graph_Widget.addItem(self.v_Line_2, ignoreBounds=False)
-        self.ui.graph_Widget.addItem(self.h_Line_2, ignoreBounds=False)
 
-        # Cursor option defaults
-        self.ui.option_Cursor.setChecked(True)
-        self.cursors_On = self.ui.option_Cursor.isChecked()
-        self.ui.option_Deltas.setChecked(True)
-        self.deltas_On = self.ui.option_Deltas.isChecked()
+        # Has this program ever collected any data (i.e. the plot is in an
+        # undefined state) - used to plot the cursors so the plot doesn't go
+        # weird in the absence of data.
+        self.no_Data = True
 
         # Mouse events
         self.proxy = pyqtgraph.SignalProxy(
@@ -194,12 +194,16 @@ class my_Window(QtWidgets.QMainWindow):
 
     def start_Stop(self):
         # Switch modes from counting to histogramming.
+        if self.no_Data:
+            self.no_Data = False
+
         if self.acq_Thread.histogram_Active:
             print("Stop histo")
             self.ui.status.setText("Counting")
             self.acq_Thread.histogram_Active = False
         else:
             print("Start histo")
+            self.on_Clear_Histogram()
             self.ui.status.setText("Histogramming")
             self.acq_Thread.histogram_Active = True
 
@@ -228,14 +232,17 @@ class my_Window(QtWidgets.QMainWindow):
                                                    xMax=x_Limit,
                                                    yMax=y_Limit)
 
-        if self.cursors_On:
-            self.ui.graph_Widget.addItem(self.v_Line, ignoreBounds=False)
-            self.ui.graph_Widget.addItem(self.h_Line, ignoreBounds=False)
-        if self.deltas_On:
-            self.ui.graph_Widget.addItem(self.v_Line_1, ignoreBounds=False)
-            self.ui.graph_Widget.addItem(self.h_Line_1, ignoreBounds=False)
-            self.ui.graph_Widget.addItem(self.v_Line_2, ignoreBounds=False)
-            self.ui.graph_Widget.addItem(self.h_Line_2, ignoreBounds=False)
+        if self.no_Data:
+            pass
+        else:
+            if self.cursors_On:
+                self.ui.graph_Widget.addItem(self.v_Line, ignoreBounds=False)
+                self.ui.graph_Widget.addItem(self.h_Line, ignoreBounds=False)
+            if self.deltas_On:
+                self.ui.graph_Widget.addItem(self.v_Line_1, ignoreBounds=False)
+                self.ui.graph_Widget.addItem(self.h_Line_1, ignoreBounds=False)
+                self.ui.graph_Widget.addItem(self.v_Line_2, ignoreBounds=False)
+                self.ui.graph_Widget.addItem(self.h_Line_2, ignoreBounds=False)
 
         # Remember the last histogram, so it can be saved.
         self.last_Histogram = histogram_Data
@@ -262,6 +269,13 @@ class my_Window(QtWidgets.QMainWindow):
         """
         # pyqtgraph has our back on this one!
         self.ui.graph_Widget.plotItem.autoBtnClicked()
+
+    def on_Clear_Histogram(self):
+        """
+        Delete everything in the plot!
+        """
+        # pyqtgraph has our back on this one too.
+        self.ui.graph_Widget.plotItem.clear()
 
     def on_Mouse_Move(self, evt):
         """
