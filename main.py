@@ -18,7 +18,7 @@ import acq_Thread
 from settings_gui import Ui_Settings
 
 import LD_Pharp
-i#mport LD_Pharp_Dummy as LD_Pharp
+#import LD_Pharp_Dummy as LD_Pharp
 
 
 class my_Window(QtWidgets.QMainWindow):
