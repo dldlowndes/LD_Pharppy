@@ -9,9 +9,13 @@ Comments/questions/etc welcome, email me at david@lownd.es
 ## udev
 Add a udev rule for the Picoharp: ACTION=="add", SUBSYSTEM=="usb", ATTRS{idVendor}=="0e0d", ATTRS{idProduct}=="0003", MODE="0666"
 ## Libraries
-In the interest of not sharing code that isn't mine, you'll have to install phlib yourself. Pharppy looks in the default locations from the Picoquant phlib installer ("/usr/local/lib(64)/ph300/phlib.so") or (C:\\(System32/SysWOW64)\\phlib(64).dll)
+In the interest of not sharing code that isn't mine, you'll have to install phlib yourself (https://www.picoquant.com/dl_software/PicoHarp300/PicoHarp300_SW_and_DLL_v3_0_0_3.zip).
+Pharppy looks in the default locations from the Picoquant phlib installer ("/usr/local/lib(64)/ph300/phlib.so") or (C:\\(System32/SysWOW64)\\phlib(64).dll)
 ## Python packages
-Using your favourite technique, install pyqt5, pyqtgraph and numpy.
+Using your favourite technique (pip, anaconda etc), install:
+- pyqt5
+- pyqtgraph
+- numpy
 
 # Running
 - (Linux) Run ./run_Pharpy and after a bit of setup, the gui will appear.
