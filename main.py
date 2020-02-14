@@ -18,7 +18,6 @@ import acq_Thread
 from settings_gui import Ui_Settings
 
 import LD_Pharp
-#import LD_Pharp_Dummy as LD_Pharp
 
 
 class my_Window(QtWidgets.QMainWindow):
@@ -26,6 +25,65 @@ class my_Window(QtWidgets.QMainWindow):
         super(my_Window, self).__init__()
         self.ui = Ui_Settings()
         self.ui.setupUi(self)
+
+        # Has this program ever collected any data (i.e. the plot is in an
+        # undefined state) - used to plot the cursors so the plot doesn't go
+        # weird in the absence of data.
+        self.no_Data = True
+
+        self.Init_Hardware()
+        self.Init_UI()
+        self.Init_Plot()
+
+    def Init_Hardware(self):
+        # Connect to the actual device (or otherwise...)
+        try:
+            self.my_Pharp = LD_Pharp.LD_Pharp(0)
+        except UnboundLocalError as e:
+            print(e)
+            # If the dll can't get a device handle, the program falls over,
+            # Alert the user and give the option to run the barebones simulator
+            # which allows the UI to be explored with some representative data.
+            error_Response = QtGui.QMessageBox.question(
+                    self,
+                    "Error",
+                    "No hardware found! Run in simulation mode?",
+                    QtGui.QMessageBox.Yes | QtGui.QMessageBox.No
+                    )
+            if error_Response == QtGui.QMessageBox.Yes:
+                # Go get the simulator and launch it.
+                import LD_Pharp_Dummy
+                self.my_Pharp = LD_Pharp_Dummy.LD_Pharp()
+            else:
+                # Fall over
+                # TODO: Do this gracefully
+                raise e
+
+        # The resolutions are all 2**n multiples of the base resolution so
+        # get the base resolution from the device and work out all of the
+        # resolutions to display in the dropdown box.
+        self.base_Resolution = self.my_Pharp.base_Resolution
+        self.allowed_Resolutions = [
+                self.base_Resolution * (2**n) for n in range(8)
+                ]
+
+        # Make the worker thread.
+        self.acq_Thread = acq_Thread.Acq_Thread(self.my_Pharp)
+        self.acq_Thread.count_Signal.connect(self.on_Count_Signal)
+        self.acq_Thread.plot_Signal.connect(self.on_Histo_Signal)
+        self.acq_Thread.start()
+
+    def Init_UI(self):
+        # Set up some default settings.
+        for res in self.allowed_Resolutions:
+            self.ui.resolution.addItem(f"{res}")
+        self.ui.resolution.setCurrentText(f"self.base_Resolution")
+
+        self.ui.filename.setText(f"save_filename.csv")
+        self.ui.status.setText("Counting")
+        self.current_Options = {}
+        self.apply_Default_Settings()
+        self.count_Precision = 3
 
         # Cursor option defaults
         self.ui.option_Cursor.setChecked(True)
@@ -44,6 +102,7 @@ class my_Window(QtWidgets.QMainWindow):
         self.ui.button_ClearDeltas.clicked.connect(self.on_Clear_Deltas)
         self.ui.button_ClearHistogram.clicked.connect(self.on_Clear_Histogram)
 
+    def Init_Plot(self):
         # Modify the plot window
         self.ui.graph_Widget.plotItem.setLabel("left", "Counts")
         self.ui.graph_Widget.plotItem.setLabel("bottom", "Time", "s")
@@ -58,6 +117,14 @@ class my_Window(QtWidgets.QMainWindow):
                                                    yMax=1)
         self.ui.graph_Widget.plotItem.plot([0.5, 0.5])
 
+        # Connect mouse events to functions
+        self.proxy = pyqtgraph.SignalProxy(
+                self.ui.graph_Widget.sceneObj.sigMouseMoved,
+                rateLimit=60,
+                slot=self.on_Mouse_Move)
+        self.ui.graph_Widget.sceneObj.sigMouseClicked.connect(
+                self.on_Graph_Click)
+
         # Keep track of which crosshair should move on the next click.
         self.first_Click = True
         # Last click has to be somewhere so just stick it at the origin.
@@ -69,68 +136,26 @@ class my_Window(QtWidgets.QMainWindow):
         # TODO: Must be a more elegant/pythonic way to do this?
         self.v_Line = pyqtgraph.InfiniteLine(angle=90, movable=False)
         self.h_Line = pyqtgraph.InfiniteLine(angle=0, movable=False)
-        self.v_Line_1 = pyqtgraph.InfiniteLine(angle=90, movable=False, pen='r')
-        self.h_Line_1 = pyqtgraph.InfiniteLine(angle=0, movable=False, pen='r')
-        self.v_Line_2 = pyqtgraph.InfiniteLine(angle=90, movable=False, pen='g')
-        self.h_Line_2 = pyqtgraph.InfiniteLine(angle=0, movable=False, pen='g')
+        self.v_Line_1 = pyqtgraph.InfiniteLine(angle=90,
+                                               movable=False,
+                                               pen='r')
+        self.h_Line_1 = pyqtgraph.InfiniteLine(angle=0,
+                                               movable=False,
+                                               pen='r')
+        self.v_Line_2 = pyqtgraph.InfiniteLine(angle=90,
+                                               movable=False,
+                                               pen='g')
+        self.h_Line_2 = pyqtgraph.InfiniteLine(angle=0,
+                                               movable=False,
+                                               pen='g')
+
+        # Unnecessary?
         self.v_Line.setPos(0)
         self.h_Line.setPos(0)
         self.v_Line_1.setPos(0)
         self.h_Line_1.setPos(0)
         self.v_Line_2.setPos(0)
         self.h_Line_2.setPos(0)
-
-        # Has this program ever collected any data (i.e. the plot is in an
-        # undefined state) - used to plot the cursors so the plot doesn't go
-        # weird in the absence of data.
-        self.no_Data = True
-
-        # Mouse events
-        self.proxy = pyqtgraph.SignalProxy(
-                                self.ui.graph_Widget.sceneObj.sigMouseMoved,
-                                rateLimit=60,
-                                slot=self.on_Mouse_Move)
-        self.ui.graph_Widget.sceneObj.sigMouseClicked.connect(
-                self.on_Graph_Click)
-
-        # Connect to the actual device.
-        try:
-            self.my_Pharp = LD_Pharp.LD_Pharp(0)
-        except UnboundLocalError as e:
-            error_Response = QtGui.QMessageBox.question(
-                    self,
-                    "Error",
-                    "No hardware found! Run in simulation mode?",
-                    QtGui.QMessageBox.Yes | QtGui.QMessageBox.No
-                    )
-            if error_Response == QtGui.QMessageBox.Yes:
-                import LD_Pharp_Dummy
-                self.my_Pharp = LD_Pharp_Dummy.LD_Pharp()
-            else:
-                raise e
-
-        # The resolutions are all 2**n multiples of the base resolution so
-        # get the base resolution from the device and work out all of the
-        # resolutions to display in the dropdown box.
-        self.base_Resolution = self.my_Pharp.base_Resolution
-        allowed_Resolutions = [self.base_Resolution * (2**n) for n in range(8)]
-        for i, res in enumerate(allowed_Resolutions):
-            self.ui.resolution.addItem(f"{res}")
-        self.ui.resolution.setCurrentText(f"self.base_Resolution")
-
-        # Set up some default settings.
-        self.ui.filename.setText(f"save_filename.csv")
-        self.histogram_Running = False
-        self.ui.status.setText("Counting")
-        self.current_Options = {}
-        self.apply_Default_Settings()
-        self.count_Precision = 3
-
-        # Make the worker thread.
-        self.acq_Thread = acq_Thread.Acq_Thread(self.my_Pharp)
-        self.acq_Thread.count_Signal.connect(self.on_Count_Signal)
-        self.acq_Thread.plot_Signal.connect(self.on_Histo_Signal)
-        self.acq_Thread.start()
 
     def apply_Settings(self):
         """
@@ -140,7 +165,7 @@ class my_Window(QtWidgets.QMainWindow):
         # Hardware complains if you push settings while histogram is running,
         # it might lead to it ending up in an undefined state so just forbid
         # sending settings while the histogram is running
-        if self.histogram_Running:
+        if self.acq_Thread.histogram_Active:
             print("Settings not pushed, histogram is running")
         else:
             # Translate desired resolution to a "binning" number. Binning
@@ -267,7 +292,7 @@ class my_Window(QtWidgets.QMainWindow):
         self.ui.graph_Widget.addItem(self.v_Line_2, ignoreBounds=False)
         self.ui.graph_Widget.addItem(self.h_Line_2, ignoreBounds=False)
 
-    def Remove_Cursors():
+    def Remove_Cursors(self):
         self.ui.graph_Widget.removeItem(self.v_Line)
         self.ui.graph_Widget.removeItem(self.h_Line)
 
