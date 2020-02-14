@@ -34,4 +34,3 @@ Using your favourite technique (pip, anaconda etc), install:
 - Add support for cumulative histograms (disable ClearHistMem on Picoharp or do it in software?)
 - Disable right click functionality in plot and replicate desired features in the GUI. (repurpose right click for the deltas?)
 - Grey out boxes when they shouldn't be clicked.
-- Option to simulate data rather than commenting in/out some imports with is a bit clumsy.

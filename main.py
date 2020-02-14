@@ -11,7 +11,7 @@ Requires: Python 3.7+, Numpy, PyQt5, PyQtGraph.
 import sys
 
 import numpy as np
-from PyQt5 import QtWidgets, QtCore
+from PyQt5 import QtWidgets, QtCore, QtGui
 import pyqtgraph
 
 import acq_Thread
@@ -94,7 +94,20 @@ class my_Window(QtWidgets.QMainWindow):
                 self.on_Graph_Click)
 
         # Connect to the actual device.
-        self.my_Pharp = LD_Pharp.LD_Pharp(0)
+        try:
+            self.my_Pharp = LD_Pharp.LD_Pharp(0)
+        except UnboundLocalError as e:
+            error_Response = QtGui.QMessageBox.question(
+                    self,
+                    "Error",
+                    "No hardware found! Run in simulation mode?",
+                    QtGui.QMessageBox.Yes | QtGui.QMessageBox.No
+                    )
+            if error_Response == QtGui.QMessageBox.Yes:
+                import LD_Pharp_Dummy
+                self.my_Pharp = LD_Pharp_Dummy.LD_Pharp()
+            else:
+                raise e
 
         # The resolutions are all 2**n multiples of the base resolution so
         # get the base resolution from the device and work out all of the
@@ -236,17 +249,33 @@ class my_Window(QtWidgets.QMainWindow):
             pass
         else:
             if self.cursors_On:
-                self.ui.graph_Widget.addItem(self.v_Line, ignoreBounds=False)
-                self.ui.graph_Widget.addItem(self.h_Line, ignoreBounds=False)
+                self.Draw_Cursors()
             if self.deltas_On:
-                self.ui.graph_Widget.addItem(self.v_Line_1, ignoreBounds=False)
-                self.ui.graph_Widget.addItem(self.h_Line_1, ignoreBounds=False)
-                self.ui.graph_Widget.addItem(self.v_Line_2, ignoreBounds=False)
-                self.ui.graph_Widget.addItem(self.h_Line_2, ignoreBounds=False)
+                self.Draw_Deltas()
 
         # Remember the last histogram, so it can be saved.
         self.last_Histogram = histogram_Data
         self.last_X_Data = self.x_Data
+
+    def Draw_Cursors(self):
+        self.ui.graph_Widget.addItem(self.v_Line, ignoreBounds=False)
+        self.ui.graph_Widget.addItem(self.h_Line, ignoreBounds=False)
+
+    def Draw_Deltas(self):
+        self.ui.graph_Widget.addItem(self.v_Line_1, ignoreBounds=False)
+        self.ui.graph_Widget.addItem(self.h_Line_1, ignoreBounds=False)
+        self.ui.graph_Widget.addItem(self.v_Line_2, ignoreBounds=False)
+        self.ui.graph_Widget.addItem(self.h_Line_2, ignoreBounds=False)
+
+    def Remove_Cursors():
+        self.ui.graph_Widget.removeItem(self.v_Line)
+        self.ui.graph_Widget.removeItem(self.h_Line)
+
+    def Remove_Deltas(self):
+        self.ui.graph_Widget.removeItem(self.v_Line_1)
+        self.ui.graph_Widget.removeItem(self.h_Line_1)
+        self.ui.graph_Widget.removeItem(self.v_Line_2)
+        self.ui.graph_Widget.removeItem(self.h_Line_2)
 
     def on_Save_Histo(self):
         """
@@ -307,8 +336,6 @@ class my_Window(QtWidgets.QMainWindow):
             # print(f"first {coords}")
             self.v_Line_1.setPos(coords.x())
             self.h_Line_1.setPos(coords.y())
-            # self.ui.graph_Widget.addItem(self.v_Line_1, ignoreBounds=False)
-            # self.ui.graph_Widget.addItem(self.h_Line_1, ignoreBounds=False)
             self.ui.click_1_X.setText(f"{coords.x():3E}")
             self.ui.click_1_Y.setText(f"{coords.y():.0f}")
 
@@ -317,8 +344,6 @@ class my_Window(QtWidgets.QMainWindow):
             # print(f"second {coords}")
             self.v_Line_2.setPos(coords.x())
             self.h_Line_2.setPos(coords.y())
-            # self.ui.graph_Widget.addItem(self.v_Line_2, ignoreBounds=False)
-            # self.ui.graph_Widget.addItem(self.h_Line_2, ignoreBounds=False)
             self.ui.click_2_X.setText(f"{coords.x():3E}")
             self.ui.click_2_Y.setText(f"{coords.y():.0f}")
 
@@ -335,14 +360,12 @@ class my_Window(QtWidgets.QMainWindow):
         if self.cursors_On:
             # Redraw the cursor
             print("Turn cursor on")
-            self.ui.graph_Widget.addItem(self.v_Line, ignoreBounds=False)
-            self.ui.graph_Widget.addItem(self.h_Line, ignoreBounds=False)
+            self.Draw_Cursors()
             pass
         else:
             # Remove the cursor
             print("Turn cursor off")
-            self.ui.graph_Widget.removeItem(self.v_Line)
-            self.ui.graph_Widget.removeItem(self.h_Line)
+            self.Remove_Cursors()
             pass
 
     def on_Deltas_Button(self):
@@ -357,17 +380,11 @@ class my_Window(QtWidgets.QMainWindow):
         if self.deltas_On:
             # Redraw the delta cursors
             print("Turn deltas on")
-            self.ui.graph_Widget.addItem(self.v_Line_1, ignoreBounds=False)
-            self.ui.graph_Widget.addItem(self.h_Line_1, ignoreBounds=False)
-            self.ui.graph_Widget.addItem(self.v_Line_2, ignoreBounds=False)
-            self.ui.graph_Widget.addItem(self.h_Line_2, ignoreBounds=False)
+            self.Draw_Deltas()
         else:
             # Remove the delta cursors
             print("Turn deltas off")
-            self.ui.graph_Widget.removeItem(self.v_Line_1)
-            self.ui.graph_Widget.removeItem(self.h_Line_1)
-            self.ui.graph_Widget.removeItem(self.v_Line_2)
-            self.ui.graph_Widget.removeItem(self.h_Line_2)
+            self.Remove_Deltas()
 
     def on_Clear_Deltas(self):
         """
