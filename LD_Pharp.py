@@ -3,6 +3,8 @@ Uses LD_PharpDLL to make an interface to the Picoharp300's histogramming
 mode for humans to use.
 """
 
+import logging
+
 import LD_PharpDLL
 
 # Dunno what to do with this right now but it's in the source code now
@@ -106,7 +108,9 @@ errcodes_h = {
 
 class LD_Pharp:
     def __init__(self, device_Number=0):
-        # TODO: Probably use a better library than matplotlib for plotting.
+
+        self.logger = logging.getLogger("PHarp.Hardware")
+        logging.basicConfig(level=logging.DEBUG)
 
         """
         Binning:
@@ -154,17 +158,17 @@ class LD_Pharp:
         # work on Windows so for now it's hard coded.
         # TODO: Fix base resolution on Windows.
         self.base_Resolution = 4.0  # picoseconds
-        print(f"Base Resolution is {self.base_Resolution}ps")
+        self.logger.debug(f"Base Resolution is {self.base_Resolution}ps")
         # Also read the resolution the Picoharp thinks it has (considering
         # also the binning)
         self.resolution = self.my_PharpDLL.Get_Resolution()
-        print(f"Resolution is {self.resolution}")
+        self.logger.debug(f"Resolution is {self.resolution}")
 
         # Pass dictionary as kwargs
         self.Update_Settings(**self._default_Options)
 
     def __del__(self):
-        print(f"Bye")
+        self.logger.debug(f"Bye")
         self.my_PharpDLL.Close()
 
     def Update_Settings(self, sync_Divider, sync_Offset, CFD0_Level,
@@ -199,11 +203,11 @@ class LD_Pharp:
         self.my_PharpDLL.Set_SyncOffset(self.options["sync_Offset"])
         # Figure out the resolution that is implied by the requested binning.
         new_Resolution = self.base_Resolution * (2 ** self.options["binning"])
-        print(f"Asked for resolution {new_Resolution}")
+        self.logger.debug(f"Asked for resolution {new_Resolution}")
         # Check that the resolution requested is the same as the resolution
         # the Picoharp thinks it's providing.
         self.resolution = self.my_PharpDLL.Get_Resolution()
-        print(f"New resolution is {self.resolution}")
+        self.logger.debug(f"New resolution is {self.resolution}")
 
     def Get_CountRate(self):
         """

@@ -11,7 +11,7 @@ import time
 class LD_Pharp:
     def __init__(self, device_Number=0):
         self.logger = logging.getLogger("PHarp")
-        self.logger.setLevel(logging.INFO)
+        logging.basicConfig(level=logging.DEBUG)
 
         """
         Binning:

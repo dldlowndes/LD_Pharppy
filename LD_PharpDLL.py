@@ -27,8 +27,8 @@ class LD_PharpDLL:
         multiple versions of this with different device numbers set.
         """
 
-        self.logger = logging.getLogger("PHarp")
-        self.logger.setLevel(logging.INFO)
+        self.logger = logging.getLogger("PHarp.Hardware.DLL")
+        logging.basicConfig(level=logging.DEBUG)
 
         os_Name = platform.system()
         arch = platform.architecture()[0]

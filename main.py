@@ -24,7 +24,7 @@ import LD_Pharp
 class my_Window(QtWidgets.QMainWindow):
     def __init__(self):
         self.logger = logging.getLogger("PHarp")
-        self.logger.setLevel(logging.WARNING)
+        logging.basicConfig(level=logging.DEBUG)
 
         super(my_Window, self).__init__()
         self.ui = Ui_Settings()
@@ -44,7 +44,7 @@ class my_Window(QtWidgets.QMainWindow):
         try:
             self.my_Pharp = LD_Pharp.LD_Pharp(0)
         except UnboundLocalError as e:
-            print(e)
+            self.logger.warn(e)
             # If the dll can't get a device handle, the program falls over,
             # Alert the user and give the option to run the barebones simulator
             # which allows the UI to be explored with some representative data.
@@ -241,12 +241,10 @@ class my_Window(QtWidgets.QMainWindow):
             self.no_Data = False
 
         if self.acq_Thread.histogram_Active:
-            #print("Stop histo")
             self.logger.info("Stop histogramming")
             self.ui.status.setText("Counting")
             self.acq_Thread.histogram_Active = False
         else:
-            #print("Start histo")
             self.logger.info("Start histogramming")
             self.on_Clear_Histogram()
             self.ui.status.setText("Histogramming")
@@ -395,13 +393,11 @@ class my_Window(QtWidgets.QMainWindow):
 
         if self.cursors_On:
             # Redraw the cursor
-            #print("Turn cursor on")
             self.logger.info("Turn cursor on")
             self.Draw_Cursors()
             pass
         else:
             # Remove the cursor
-            #print("Turn cursor off")
             self.logger.info("Turn cursor off")
             self.Remove_Cursors()
             pass
@@ -417,12 +413,10 @@ class my_Window(QtWidgets.QMainWindow):
 
         if self.deltas_On:
             # Redraw the delta cursors
-            #print("Turn deltas on")
             self.logger.info("Turn deltas on")
             self.Draw_Deltas()
         else:
             # Remove the delta cursors
-            #print("Turn deltas off")
             self.logger.info("Turn deltas off")
             self.Remove_Deltas()
 
