@@ -8,6 +8,7 @@ are welcome - email david@lownd.es or through github.com/dldlowndes/LD_Pharppy)
 Requires: Python 3.7+, Numpy, PyQt5, PyQtGraph.
 """
 
+import logging
 import sys
 
 import numpy as np
@@ -22,6 +23,9 @@ import LD_Pharp
 
 class my_Window(QtWidgets.QMainWindow):
     def __init__(self):
+        self.logger = logging.getLogger("PHarp")
+        self.logger.setLevel(logging.WARNING)
+
         super(my_Window, self).__init__()
         self.ui = Ui_Settings()
         self.ui.setupUi(self)
@@ -166,7 +170,7 @@ class my_Window(QtWidgets.QMainWindow):
         # it might lead to it ending up in an undefined state so just forbid
         # sending settings while the histogram is running
         if self.acq_Thread.histogram_Active:
-            print("Settings not pushed, histogram is running")
+            self.logger.warning("Histogram running, settings not pushed")
         else:
             # Translate desired resolution to a "binning" number. Binning
             # combines histogram bins to reduce the histogram resolution.
@@ -184,7 +188,7 @@ class my_Window(QtWidgets.QMainWindow):
                     "acq_Time": int(self.ui.acq_Time.value())
                     }
 
-            print(options)
+            self.logger.info(f"Push settings\n {options}")
             self.my_Pharp.Update_Settings(**options)
 
             # Remember the settings that were last pushed.
@@ -228,6 +232,7 @@ class my_Window(QtWidgets.QMainWindow):
         self.ui.CFD1_Zerocross.setValue(default_Options["CFD1_ZeroCross"])
         self.ui.acq_Time.setValue(default_Options["acq_Time"])
 
+        self.logger.info("Reset settings to defaults")
         self.apply_Settings()
 
     def start_Stop(self):
@@ -236,11 +241,13 @@ class my_Window(QtWidgets.QMainWindow):
             self.no_Data = False
 
         if self.acq_Thread.histogram_Active:
-            print("Stop histo")
+            #print("Stop histo")
+            self.logger.info("Stop histogramming")
             self.ui.status.setText("Counting")
             self.acq_Thread.histogram_Active = False
         else:
-            print("Start histo")
+            #print("Start histo")
+            self.logger.info("Start histogramming")
             self.on_Clear_Histogram()
             self.ui.status.setText("Histogramming")
             self.acq_Thread.histogram_Active = True
@@ -322,6 +329,7 @@ class my_Window(QtWidgets.QMainWindow):
         Tell the plot widget to fit the full histogram on the plot.
         """
         # pyqtgraph has our back on this one!
+        self.logger.debug("Auto range histogram")
         self.ui.graph_Widget.plotItem.autoBtnClicked()
 
     def on_Clear_Histogram(self):
@@ -329,6 +337,7 @@ class my_Window(QtWidgets.QMainWindow):
         Delete everything in the plot!
         """
         # pyqtgraph has our back on this one too.
+        self.logger.debug("Clear histogram")
         self.ui.graph_Widget.plotItem.clear()
 
     def on_Mouse_Move(self, evt):
@@ -359,6 +368,7 @@ class my_Window(QtWidgets.QMainWindow):
         if self.first_Click:
             self.first_Click = False
             # print(f"first {coords}")
+            self.logger.debug(f"First click at {coords}")
             self.v_Line_1.setPos(coords.x())
             self.h_Line_1.setPos(coords.y())
             self.ui.click_1_X.setText(f"{coords.x():3E}")
@@ -367,6 +377,7 @@ class my_Window(QtWidgets.QMainWindow):
         else:
             self.first_Click = True
             # print(f"second {coords}")
+            self.logger.debug(f"Second click at {coords}")
             self.v_Line_2.setPos(coords.x())
             self.h_Line_2.setPos(coords.y())
             self.ui.click_2_X.setText(f"{coords.x():3E}")
@@ -384,12 +395,14 @@ class my_Window(QtWidgets.QMainWindow):
 
         if self.cursors_On:
             # Redraw the cursor
-            print("Turn cursor on")
+            #print("Turn cursor on")
+            self.logger.info("Turn cursor on")
             self.Draw_Cursors()
             pass
         else:
             # Remove the cursor
-            print("Turn cursor off")
+            #print("Turn cursor off")
+            self.logger.info("Turn cursor off")
             self.Remove_Cursors()
             pass
 
@@ -404,11 +417,13 @@ class my_Window(QtWidgets.QMainWindow):
 
         if self.deltas_On:
             # Redraw the delta cursors
-            print("Turn deltas on")
+            #print("Turn deltas on")
+            self.logger.info("Turn deltas on")
             self.Draw_Deltas()
         else:
             # Remove the delta cursors
-            print("Turn deltas off")
+            #print("Turn deltas off")
+            self.logger.info("Turn deltas off")
             self.Remove_Deltas()
 
     def on_Clear_Deltas(self):

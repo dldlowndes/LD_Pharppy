@@ -3,13 +3,15 @@ Uses LD_PharpDLL to make an interface to the Picoharp300's histogramming
 mode for humans to use.
 """
 
+import logging
 import numpy as np
 import scipy.signal
 import time
 
 class LD_Pharp:
     def __init__(self, device_Number=0):
-        # TODO: Probably use a better library than matplotlib for plotting.
+        self.logger = logging.getLogger("PHarp")
+        self.logger.setLevel(logging.INFO)
 
         """
         Binning:
@@ -27,6 +29,7 @@ class LD_Pharp:
             Zerocross and discriminator level for channels 0 and 1
 
         """
+
         self._default_Options = {
                 "binning": 0,
                 "sync_Offset": 0,
@@ -45,7 +48,7 @@ class LD_Pharp:
         self.options = self._default_Options
 
     def __del__(self):
-        print(f"Bye")
+        self.logger.debug(f"Bye")
 
     def Update_Settings(self, sync_Divider, sync_Offset, CFD0_Level,
                         CFD0_ZeroCross, CFD1_Level, CFD1_ZeroCross, binning,
@@ -70,11 +73,11 @@ class LD_Pharp:
         self.options = new_Options
 
         new_Resolution = self.base_Resolution * (2 ** self.options["binning"])
-        print(f"Asked for resolution {new_Resolution}")
+        self.logger.debug(f"Asked for resolution {new_Resolution}")
         # Check that the resolution requested is the same as the resolution
         # the Picoharp thinks it's providing.
         self.resolution = new_Resolution
-        print(f"New resolution is {self.resolution}")
+        self.logger.debug(f"New resolution is {self.resolution}")
 
     def Get_CountRate(self):
         """

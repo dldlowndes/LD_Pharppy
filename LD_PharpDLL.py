@@ -5,6 +5,7 @@ friendly and actually does stuff.
 """
 
 import ctypes
+import logging
 import os
 import platform
 import time
@@ -26,9 +27,12 @@ class LD_PharpDLL:
         multiple versions of this with different device numbers set.
         """
 
+        self.logger = logging.getLogger("PHarp")
+        self.logger.setLevel(logging.INFO)
+
         os_Name = platform.system()
         arch = platform.architecture()[0]
-        print(f"Detected {os_Name}, {arch}")
+        self.logger.info(f"Detected {os_Name}, {arch}")
 
         if os_Name == "Linux":
             if arch == "64bit":
@@ -56,7 +60,7 @@ class LD_PharpDLL:
         if return_Code == 0:
             device_Number = self.device_Number_ct.value
             hwSerial = hwSerial_ct.value.decode("utf-8")
-            print(f"Connected to device {device_Number}, serial: {hwSerial}")
+            self.logger.info(f"Connected to device {device_Number}, serial: {hwSerial}")
         else:
             self.ProcessReturnCode(return_Code)
 
@@ -88,7 +92,7 @@ class LD_PharpDLL:
         extern int _stdcall PH_Calibrate(int devidx);
         """
 
-        print("Calibrate")
+        self.logger.info("Calibrate")
         return_Code = self.phlib.PH_Calibrate(self.device_Number_ct)
         return self.ProcessReturnCode(return_Code)
 
@@ -98,7 +102,7 @@ class LD_PharpDLL:
         """
         return_Code = self.phlib.PH_StartMeas(self.device_Number_ct,
                                               ctypes.c_int(tacq))
-        print(f"Measuring for {tacq}ms")
+        self.logger.debug(f"Measuring for {tacq}ms")
         return self.ProcessReturnCode(return_Code)
 
     def Stop(self):
@@ -107,7 +111,7 @@ class LD_PharpDLL:
         """
 
         return_Code = self.phlib.PH_StopMeas(self.device_Number_ct)
-        print(f"Stopped")
+        self.logger.debug(f"Stopped")
         return self.ProcessReturnCode(return_Code)
 
 #    def Read_FIFO(self):
@@ -200,7 +204,7 @@ class LD_PharpDLL:
         self.phlib.PH_GetErrorString(errorString_ct, ctypes.c_int(return_Code))
         error_String = errorString_ct.value.decode("utf-8")
 
-        print(f"Return code {return_Code} is {error_String}")
+        self.logger.warning(f"Return code {return_Code} is {error_String}")
         return error_String
 
     def Get_Features(self):
@@ -246,7 +250,7 @@ class LD_PharpDLL:
             hw_Part = hwPartno_ct.value.decode("utf-8")
             hw_Vers = hwVersion_ct.value.decode("utf-8")
 
-            print(f"Found model: {hw_Model}, part: {hw_Part}, ver: {hw_Vers}")
+            self.logger.info(f"Found model: {hw_Model}, part: {hw_Part}, ver: {hw_Vers}")
         self.ProcessReturnCode(return_Code)
 
         return {"model": hw_Model,
@@ -278,7 +282,7 @@ class LD_PharpDLL:
         self.phlib.PH_GetLibraryVersion(libVersion_ct)
         lib_Version = libVersion_ct.value.decode("utf-8")
 
-        print(f"Library version is {lib_Version}")
+        self.logger.info(f"Library version is {lib_Version}")
         return lib_Version
 
     def Get_Resolution(self):
@@ -329,7 +333,7 @@ class LD_PharpDLL:
         extern int _stdcall PH_SetBinning(int devidx, int binning);
         """
 
-        print("Set binning")
+        self.logger.debug("Set binning")
         return_Code = self.phlib.PH_SetBinning(self.device_Number_ct,
                                                ctypes.c_int(binning))
         return self.ProcessReturnCode(return_Code)
@@ -340,12 +344,12 @@ class LD_PharpDLL:
         extern int _stdcall PH_SetInputCFD(int devidx, int channel, int level,
         int zc);
         """
-        print("Set Input CFD channel 0")
+        self.logger.debug("Set Input CFD channel 0")
         return_Code0 = self.phlib.PH_SetInputCFD(self.device_Number_ct,
                                                  ctypes.c_int(0),
                                                  ctypes.c_int(cfd0_level),
                                                  ctypes.c_int(cfd0_zerocross))
-        print("Set Input CFD channel 1")
+        self.logger.debug("Set Input CFD channel 1")
         return_Code1 = self.phlib.PH_SetInputCFD(self.device_Number_ct,
                                                  ctypes.c_int(1),
                                                  ctypes.c_int(cfd1_level),
@@ -429,7 +433,7 @@ class LD_PharpDLL:
         extern int _stdcall PH_SetSyncDiv(int devidx, int div);
         """
 
-        print("Set Sync Divider")
+        self.logger.debug("Set Sync Divider")
         return_Code = self.phlib.PH_SetSyncDiv(self.device_Number_ct,
                                                ctypes.c_int(sync_Divider))
 
@@ -444,7 +448,7 @@ class LD_PharpDLL:
         extern int _stdcall PH_SetSyncOffset(int devidx, int syncoffset);
         """
 
-        print("Set Ch0 Offset")
+        self.logger.debug("Set Ch0 Offset")
         return_Code = self.phlib.PH_SetOffset(self.device_Number_ct,
                                               ctypes.c_int(sync_Offset))
         return self.ProcessReturnCode(return_Code)
