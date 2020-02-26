@@ -34,3 +34,4 @@ Using your favourite technique (pip, anaconda etc), install:
 - Add support for cumulative histograms (disable ClearHistMem on Picoharp or do it in software?)
 - Disable right click functionality in plot and replicate desired features in the GUI. (repurpose right click for the deltas?)
 - Grey out boxes when they shouldn't be clicked.
+- Detect multiple Picoharps and prompt for choice of which one to connect to. Will this allow for multiple instances of this program to run?

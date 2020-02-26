@@ -437,6 +437,7 @@ class my_Window(QtWidgets.QMainWindow):
         Get rid of the current displayed deltas cursors without turning off
         the deltas, also resets.
         """
+        self.logger.info("Clear deltas")
         self.v_Line_1.setPos(0)
         self.h_Line_1.setPos(0)
         self.v_Line_2.setPos(0)
