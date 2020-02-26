@@ -39,12 +39,14 @@ class my_Window(QtWidgets.QMainWindow):
         self.Init_UI()
         self.Init_Plot()
 
+        self.apply_Default_Settings()
+
     def Init_Hardware(self):
         # Connect to the actual device (or otherwise...)
         try:
             self.my_Pharp = LD_Pharp.LD_Pharp(0)
         except UnboundLocalError as e:
-            self.logger.warn(e)
+            self.logger.warning(e)
             # If the dll can't get a device handle, the program falls over,
             # Alert the user and give the option to run the barebones simulator
             # which allows the UI to be explored with some representative data.
@@ -107,6 +109,9 @@ class my_Window(QtWidgets.QMainWindow):
         self.ui.button_ClearHistogram.clicked.connect(self.on_Clear_Histogram)
 
     def Init_Plot(self):
+        # Initialize storage.
+        self.last_Histogram = np.zeros(65536)
+
         # Modify the plot window
         self.ui.graph_Widget.plotItem.setLabel("left", "Counts")
         self.ui.graph_Widget.plotItem.setLabel("bottom", "Time", "s")
@@ -312,15 +317,22 @@ class my_Window(QtWidgets.QMainWindow):
         This actually still works when histogramming is running but obviously
         there won't be certainty as to exactly what the histogram looks like.
         """
+        # Read the filename box from the UI.
         filename = self.ui.filename.text()
 
-        # Zip the bins and counts together for export.
-        hist_Out = np.column_stack((self.last_X_Data, self.last_Histogram))
+        # Zip the bins and counts together into a structured array so the
+        # bins get output as floats and the counts as ints.
+        my_Type = [("Bin", np.float), ("Count", np.int)]
+        out_Histo = np.empty(self.last_Histogram.shape, dtype=my_Type)
+        out_Histo["Bin"] = self.last_X_Data
+        out_Histo["Count"] = self.last_Histogram
 
         np.savetxt(filename,
-                   hist_Out,
-                   delimiter=", "
+                   out_Histo,
+                   delimiter=", ",
+                   fmt="%1.6e,%8i",
                    )
+        self.logger.info(f"Histogram saved as {filename}")
 
     def on_Auto_Range(self):
         """

@@ -102,6 +102,8 @@ class LD_Pharp:
 
         final = gaussian + noise
 
+        final = np.pad(final, (0, 65536-25000), "constant", constant_values=0)
+
         time.sleep(self.options["acq_Time"] / 1000)
 
         return final
