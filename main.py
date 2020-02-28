@@ -8,6 +8,9 @@ are welcome - email david@lownd.es or through github.com/dldlowndes/LD_Pharppy)
 Requires: Python 3.7+, Numpy, PyQt5, PyQtGraph.
 """
 
+# pylint: disable=C0103
+# pylint: disable=R0902
+
 import logging
 import sys
 
@@ -21,12 +24,15 @@ from settings_gui import Ui_Settings
 import LD_Pharp
 
 
-class my_Window(QtWidgets.QMainWindow):
+class MyWindow(QtWidgets.QMainWindow):
+    """
+    Window for the UI for the Picoharp program.
+    """
     def __init__(self):
         self.logger = logging.getLogger("PHarp")
         logging.basicConfig(level=logging.DEBUG)
 
-        super(my_Window, self).__init__()
+        super(MyWindow, self).__init__()
         self.ui = Ui_Settings()
         self.ui.setupUi(self)
 
@@ -42,7 +48,10 @@ class my_Window(QtWidgets.QMainWindow):
         self.apply_Default_Settings()
 
     def Init_Hardware(self):
-        # Connect to the actual device (or otherwise...)
+        """
+        Connect to the actual device (or otherwise...)
+        """
+
         try:
             self.my_Pharp = LD_Pharp.LD_Pharp(0)
         except UnboundLocalError as e:
@@ -51,11 +60,11 @@ class my_Window(QtWidgets.QMainWindow):
             # Alert the user and give the option to run the barebones simulator
             # which allows the UI to be explored with some representative data.
             error_Response = QtGui.QMessageBox.question(
-                    self,
-                    "Error",
-                    "No hardware found! Run in simulation mode?",
-                    QtGui.QMessageBox.Yes | QtGui.QMessageBox.No
-                    )
+                self,
+                "Error",
+                "No hardware found! Run in simulation mode?",
+                QtGui.QMessageBox.Yes | QtGui.QMessageBox.No
+                )
             if error_Response == QtGui.QMessageBox.Yes:
                 # Go get the simulator and launch it.
                 import LD_Pharp_Dummy
@@ -70,8 +79,8 @@ class my_Window(QtWidgets.QMainWindow):
         # resolutions to display in the dropdown box.
         self.base_Resolution = self.my_Pharp.base_Resolution
         self.allowed_Resolutions = [
-                self.base_Resolution * (2**n) for n in range(8)
-                ]
+            self.base_Resolution * (2**n) for n in range(8)
+            ]
 
         # Make the worker thread.
         self.acq_Thread = acq_Thread.Acq_Thread(self.my_Pharp)
@@ -80,7 +89,11 @@ class my_Window(QtWidgets.QMainWindow):
         self.acq_Thread.start()
 
     def Init_UI(self):
-        # Set up some default settings.
+        """
+        Populate the UI with default settings and connect the buttons
+        to functions.
+        """
+
         for res in self.allowed_Resolutions:
             self.ui.resolution.addItem(f"{res}")
         self.ui.resolution.setCurrentText(f"self.base_Resolution")
@@ -109,7 +122,10 @@ class my_Window(QtWidgets.QMainWindow):
         self.ui.button_ClearHistogram.clicked.connect(self.on_Clear_Histogram)
 
     def Init_Plot(self):
-        # Initialize storage.
+        """
+        Init the plot widget and containers relating so it.
+        """
+
         self.last_Histogram = np.zeros(65536)
 
         # Modify the plot window
@@ -128,11 +144,13 @@ class my_Window(QtWidgets.QMainWindow):
 
         # Connect mouse events to functions
         self.proxy = pyqtgraph.SignalProxy(
-                self.ui.graph_Widget.sceneObj.sigMouseMoved,
-                rateLimit=60,
-                slot=self.on_Mouse_Move)
+            self.ui.graph_Widget.sceneObj.sigMouseMoved,
+            rateLimit=60,
+            slot=self.on_Mouse_Move
+            )
         self.ui.graph_Widget.sceneObj.sigMouseClicked.connect(
-                self.on_Graph_Click)
+            self.on_Graph_Click
+            )
 
         # Keep track of which crosshair should move on the next click.
         self.first_Click = True
@@ -183,15 +201,15 @@ class my_Window(QtWidgets.QMainWindow):
             binning = np.log2(float(resolution_Req) / self.base_Resolution)
 
             options = {
-                    "binning": int(binning),
-                    "sync_Offset": int(self.ui.sync_Offset.value()),
-                    "sync_Divider": int(self.ui.sync_Divider.currentText()),
-                    "CFD0_ZeroCross": int(self.ui.CFD0_Zerocross.value()),
-                    "CFD0_Level": int(self.ui.CFD0_Level.value()),
-                    "CFD1_ZeroCross": int(self.ui.CFD1_Zerocross.value()),
-                    "CFD1_Level": int(self.ui.CFD1_Level.value()),
-                    "acq_Time": int(self.ui.acq_Time.value())
-                    }
+                "binning": int(binning),
+                "sync_Offset": int(self.ui.sync_Offset.value()),
+                "sync_Divider": int(self.ui.sync_Divider.currentText()),
+                "CFD0_ZeroCross": int(self.ui.CFD0_Zerocross.value()),
+                "CFD0_Level": int(self.ui.CFD0_Level.value()),
+                "CFD1_ZeroCross": int(self.ui.CFD1_Zerocross.value()),
+                "CFD1_Level": int(self.ui.CFD1_Level.value()),
+                "acq_Time": int(self.ui.acq_Time.value())
+                }
 
             self.logger.info(f"Push settings\n {options}")
             self.my_Pharp.Update_Settings(**options)
@@ -214,15 +232,15 @@ class my_Window(QtWidgets.QMainWindow):
         defaults and then calls the function that reads them and pushes.
         """
         default_Options = {
-                "binning": 0,
-                "sync_Offset": 0,
-                "sync_Divider": 1,
-                "CFD0_ZeroCross": 10,
-                "CFD0_Level": 50,
-                "CFD1_ZeroCross": 10,
-                "CFD1_Level": 50,
-                "acq_Time": 500
-                }
+            "binning": 0,
+            "sync_Offset": 0,
+            "sync_Divider": 1,
+            "CFD0_ZeroCross": 10,
+            "CFD0_Level": 50,
+            "CFD1_ZeroCross": 10,
+            "CFD1_Level": 50,
+            "acq_Time": 500
+            }
 
         binning = default_Options["binning"]
         resolution = self.base_Resolution * (2 ** binning)
@@ -230,7 +248,7 @@ class my_Window(QtWidgets.QMainWindow):
         self.ui.resolution.setCurrentText(f"{resolution}")
         self.ui.sync_Offset.setValue(default_Options["sync_Offset"])
         self.ui.sync_Divider.setCurrentText(
-                str(default_Options["sync_Divider"]))
+            str(default_Options["sync_Divider"]))
         self.ui.CFD0_Level.setValue(default_Options["CFD0_Level"])
         self.ui.CFD0_Zerocross.setValue(default_Options["CFD0_ZeroCross"])
         self.ui.CFD1_Level.setValue(default_Options["CFD1_Level"])
@@ -241,7 +259,10 @@ class my_Window(QtWidgets.QMainWindow):
         self.apply_Settings()
 
     def start_Stop(self):
-        # Switch modes from counting to histogramming.
+        """
+        Switch modes from counting to histogramming.
+        """
+
         if self.no_Data:
             self.no_Data = False
 
@@ -256,10 +277,18 @@ class my_Window(QtWidgets.QMainWindow):
             self.acq_Thread.histogram_Active = True
 
     def on_Count_Signal(self, ch0, ch1):
+        """
+        Handle the counts when the hardware thread emits them
+        """
+
         self.ui.counts_Ch0.setText(f"{ch0:.{self.count_Precision}E}")
         self.ui.counts_Ch1.setText(f"{ch1:.{self.count_Precision}E}")
 
     def on_Histo_Signal(self, histogram_Data):
+        """
+        Handle the hsitogram when the hardware thread emits one.
+        """
+
         # There are 65536 bins, but if (1/sync) is less than (65536*resolution)
         # then there will just be empty bins at the end of the histogram array.
         # Look from the END of the array and find the index of the first non
@@ -293,20 +322,36 @@ class my_Window(QtWidgets.QMainWindow):
         self.last_X_Data = self.x_Data
 
     def Draw_Cursors(self):
+        """
+        Add a vertical line and a horizontal line to the plot widget. The idea
+        is these follow the cursor to help reading the graph
+        """
+
         self.ui.graph_Widget.addItem(self.v_Line, ignoreBounds=False)
         self.ui.graph_Widget.addItem(self.h_Line, ignoreBounds=False)
 
     def Draw_Deltas(self):
+        """
+        Cursors that persist on mouse clicks.
+        """
+
         self.ui.graph_Widget.addItem(self.v_Line_1, ignoreBounds=False)
         self.ui.graph_Widget.addItem(self.h_Line_1, ignoreBounds=False)
         self.ui.graph_Widget.addItem(self.v_Line_2, ignoreBounds=False)
         self.ui.graph_Widget.addItem(self.h_Line_2, ignoreBounds=False)
 
     def Remove_Cursors(self):
+        """
+        Remove the cursor lines from the plot widget
+        """
+
         self.ui.graph_Widget.removeItem(self.v_Line)
         self.ui.graph_Widget.removeItem(self.h_Line)
 
     def Remove_Deltas(self):
+        """
+        Remove the deltas from the plot widget.
+        """
         self.ui.graph_Widget.removeItem(self.v_Line_1)
         self.ui.graph_Widget.removeItem(self.h_Line_1)
         self.ui.graph_Widget.removeItem(self.v_Line_2)
@@ -327,11 +372,13 @@ class my_Window(QtWidgets.QMainWindow):
         out_Histo["Bin"] = self.last_X_Data
         out_Histo["Count"] = self.last_Histogram
 
-        np.savetxt(filename,
-                   out_Histo,
-                   delimiter=", ",
-                   fmt="%1.6e,%8i",
-                   )
+        np.savetxt(
+            filename,
+            out_Histo,
+            delimiter=", ",
+            fmt="%1.6e,%8i",
+            )
+
         self.logger.info(f"Histogram saved as {filename}")
 
     def on_Auto_Range(self):
@@ -407,12 +454,10 @@ class my_Window(QtWidgets.QMainWindow):
             # Redraw the cursor
             self.logger.info("Turn cursor on")
             self.Draw_Cursors()
-            pass
         else:
             # Remove the cursor
             self.logger.info("Turn cursor off")
             self.Remove_Cursors()
-            pass
 
     def on_Deltas_Button(self):
         """
@@ -456,7 +501,7 @@ class my_Window(QtWidgets.QMainWindow):
 
 app = QtWidgets.QApplication([])
 
-application = my_Window()
+application = MyWindow()
 
 application.show()
 

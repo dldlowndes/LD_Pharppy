@@ -60,7 +60,9 @@ class LD_PharpDLL:
         if return_Code == 0:
             device_Number = self.device_Number_ct.value
             hwSerial = hwSerial_ct.value.decode("utf-8")
-            self.logger.info(f"Connected to device {device_Number}, serial: {hwSerial}")
+            self.logger.info(
+                    f"Connected to device {device_Number}, serial: {hwSerial}"
+                    )
         else:
             self.ProcessReturnCode(return_Code)
 
@@ -250,7 +252,9 @@ class LD_PharpDLL:
             hw_Part = hwPartno_ct.value.decode("utf-8")
             hw_Vers = hwVersion_ct.value.decode("utf-8")
 
-            self.logger.info(f"Found model: {hw_Model}, part: {hw_Part}, ver: {hw_Vers}")
+            self.logger.info(
+                    f"Found model: {hw_Model}, part: {hw_Part}, ver: {hw_Vers}"
+                    )
         self.ProcessReturnCode(return_Code)
 
         return {"model": hw_Model,

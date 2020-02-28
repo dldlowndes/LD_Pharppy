@@ -3,6 +3,9 @@ Uses LD_PharpDLL to make an interface to the Picoharp300's histogramming
 mode for humans to use.
 """
 
+# pylint: disable=C0103
+# pylint: disable=R0902
+
 import logging
 
 import LD_PharpDLL
@@ -108,10 +111,6 @@ errcodes_h = {
 
 class LD_Pharp:
     def __init__(self, device_Number=0):
-
-        self.logger = logging.getLogger("PHarp.Hardware")
-        logging.basicConfig(level=logging.DEBUG)
-
         """
         Binning:
             How many bins of width "resolution" to combine to output the
@@ -128,6 +127,10 @@ class LD_Pharp:
             Zerocross and discriminator level for channels 0 and 1
 
         """
+
+        self.logger = logging.getLogger("PHarp.Hardware")
+        logging.basicConfig(level=logging.DEBUG)
+
         self._default_Options = {
                 "binning": 0,
                 "sync_Offset": 0,
