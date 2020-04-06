@@ -19,7 +19,7 @@ from PyQt5 import QtWidgets, QtCore, QtGui
 import pyqtgraph
 
 import acq_Thread
-from settings_gui import Ui_Settings
+import settings_gui
 
 import LD_Pharp
 
@@ -33,14 +33,15 @@ class MyWindow(QtWidgets.QMainWindow):
         logging.basicConfig(level=logging.DEBUG)
 
         super(MyWindow, self).__init__()
-        self.ui = Ui_Settings()
+        self.ui = settings_gui.Ui_MainWindow()
         self.ui.setupUi(self)
+    
 
         # Has this program ever collected any data (i.e. the plot is in an
         # undefined state) - used to plot the cursors so the plot doesn't go
         # weird in the absence of data.
         self.no_Data = True
-
+        
         self.Init_Hardware()
         self.Init_UI()
         self.Init_Plot()
