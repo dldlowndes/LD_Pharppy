@@ -35,13 +35,13 @@ class MyWindow(QtWidgets.QMainWindow):
         super(MyWindow, self).__init__()
         self.ui = settings_gui.Ui_MainWindow()
         self.ui.setupUi(self)
-    
+
 
         # Has this program ever collected any data (i.e. the plot is in an
         # undefined state) - used to plot the cursors so the plot doesn't go
         # weird in the absence of data.
         self.no_Data = True
-        
+
         self.Init_Hardware()
         self.Init_UI()
         self.Init_Plot()
@@ -110,6 +110,8 @@ class MyWindow(QtWidgets.QMainWindow):
         self.cursors_On = self.ui.option_Cursor.isChecked()
         self.ui.option_Deltas.setChecked(True)
         self.deltas_On = self.ui.option_Deltas.isChecked()
+        self.integrals_On = False
+        #self.ui.cursors_Tabber.setCurrentIndex(0)
 
         # Connect UI elements to functions
         self.ui.button_ApplySettings.clicked.connect(self.apply_Settings)
@@ -121,6 +123,18 @@ class MyWindow(QtWidgets.QMainWindow):
         self.ui.option_Deltas.stateChanged.connect(self.on_Deltas_Button)
         self.ui.button_ClearDeltas.clicked.connect(self.on_Clear_Deltas)
         self.ui.button_ClearHistogram.clicked.connect(self.on_Clear_Histogram)
+        self.ui.cursors_Tabber.currentChanged.connect(self.on_Cursor_Tab)
+
+        self.integral_Coords = [(0, 0),
+                                (0, 0),
+                                (0, 0),
+                                (0, 0)]
+        self.integral_Values = [
+            self.ui.integral_Red,
+            self.ui.integral_Green,
+            self.ui.integral_Blue,
+            self.ui.integral_White
+            ]
 
     def Init_Plot(self):
         """
@@ -154,7 +168,7 @@ class MyWindow(QtWidgets.QMainWindow):
             )
 
         # Keep track of which crosshair should move on the next click.
-        self.first_Click = True
+        self.click_Number = 0
         # Last click has to be somewhere so just stick it at the origin.
         # Holds the co-ordinates of the most previous click.
         self.last_Click = QtCore.QPoint(0, 0)
@@ -177,6 +191,36 @@ class MyWindow(QtWidgets.QMainWindow):
                                                movable=False,
                                                pen='g')
 
+        self.v_Line_1a = pyqtgraph.InfiniteLine(angle=90,
+                                               movable=False,
+                                               pen='r')
+        self.v_Line_1b = pyqtgraph.InfiniteLine(angle=90,
+                                               movable=False,
+                                               pen='r')
+        self.v_Line_2a = pyqtgraph.InfiniteLine(angle=90,
+                                               movable=False,
+                                               pen='g')
+        self.v_Line_2b = pyqtgraph.InfiniteLine(angle=90,
+                                               movable=False,
+                                               pen='g')
+        self.v_Line_3a = pyqtgraph.InfiniteLine(angle=90,
+                                               movable=False,
+                                               pen='b')
+        self.v_Line_3b = pyqtgraph.InfiniteLine(angle=90,
+                                               movable=False,
+                                               pen='b')
+        self.v_Line_4a = pyqtgraph.InfiniteLine(angle=90,
+                                               movable=False,
+                                               pen='w')
+        self.v_Line_4b = pyqtgraph.InfiniteLine(angle=90,
+                                               movable=False,
+                                               pen='w')
+        # Pack up for easier addressing
+        self.integral_vLines = [(self.v_Line_1a, self.v_Line_1b),
+                                (self.v_Line_2a, self.v_Line_2b),
+                                (self.v_Line_3a, self.v_Line_3b),
+                                (self.v_Line_4a, self.v_Line_4b)]
+
         # Unnecessary?
         self.v_Line.setPos(0)
         self.h_Line.setPos(0)
@@ -184,6 +228,11 @@ class MyWindow(QtWidgets.QMainWindow):
         self.h_Line_1.setPos(0)
         self.v_Line_2.setPos(0)
         self.h_Line_2.setPos(0)
+
+        # Does this work?
+        for a, b in self.integral_vLines:
+            a.setPos(0)
+            b.setPos(0)
 
     def apply_Settings(self):
         """
@@ -290,6 +339,8 @@ class MyWindow(QtWidgets.QMainWindow):
         Handle the hsitogram when the hardware thread emits one.
         """
 
+        self.this_Data = histogram_Data
+
         # There are 65536 bins, but if (1/sync) is less than (65536*resolution)
         # then there will just be empty bins at the end of the histogram array.
         # Look from the END of the array and find the index of the first non
@@ -317,10 +368,35 @@ class MyWindow(QtWidgets.QMainWindow):
                 self.Draw_Cursors()
             if self.deltas_On:
                 self.Draw_Deltas()
+                #self.Integrate_Deltas()
+            if self.integrals_On:
+                self.Draw_Integrals()
+                self.Display_Integrals()
 
         # Remember the last histogram, so it can be saved.
         self.last_Histogram = histogram_Data
         self.last_X_Data = self.x_Data
+
+    def on_Cursor_Tab(self, tab_Number):
+        """
+        If the cursors tab is switched between "deltas" and "integrate" mode.
+        If this happens, clear everything from the old tab from the plot and
+        set everything up for the other function.
+        """
+        self.logger.debug(f"Cursors tab switched to {tab_Number}")
+
+        # Tab 0 is deltas mode (two cursors, calculate difference between them)
+        if tab_Number == 0:
+            self.deltas_On = self.ui.option_Deltas.isChecked()
+            self.integrals_On = False
+
+        # Tab 1 is integrals mode
+        elif tab_Number == 1:
+            self.deltas_On = False
+            self.integrals_On = True
+        # Something's gone very awry. There are only tabs 0 and 1...
+        else:
+            pass
 
     def Draw_Cursors(self):
         """
@@ -341,6 +417,15 @@ class MyWindow(QtWidgets.QMainWindow):
         self.ui.graph_Widget.addItem(self.v_Line_2, ignoreBounds=False)
         self.ui.graph_Widget.addItem(self.h_Line_2, ignoreBounds=False)
 
+    def Draw_Integrals(self):
+        """
+        Persistent cursors. 4 pairs spaced by a user supplied value.
+        """
+
+        for a, b in self.integral_vLines:
+            self.ui.graph_Widget.addItem(a, ignoreBounds=False)
+            self.ui.graph_Widget.addItem(b, ignoreBounds=False)
+
     def Remove_Cursors(self):
         """
         Remove the cursor lines from the plot widget
@@ -357,6 +442,26 @@ class MyWindow(QtWidgets.QMainWindow):
         self.ui.graph_Widget.removeItem(self.h_Line_1)
         self.ui.graph_Widget.removeItem(self.v_Line_2)
         self.ui.graph_Widget.removeItem(self.h_Line_2)
+
+    def Remove_Integrals(self):
+        """
+        Remove integral cursors.
+        """
+        for a, b in self.integral_vLines:
+            self.ui.graph_Widget.removeItem(a)
+            self.ui.graph_Widget.removeItem(b)
+
+    def Display_Integrals(self):
+        """
+        Go through the coordinates of the integral cursors, summing the bins
+        between the bottom and top values. Display the sum in the relevant
+        text box.
+        """
+        iterable =  zip(self.integral_Coords, self.integral_Values)
+        for (bottom_Bin, top_Bin), text_Box in iterable:
+            this_Interval = self.this_Data[bottom_Bin : top_Bin]
+            total = this_Interval.sum()
+            text_Box.setText(f"{total:.3E}")
 
     def on_Save_Histo(self):
         """
@@ -414,36 +519,71 @@ class MyWindow(QtWidgets.QMainWindow):
 
     def on_Graph_Click(self, evt):
         """
-        Put a crosshair on the plot in the click location. There are two
-        crosshairs so x and y differences can be calculated between click
-        positions. The crosshair that moves alternates and the difference
-        is calculated every click.
+        Clicks on the graph now depend on what the state of the
+        self.ui.cursors_Tabber UI object. If it's set for deltas, clicking puts
+        down one of two cursors and the X and Y different are written to text
+        boxes.
+        If it's set for integrals, pairs of cursors are placed (up to 4) and
+        the bin values between them are summed (live).
         """
 
         vb = self.ui.graph_Widget.plotItem.vb
         coords = vb.mapSceneToView(evt.scenePos())
 
-        if self.first_Click:
-            self.first_Click = False
-            # print(f"first {coords}")
-            self.logger.debug(f"First click at {coords}")
-            self.v_Line_1.setPos(coords.x())
-            self.h_Line_1.setPos(coords.y())
-            self.ui.click_1_X.setText(f"{coords.x():3E}")
-            self.ui.click_1_Y.setText(f"{coords.y():.0f}")
+        if self.deltas_On:
+            if self.click_Number == 0:
+                self.click_Number = 1
+                # print(f"first {coords}")
+                self.logger.debug(f"First click at {coords}")
+                self.v_Line_1.setPos(coords.x())
+                self.h_Line_1.setPos(coords.y())
+                self.ui.click_1_X.setText(f"{coords.x():3E}")
+                self.ui.click_1_Y.setText(f"{coords.y():.0f}")
 
+            else:
+                self.click_Number = 0
+                # print(f"second {coords}")
+                self.logger.debug(f"Second click at {coords}")
+                self.v_Line_2.setPos(coords.x())
+                self.h_Line_2.setPos(coords.y())
+                self.ui.click_2_X.setText(f"{coords.x():3E}")
+                self.ui.click_2_Y.setText(f"{coords.y():.0f}")
+
+            self.ui.delta_X.setText(f"{coords.x() - self.last_Click.x():3E}")
+            self.ui.delta_Y.setText(f"{coords.y() - self.last_Click.y():.0f}")
+            self.last_Click = coords
+
+        elif self.integrals_On:
+            # Cursors stored in a list, get the relevant ones for this click
+            cursor_Bottom, cursor_Top = self.integral_vLines[self.click_Number]
+            # Fetch the current desired width of the window between cursors.
+            integral_Width = float(self.ui.integral_Width.text())
+
+            # Centre the cursors on the click point, calculate the actual
+            # cursor positions.
+            middle = coords.x()
+            bottom_Position = middle - (integral_Width / 2)
+            top_Position = middle + (integral_Width / 2)
+
+            # Set the cursor positions
+            cursor_Bottom.setPos(bottom_Position)
+            cursor_Top.setPos(top_Position)
+
+            # Calculate the histogram bin numbers of the cursors (the graph
+            # gives them in x axis units)
+            resolution_ps = self.my_Pharp.resolution * 1e-12)
+            bottom_Bin = int(bottom_Position / resolution_ps)
+            top_Bin = int(top_Position / resolution_ps)
+
+            # Update a list so they can be stored and the integration can
+            # happen live on each data refresh.
+            self.integral_Coords[self.click_Number] = bottom_Bin, top_Bin
+
+            # Advance click number through values 0, 1, 2, 3 repeating.
+            self.click_Number = (self.click_Number + 1) % 4
         else:
-            self.first_Click = True
-            # print(f"second {coords}")
-            self.logger.debug(f"Second click at {coords}")
-            self.v_Line_2.setPos(coords.x())
-            self.h_Line_2.setPos(coords.y())
-            self.ui.click_2_X.setText(f"{coords.x():3E}")
-            self.ui.click_2_Y.setText(f"{coords.y():.0f}")
-
-        self.ui.delta_X.setText(f"{coords.x() - self.last_Click.x():3E}")
-        self.ui.delta_Y.setText(f"{coords.y() - self.last_Click.y():.0f}")
-        self.last_Click = coords
+            # Something's gone wrong if this happens.
+            pass
 
     def on_Cursor_Button(self):
         """
