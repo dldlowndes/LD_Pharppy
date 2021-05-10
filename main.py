@@ -11,6 +11,7 @@ Requires: Python 3.7+, Numpy, PyQt5, PyQtGraph.
 # pylint: disable=C0103
 # pylint: disable=R0902
 
+import itertools
 import logging
 import sys
 
@@ -20,9 +21,9 @@ import pyqtgraph
 
 import acq_Thread
 import settings_gui
-
 import LD_Pharp
 
+QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling, True)
 
 class MyWindow(QtWidgets.QMainWindow):
     """
@@ -35,7 +36,6 @@ class MyWindow(QtWidgets.QMainWindow):
         super(MyWindow, self).__init__()
         self.ui = settings_gui.Ui_MainWindow()
         self.ui.setupUi(self)
-
 
         # Has this program ever collected any data (i.e. the plot is in an
         # undefined state) - used to plot the cursors so the plot doesn't go
@@ -55,15 +55,17 @@ class MyWindow(QtWidgets.QMainWindow):
 
         try:
             self.my_Pharp = LD_Pharp.LD_Pharp(0)
-        except UnboundLocalError as e:
+        except (FileNotFoundError, UnboundLocalError) as e:
             self.logger.warning(e)
+            self.logger.info("Picoharp library or Picoharp device not found")
+            self.logger.info("Prompt user if they want to use simulation mode")
             # If the dll can't get a device handle, the program falls over,
             # Alert the user and give the option to run the barebones simulator
             # which allows the UI to be explored with some representative data.
             error_Response = QtGui.QMessageBox.question(
                 self,
                 "Error",
-                "No hardware found! Run in simulation mode?",
+                "No driver/hardware found! Run in simulation mode?",
                 QtGui.QMessageBox.Yes | QtGui.QMessageBox.No
                 )
             if error_Response == QtGui.QMessageBox.Yes:
@@ -111,7 +113,7 @@ class MyWindow(QtWidgets.QMainWindow):
         self.ui.option_Deltas.setChecked(True)
         self.deltas_On = self.ui.option_Deltas.isChecked()
         self.integrals_On = False
-        #self.ui.cursors_Tabber.setCurrentIndex(0)
+        self.ui.cursors_Tabber.setCurrentIndex(0)
 
         # Connect UI elements to functions
         self.ui.button_ApplySettings.clicked.connect(self.apply_Settings)
@@ -123,18 +125,19 @@ class MyWindow(QtWidgets.QMainWindow):
         self.ui.option_Deltas.stateChanged.connect(self.on_Deltas_Button)
         self.ui.button_ClearDeltas.clicked.connect(self.on_Clear_Deltas)
         self.ui.button_ClearHistogram.clicked.connect(self.on_Clear_Histogram)
+        self.ui.button_ClearIntegrals.clicked.connect(self.on_Clear_Intervals)
         self.ui.cursors_Tabber.currentChanged.connect(self.on_Cursor_Tab)
 
         self.integral_Coords = [(0, 0),
                                 (0, 0),
                                 (0, 0),
                                 (0, 0)]
-        self.integral_Values = [
+        self.integral_Values = (
             self.ui.integral_Red,
             self.ui.integral_Green,
             self.ui.integral_Blue,
             self.ui.integral_White
-            ]
+            )
 
     def Init_Plot(self):
         """
@@ -173,66 +176,55 @@ class MyWindow(QtWidgets.QMainWindow):
         # Holds the co-ordinates of the most previous click.
         self.last_Click = QtCore.QPoint(0, 0)
 
-        # Set up crosshairs for markers, one that follows the mouse and two
-        # that persist after click (for one click before they move again)
-        # TODO: Must be a more elegant/pythonic way to do this?
-        self.v_Line = pyqtgraph.InfiniteLine(angle=90, movable=False)
-        self.h_Line = pyqtgraph.InfiniteLine(angle=0, movable=False)
-        self.v_Line_1 = pyqtgraph.InfiniteLine(angle=90,
-                                               movable=False,
-                                               pen='r')
-        self.h_Line_1 = pyqtgraph.InfiniteLine(angle=0,
-                                               movable=False,
-                                               pen='r')
-        self.v_Line_2 = pyqtgraph.InfiniteLine(angle=90,
-                                               movable=False,
-                                               pen='g')
-        self.h_Line_2 = pyqtgraph.InfiniteLine(angle=0,
-                                               movable=False,
-                                               pen='g')
+        # Set up crosshairs for markers, one that follows the mouse, two
+        # that persist after click (for one click before they move again), and
+        # Four that are just pairs of vertical lines to appear round clicks in
+        # "integral" mode.
+        self.cursor_Lines = (
+            self.Make_Line("h", "y"),
+            self.Make_Line("v", "y")
+            )
 
-        self.v_Line_1a = pyqtgraph.InfiniteLine(angle=90,
-                                               movable=False,
-                                               pen='r')
-        self.v_Line_1b = pyqtgraph.InfiniteLine(angle=90,
-                                               movable=False,
-                                               pen='r')
-        self.v_Line_2a = pyqtgraph.InfiniteLine(angle=90,
-                                               movable=False,
-                                               pen='g')
-        self.v_Line_2b = pyqtgraph.InfiniteLine(angle=90,
-                                               movable=False,
-                                               pen='g')
-        self.v_Line_3a = pyqtgraph.InfiniteLine(angle=90,
-                                               movable=False,
-                                               pen='b')
-        self.v_Line_3b = pyqtgraph.InfiniteLine(angle=90,
-                                               movable=False,
-                                               pen='b')
-        self.v_Line_4a = pyqtgraph.InfiniteLine(angle=90,
-                                               movable=False,
-                                               pen='w')
-        self.v_Line_4b = pyqtgraph.InfiniteLine(angle=90,
-                                               movable=False,
-                                               pen='w')
-        # Pack up for easier addressing
-        self.integral_vLines = [(self.v_Line_1a, self.v_Line_1b),
-                                (self.v_Line_2a, self.v_Line_2b),
-                                (self.v_Line_3a, self.v_Line_3b),
-                                (self.v_Line_4a, self.v_Line_4b)]
+        self.delta_Lines = (
+            (self.Make_Line("h", "r"), self.Make_Line("v", "r")),
+            (self.Make_Line("h", "g"), self.Make_Line("v", "g"))
+            )
 
-        # Unnecessary?
-        self.v_Line.setPos(0)
-        self.h_Line.setPos(0)
-        self.v_Line_1.setPos(0)
-        self.h_Line_1.setPos(0)
-        self.v_Line_2.setPos(0)
-        self.h_Line_2.setPos(0)
+        self.integral_vLines = (
+            (self.Make_Line("v", "r"), self.Make_Line("v", "r")),
+            (self.Make_Line("v", "g"), self.Make_Line("v", "g")),
+            (self.Make_Line("v", "b"), self.Make_Line("v", "b")),
+            (self.Make_Line("v", "w"), self.Make_Line("v", "w"))
+            )
 
-        # Does this work?
+        # Necessary? Thought it would be good for the lines to be in a
+        # well defined position on init...
+        for line in self.cursor_Lines:
+            line.setPos(0)
+        for a, b in self.delta_Lines:
+            a.setPos(0),
+            b.setPos(0)
         for a, b in self.integral_vLines:
             a.setPos(0)
             b.setPos(0)
+
+    def Make_Line(self, orientation, colour):
+        """
+        Make a pyqtgraph line object, orientation either "h" or "v", colour
+        is a single character passed directly to the pyqtgraph.InifiniteLine
+        constructor.
+        """
+
+        if orientation == "h":
+            return pyqtgraph.InfiniteLine(angle=0,
+                                          movable=False,
+                                          pen=colour)
+        elif orientation == "v":
+            return pyqtgraph.InfiniteLine(angle=90,
+                                          movable=False,
+                                          pen=colour)
+        else:
+            raise ValueError
 
     def apply_Settings(self):
         """
@@ -385,6 +377,8 @@ class MyWindow(QtWidgets.QMainWindow):
         """
         self.logger.debug(f"Cursors tab switched to {tab_Number}")
 
+        self.click_Number = 0
+
         # Tab 0 is deltas mode (two cursors, calculate difference between them)
         if tab_Number == 0:
             self.deltas_On = self.ui.option_Deltas.isChecked()
@@ -403,53 +397,43 @@ class MyWindow(QtWidgets.QMainWindow):
         Add a vertical line and a horizontal line to the plot widget. The idea
         is these follow the cursor to help reading the graph
         """
-
-        self.ui.graph_Widget.addItem(self.v_Line, ignoreBounds=False)
-        self.ui.graph_Widget.addItem(self.h_Line, ignoreBounds=False)
+        for line in self.cursor_Lines:
+            self.ui.graph_Widget.addItem(line, ignoreBounds=False)
 
     def Draw_Deltas(self):
         """
         Cursors that persist on mouse clicks.
         """
-
-        self.ui.graph_Widget.addItem(self.v_Line_1, ignoreBounds=False)
-        self.ui.graph_Widget.addItem(self.h_Line_1, ignoreBounds=False)
-        self.ui.graph_Widget.addItem(self.v_Line_2, ignoreBounds=False)
-        self.ui.graph_Widget.addItem(self.h_Line_2, ignoreBounds=False)
+        for line in itertools.chain.from_iterable(self.delta_Lines):
+            self.ui.graph_Widget.addItem(line, ignoreBounds=False)
 
     def Draw_Integrals(self):
         """
         Persistent cursors. 4 pairs spaced by a user supplied value.
         """
-
-        for a, b in self.integral_vLines:
-            self.ui.graph_Widget.addItem(a, ignoreBounds=False)
-            self.ui.graph_Widget.addItem(b, ignoreBounds=False)
+        for line in itertools.chain.from_iterable(self.integral_vLines):
+            self.ui.graph_Widget.addItem(line, ignoreBounds=False)
 
     def Remove_Cursors(self):
         """
         Remove the cursor lines from the plot widget
         """
-
-        self.ui.graph_Widget.removeItem(self.v_Line)
-        self.ui.graph_Widget.removeItem(self.h_Line)
+        for line in self.cursor_Lines:
+            self.ui.graph_Widget.removeItem(line)
 
     def Remove_Deltas(self):
         """
         Remove the deltas from the plot widget.
         """
-        self.ui.graph_Widget.removeItem(self.v_Line_1)
-        self.ui.graph_Widget.removeItem(self.h_Line_1)
-        self.ui.graph_Widget.removeItem(self.v_Line_2)
-        self.ui.graph_Widget.removeItem(self.h_Line_2)
+        for line in itertools.chain.from_iterable(self.delta_Lines):
+            self.ui.graph_Widget.removeItem(line)
 
     def Remove_Integrals(self):
         """
         Remove integral cursors.
         """
-        for a, b in self.integral_vLines:
-            self.ui.graph_Widget.removeItem(a)
-            self.ui.graph_Widget.removeItem(b)
+        for line in itertools.chain.from_iterable(self.integral_vLines):
+            self.ui.graph_Widget.removeItem(line)
 
     def Display_Integrals(self):
         """
@@ -457,9 +441,12 @@ class MyWindow(QtWidgets.QMainWindow):
         between the bottom and top values. Display the sum in the relevant
         text box.
         """
-        iterable =  zip(self.integral_Coords, self.integral_Values)
+        # So the for loop decalaration isn't too long.
+        iterable = zip(self.integral_Coords, self.integral_Values)
         for (bottom_Bin, top_Bin), text_Box in iterable:
+            # Slice out the data relevant to the integral cursor locations
             this_Interval = self.this_Data[bottom_Bin : top_Bin]
+            # Sum the slice and update the GUI
             total = this_Interval.sum()
             text_Box.setText(f"{total:.3E}")
 
@@ -508,12 +495,15 @@ class MyWindow(QtWidgets.QMainWindow):
         Move the crosshair that follows the mouse to the mouse position.
         """
 
+        # Get coords of cursor
         vb = self.ui.graph_Widget.plotItem.vb
         coords = vb.mapSceneToView(evt[0])
 
-        self.v_Line.setPos(coords.x())
-        self.h_Line.setPos(coords.y())
+        # Plot h and v lines at cursor position
+        self.cursor_Lines[1].setPos(coords.x())
+        self.cursor_Lines[0].setPos(coords.y())
 
+        # Update GUI cursor co-ordinates
         self.ui.current_X.setText(f"{coords.x():3E}")
         self.ui.current_Y.setText(f"{coords.y():.0f}")
 
@@ -527,16 +517,20 @@ class MyWindow(QtWidgets.QMainWindow):
         the bin values between them are summed (live).
         """
 
+        # Get the xy coordinates of the click.
         vb = self.ui.graph_Widget.plotItem.vb
         coords = vb.mapSceneToView(evt.scenePos())
 
         if self.deltas_On:
+            # Draw the lines where the click was. Update the GUI co-ordinates
+            # corresponding to the click number.
+            # TODO: Tidy this up! Use click_Number to index lists?
             if self.click_Number == 0:
                 self.click_Number = 1
                 # print(f"first {coords}")
                 self.logger.debug(f"First click at {coords}")
-                self.v_Line_1.setPos(coords.x())
-                self.h_Line_1.setPos(coords.y())
+                self.delta_Lines[0][1].setPos(coords.x())
+                self.delta_Lines[0][0].setPos(coords.y())
                 self.ui.click_1_X.setText(f"{coords.x():3E}")
                 self.ui.click_1_Y.setText(f"{coords.y():.0f}")
 
@@ -544,11 +538,12 @@ class MyWindow(QtWidgets.QMainWindow):
                 self.click_Number = 0
                 # print(f"second {coords}")
                 self.logger.debug(f"Second click at {coords}")
-                self.v_Line_2.setPos(coords.x())
-                self.h_Line_2.setPos(coords.y())
+                self.delta_Lines[1][1].setPos(coords.x())
+                self.delta_Lines[1][0].setPos(coords.y())
                 self.ui.click_2_X.setText(f"{coords.x():3E}")
                 self.ui.click_2_Y.setText(f"{coords.y():.0f}")
 
+            # Update the delta GUI values.
             self.ui.delta_X.setText(f"{coords.x() - self.last_Click.x():3E}")
             self.ui.delta_Y.setText(f"{coords.y() - self.last_Click.y():.0f}")
             self.last_Click = coords
@@ -571,7 +566,7 @@ class MyWindow(QtWidgets.QMainWindow):
 
             # Calculate the histogram bin numbers of the cursors (the graph
             # gives them in x axis units)
-            resolution_ps = self.my_Pharp.resolution * 1e-12)
+            resolution_ps = self.my_Pharp.resolution * 1e-12
             bottom_Bin = int(bottom_Position / resolution_ps)
             top_Bin = int(top_Position / resolution_ps)
 
@@ -607,7 +602,12 @@ class MyWindow(QtWidgets.QMainWindow):
         so clicking with deltas off and turning them back on will not re-show
         the old deltas)
         """
+
         self.deltas_On = self.ui.option_Deltas.isChecked()
+
+        # I think this will always be zero (everything sets this to zero when
+        # it's switched off) but let's be safe and set it to zero here.
+        self.click_Number = 0
 
         if self.deltas_On:
             # Redraw the delta cursors
@@ -624,11 +624,12 @@ class MyWindow(QtWidgets.QMainWindow):
         the deltas, also resets.
         """
         self.logger.info("Clear deltas")
-        self.v_Line_1.setPos(0)
-        self.h_Line_1.setPos(0)
-        self.v_Line_2.setPos(0)
-        self.h_Line_2.setPos(0)
 
+        # Put all the lines to zero (hide them)
+        for line in itertools.chain.from_iterable(self.delta_Lines):
+            line.setPos(0)
+
+        # Fill GUI with zeros.
         self.ui.click_1_X.setText(f"{0}")
         self.ui.click_1_Y.setText(f"{0}")
         self.ui.click_2_X.setText(f"{0}")
@@ -636,9 +637,30 @@ class MyWindow(QtWidgets.QMainWindow):
         self.ui.delta_X.setText(f"{0}")
         self.ui.delta_Y.setText(f"{0}")
 
+        # Reset so the first click after this is the first delta
+        self.click_Number = 0
         self.last_Click = QtCore.QPoint(0, 0)
-        self.first_Click = True
 
+    def on_Clear_Intervals(self):
+        """
+        Clear the interval cursors from the plot.
+        Update the display
+        """
+
+        # So the first interval displayed after clikcing this is the first
+        # one in the list
+        self.click_Number = 0
+
+        # Move all the interval lines to zero. (i.e. hide them)
+        for line in itertools.chain.from_iterable(self.integral_vLines):
+            line.setPos(0)
+
+        # Set the co-ords of the top/bottom all to zero. So the data between
+        # the positions is zero
+        self.integral_Coords = [(0, 0),
+                                (0, 0),
+                                (0, 0),
+                                (0, 0)]
 
 app = QtWidgets.QApplication([])
 

@@ -296,7 +296,7 @@
              <property name="title">
               <string>Histogram</string>
              </property>
-             <widget class="QWidget" name="">
+             <widget class="QWidget" name="layoutWidget">
               <property name="geometry">
                <rect>
                 <x>12</x>
@@ -775,7 +775,7 @@
         <property name="currentIndex">
          <number>1</number>
         </property>
-        <widget class="QWidget" name="tab_Deltas" native="true">
+        <widget class="QWidget" name="tab_Deltas">
          <attribute name="title">
           <string>Deltas</string>
          </attribute>
@@ -1130,7 +1130,7 @@
          <attribute name="title">
           <string>Integrate</string>
          </attribute>
-         <widget class="QWidget" name="">
+         <widget class="QWidget" name="layoutWidget">
           <property name="geometry">
            <rect>
             <x>30</x>
@@ -1181,7 +1181,7 @@
             </widget>
            </item>
            <item row="3" column="3">
-            <widget class="QPushButton" name="button_Integral_Clear">
+            <widget class="QPushButton" name="button_ClearIntegrals">
              <property name="text">
               <string>Clear Markers</string>
              </property>
