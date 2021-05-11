@@ -10,6 +10,9 @@ Requires: Python 3.7+, Numpy, PyQt5, PyQtGraph.
 
 # pylint: disable=C0103
 # pylint: disable=R0902
+# pylint: disable=R0904
+# pylint: disable=W0511
+# pylint: disable=W1203
 
 import itertools
 import logging
@@ -22,7 +25,9 @@ import pyqtgraph
 import acq_Thread
 import settings_gui
 import LD_Pharp
+import LD_Pharp_Dummy
 
+# So this works nicely on my Surface.
 QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling, True)
 
 class MyWindow(QtWidgets.QMainWindow):
@@ -33,7 +38,7 @@ class MyWindow(QtWidgets.QMainWindow):
         self.logger = logging.getLogger("PHarp")
         logging.basicConfig(level=logging.DEBUG)
 
-        super(MyWindow, self).__init__()
+        super().__init__()
         self.ui = settings_gui.Ui_MainWindow()
         self.ui.setupUi(self)
 
@@ -42,10 +47,38 @@ class MyWindow(QtWidgets.QMainWindow):
         # weird in the absence of data.
         self.no_Data = True
 
+        # Number of DPs to round counts data to.
+        self.count_Precision = 3
+
+        # Dict to lookup the angles for H and V oriented lines on the plot.
+        self.orientations = {"h": 0, "v": 90}
+
+        # Define hardware info members, then init them (and the hardware)
+        self.my_Pharp = None
+        self.base_Resolution = None
+        self.allowed_Resolutions = None
         self.Init_Hardware()
+
+        # Members involved with UI, then init them (and the UI)
+        self.integral_Coords = []
+        self.integral_Values = ()
+        self.cursors_On = None
+        self.deltas_On = None
+        self.integrals_On = None
+        self.current_Options = None
         self.Init_UI()
+
+        # Members involved with plotting, then init them (and the plots)
+        self.this_Data = None
+        self.x_Data = None
+        self.last_Histogram = None
+        self.last_X_Data = None
+        self.click_Number = 0
+        self.last_Click = None
         self.Init_Plot()
 
+        # Send some default settings to the Picoharp so it always starts in
+        # a well defined state.
         self.apply_Default_Settings()
 
     def Init_Hardware(self):
@@ -56,6 +89,8 @@ class MyWindow(QtWidgets.QMainWindow):
         try:
             self.my_Pharp = LD_Pharp.LD_Pharp(0)
         except (FileNotFoundError, UnboundLocalError) as e:
+            # FileNotFoundError if DLL can't be found.
+            # UnboundLocalError if the DLL can't find a Picoharp.
             self.logger.warning(e)
             self.logger.info("Picoharp library or Picoharp device not found")
             self.logger.info("Prompt user if they want to use simulation mode")
@@ -70,11 +105,10 @@ class MyWindow(QtWidgets.QMainWindow):
                 )
             if error_Response == QtGui.QMessageBox.Yes:
                 # Go get the simulator and launch it.
-                import LD_Pharp_Dummy
                 self.my_Pharp = LD_Pharp_Dummy.LD_Pharp()
             else:
                 # Fall over
-                # TODO: Do this gracefully
+                # TODO: Quit program gracefully?
                 raise e
 
         # The resolutions are all 2**n multiples of the base resolution so
@@ -97,15 +131,15 @@ class MyWindow(QtWidgets.QMainWindow):
         to functions.
         """
 
+        # Picoharp time resolution is a specific set of values.
         for res in self.allowed_Resolutions:
             self.ui.resolution.addItem(f"{res}")
-        self.ui.resolution.setCurrentText(f"self.base_Resolution")
+        self.ui.resolution.setCurrentText("self.base_Resolution")
 
-        self.ui.filename.setText(f"save_filename.csv")
+        self.ui.filename.setText("save_filename.csv")
         self.ui.status.setText("Counting")
         self.current_Options = {}
         self.apply_Default_Settings()
-        self.count_Precision = 3
 
         # Cursor option defaults
         self.ui.option_Cursor.setChecked(True)
@@ -144,6 +178,7 @@ class MyWindow(QtWidgets.QMainWindow):
         Init the plot widget and containers relating so it.
         """
 
+        # Empty data structure.
         self.last_Histogram = np.zeros(65536)
 
         # Modify the plot window
@@ -197,16 +232,14 @@ class MyWindow(QtWidgets.QMainWindow):
             (self.Make_Line("v", "w"), self.Make_Line("v", "w"))
             )
 
-        # Necessary? Thought it would be good for the lines to be in a
+        # Necessary? Thought it would be good for every line to be in a
         # well defined position on init...
         for line in self.cursor_Lines:
             line.setPos(0)
-        for a, b in self.delta_Lines:
-            a.setPos(0),
-            b.setPos(0)
-        for a, b in self.integral_vLines:
-            a.setPos(0)
-            b.setPos(0)
+        for line in itertools.chain.from_iterable(self.delta_Lines):
+            line.setPos(0)
+        for line in itertools.chain.from_iterable(self.integral_vLines):
+            line.setPos(0)
 
     def Make_Line(self, orientation, colour):
         """
@@ -214,17 +247,10 @@ class MyWindow(QtWidgets.QMainWindow):
         is a single character passed directly to the pyqtgraph.InifiniteLine
         constructor.
         """
-
-        if orientation == "h":
-            return pyqtgraph.InfiniteLine(angle=0,
-                                          movable=False,
-                                          pen=colour)
-        elif orientation == "v":
-            return pyqtgraph.InfiniteLine(angle=90,
-                                          movable=False,
-                                          pen=colour)
-        else:
-            raise ValueError
+        this_Angle = self.orientations[orientation.lower()]
+        return pyqtgraph.InfiniteLine(angle=this_Angle,
+                                      movable=False,
+                                      pen=colour)
 
     def apply_Settings(self):
         """
@@ -398,21 +424,21 @@ class MyWindow(QtWidgets.QMainWindow):
         is these follow the cursor to help reading the graph
         """
         for line in self.cursor_Lines:
-            self.ui.graph_Widget.addItem(line, ignoreBounds=False)
+            self.ui.graph_Widget.addItem(line) #, ignoreBounds=False)
 
     def Draw_Deltas(self):
         """
         Cursors that persist on mouse clicks.
         """
         for line in itertools.chain.from_iterable(self.delta_Lines):
-            self.ui.graph_Widget.addItem(line, ignoreBounds=False)
+            self.ui.graph_Widget.addItem(line) #, ignoreBounds=False)
 
     def Draw_Integrals(self):
         """
         Persistent cursors. 4 pairs spaced by a user supplied value.
         """
         for line in itertools.chain.from_iterable(self.integral_vLines):
-            self.ui.graph_Widget.addItem(line, ignoreBounds=False)
+            self.ui.graph_Widget.addItem(line) #, ignoreBounds=False)
 
     def Remove_Cursors(self):
         """
