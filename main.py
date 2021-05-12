@@ -9,11 +9,17 @@ Requires: Python 3.7+, Numpy, PyQt5, PyQtGraph.
 
 TODO list:
     Disable settings button when data is running (doesn't work anyway)
+    Give option to specify DLL path on FileNotFoundError when starting
     Use click number to index lists in on_Graph_Click
     Display max value as separate row in integration mode
     Add horizontal lines in integration mode (max? mean? both?)
     Add dynamic number of delta/integration cursors instead of 2/4 respectively
     Investigate getting this to work with other hardware...
+    py2exe or something for distribution
+    Read and print warnings (counts too high etc)
+    Curve fitting/FWHM estimate.
+    Cumulative histograms
+
 """
 
 # pylint: disable=C0103
