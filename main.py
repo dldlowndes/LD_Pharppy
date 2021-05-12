@@ -6,6 +6,14 @@ This script is fairly alpha status at the moment. Comments/questions/requests
 are welcome - email david@lownd.es or through github.com/dldlowndes/LD_Pharppy)
 
 Requires: Python 3.7+, Numpy, PyQt5, PyQtGraph.
+
+TODO list:
+    Disable settings button when data is running (doesn't work anyway)
+    Use click number to index lists in on_Graph_Click
+    Display max value as separate row in integration mode
+    Add horizontal lines in integration mode (max? mean? both?)
+    Add dynamic number of delta/integration cursors instead of 2/4 respectively
+    Investigate getting this to work with other hardware...
 """
 
 # pylint: disable=C0103
