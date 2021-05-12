@@ -11,7 +11,6 @@ TODO list:
     Disable settings button when data is running (doesn't work anyway)
     Give option to specify DLL path on FileNotFoundError when starting
     Use click number to index lists in on_Graph_Click
-    Display max value as separate row in integration mode
     Add horizontal lines in integration mode (max? mean? both?)
     Add dynamic number of delta/integration cursors instead of 2/4 respectively
     Investigate getting this to work with other hardware...
@@ -184,7 +183,14 @@ class MyWindow(QtWidgets.QMainWindow):
             self.ui.integral_Red,
             self.ui.integral_Green,
             self.ui.integral_Blue,
-            self.ui.integral_White
+            self.ui.integral_Magenta
+            )
+
+        self.max_Values = (
+            self.ui.max_Red,
+            self.ui.max_Green,
+            self.ui.max_Blue,
+            self.ui.max_Magenta
             )
 
     def Init_Plot(self):
@@ -482,13 +488,15 @@ class MyWindow(QtWidgets.QMainWindow):
         text box.
         """
         # So the for loop decalaration isn't too long.
-        iterable = zip(self.integral_Coords, self.integral_Values)
-        for (bottom_Bin, top_Bin), text_Box in iterable:
+        iterable = zip(self.integral_Coords, self.integral_Values, self.max_Values
+        for (bottom_Bin, top_Bin), mean_Box, max_Box in iterable:
             # Slice out the data relevant to the integral cursor locations
             this_Interval = self.this_Data[bottom_Bin : top_Bin]
             # Sum the slice and update the GUI
-            total = this_Interval.sum()
-            text_Box.setText(f"{total:.3E}")
+            this_Mean = this_Interval.mean()
+            this_Max = this_Interval.max()
+            mean_Box.setText(f"{this_Mean:.3E}")
+            max_Box.setText(f"{this_Max:.3E}")
 
     def on_Save_Histo(self):
         """
