@@ -18,7 +18,8 @@ TODO list:
     Read and print warnings (counts too high etc)
     Curve fitting/FWHM estimate.
     Cumulative histograms
-
+    Option to update width on already placed integrals (two buttons)
+    Add ratios comparison between integral values (normalize to this checkbox?)
 """
 
 # pylint: disable=C0103
@@ -488,7 +489,7 @@ class MyWindow(QtWidgets.QMainWindow):
         text box.
         """
         # So the for loop decalaration isn't too long.
-        iterable = zip(self.integral_Coords, self.integral_Values, self.max_Values
+        iterable = zip(self.integral_Coords, self.integral_Values, self.max_Values)
         for (bottom_Bin, top_Bin), mean_Box, max_Box in iterable:
             # Slice out the data relevant to the integral cursor locations
             this_Interval = self.this_Data[bottom_Bin : top_Bin]
