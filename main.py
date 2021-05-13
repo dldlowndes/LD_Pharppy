@@ -8,18 +8,21 @@ are welcome - email david@lownd.es or through github.com/dldlowndes/LD_Pharppy)
 Requires: Python 3.7+, Numpy, PyQt5, PyQtGraph.
 
 TODO list:
-    Disable settings button when data is running (doesn't work anyway)
-    Give option to specify DLL path on FileNotFoundError when starting
-    Use click number to index lists in on_Graph_Click
-    Add horizontal lines in integration mode (max? mean? both?)
-    Add dynamic number of delta/integration cursors instead of 2/4 respectively
-    Investigate getting this to work with other hardware...
-    py2exe or something for distribution
-    Read and print warnings (counts too high etc)
-    Curve fitting/FWHM estimate.
-    Cumulative histograms
-    Option to update width on already placed integrals (two buttons)
-    Add ratios comparison between integral values (normalize to this checkbox?)
+  Easy:
+    - Disable settings button when data is running (doesn't work anyway)
+    - Give option to specify DLL path on FileNotFoundError when starting
+    - Read and print DLL warnings (counts too high etc)
+    - Cumulative histograms
+  Med:
+    - Curve fitting/FWHM estimate.
+  Hard:
+    - Add horizontal lines in integration mode (max? mean? both?)
+    - Option to update width on already placed integrals (two buttons)
+    - Add dynamic number of delta/integration cursors instead of 2/4 respectively
+    - Investigate getting this to work with other hardware...
+    - py2exe or something for distribution
+    - Make a separate class for the integral cursors that wraps both vLines,
+    the width, and potentially 2 hLines for mean/max values.
 """
 
 # pylint: disable=C0103
@@ -71,29 +74,33 @@ class MyWindow(QtWidgets.QMainWindow):
         self.my_Pharp = None
         self.base_Resolution = None
         self.allowed_Resolutions = None
+        self.this_Data = None
+        self.x_Data = None
         self.Init_Hardware()
 
         # Members involved with UI, then init them (and the UI)
         self.integral_Coords = []
-        self.integral_Values = ()
+        self.integral_Means = []
+        self.integral_Maxes = []
+        self.mean_TextBox = ()
+        self.max_TextBox = ()
+        self.click_TextBox = ()
+        self.normalize_Buttons = ()
         self.cursors_On = None
         self.deltas_On = None
         self.integrals_On = None
         self.current_Options = None
         self.Init_UI()
+        # Init_UI has set up the normalize buttons, the last one is checked by
+        # default, so this should be the initial state.
+        self.normalize_This = len(self.normalize_Buttons)
 
         # Members involved with plotting, then init them (and the plots)
-        self.this_Data = None
-        self.x_Data = None
         self.last_Histogram = None
         self.last_X_Data = None
         self.click_Number = 0
         self.last_Click = None
         self.Init_Plot()
-
-        # Send some default settings to the Picoharp so it always starts in
-        # a well defined state.
-        self.apply_Default_Settings()
 
     def Init_Hardware(self):
         """
@@ -175,23 +182,43 @@ class MyWindow(QtWidgets.QMainWindow):
         self.ui.button_ClearHistogram.clicked.connect(self.on_Clear_Histogram)
         self.ui.button_ClearIntegrals.clicked.connect(self.on_Clear_Intervals)
         self.ui.cursors_Tabber.currentChanged.connect(self.on_Cursor_Tab)
+        self.ui.normalize_Red.toggled.connect(self.on_Normalize_Click)
+        self.ui.normalize_Green.toggled.connect(self.on_Normalize_Click)
+        self.ui.normalize_Blue.toggled.connect(self.on_Normalize_Click)
+        self.ui.normalize_Magenta.toggled.connect(self.on_Normalize_Click)
+        self.ui.normalize_Off.toggled.connect(self.on_Normalize_Click)
 
         self.integral_Coords = [(0, 0),
                                 (0, 0),
                                 (0, 0),
                                 (0, 0)]
-        self.integral_Values = (
+        self.integral_Means = [0, 0, 0, 0]
+        self.integral_Maxes = [0, 0, 0, 0]
+        self.mean_TextBox = (
             self.ui.integral_Red,
             self.ui.integral_Green,
             self.ui.integral_Blue,
             self.ui.integral_Magenta
             )
 
-        self.max_Values = (
+        self.max_TextBox = (
             self.ui.max_Red,
             self.ui.max_Green,
             self.ui.max_Blue,
             self.ui.max_Magenta
+            )
+
+        self.click_TextBox = (
+            (self.ui.click_1_X, self.ui.click_1_Y),
+            (self.ui.click_2_X, self.ui.click_2_Y)
+            )
+
+        self.normalize_Buttons = (
+            self.ui.normalize_Red,
+            self.ui.normalize_Green,
+            self.ui.normalize_Blue,
+            self.ui.normalize_Magenta,
+            self.ui.normalize_Off
             )
 
     def Init_Plot(self):
@@ -250,7 +277,7 @@ class MyWindow(QtWidgets.QMainWindow):
             (self.Make_Line("v", "r"), self.Make_Line("v", "r")),
             (self.Make_Line("v", "g"), self.Make_Line("v", "g")),
             (self.Make_Line("v", "b"), self.Make_Line("v", "b")),
-            (self.Make_Line("v", "w"), self.Make_Line("v", "w"))
+            (self.Make_Line("v", "m"), self.Make_Line("v", "m"))
             )
 
         # Necessary? Thought it would be good for every line to be in a
@@ -359,11 +386,15 @@ class MyWindow(QtWidgets.QMainWindow):
             self.logger.info("Stop histogramming")
             self.ui.status.setText("Counting")
             self.acq_Thread.histogram_Active = False
+            self.ui.button_ApplySettings.setEnabled(True)
+            self.ui.button_Defaults.setEnabled(True)
         else:
             self.logger.info("Start histogramming")
             self.on_Clear_Histogram()
             self.ui.status.setText("Histogramming")
             self.acq_Thread.histogram_Active = True
+            self.ui.button_ApplySettings.setEnabled(False)
+            self.ui.button_Defaults.setEnabled(False)
 
     def on_Count_Signal(self, ch0, ch1):
         """
@@ -407,7 +438,6 @@ class MyWindow(QtWidgets.QMainWindow):
                 self.Draw_Cursors()
             if self.deltas_On:
                 self.Draw_Deltas()
-                #self.Integrate_Deltas()
             if self.integrals_On:
                 self.Draw_Integrals()
                 self.Display_Integrals()
@@ -488,14 +518,44 @@ class MyWindow(QtWidgets.QMainWindow):
         between the bottom and top values. Display the sum in the relevant
         text box.
         """
-        # So the for loop decalaration isn't too long.
-        iterable = zip(self.integral_Coords, self.integral_Values, self.max_Values)
-        for (bottom_Bin, top_Bin), mean_Box, max_Box in iterable:
-            # Slice out the data relevant to the integral cursor locations
-            this_Interval = self.this_Data[bottom_Bin : top_Bin]
-            # Sum the slice and update the GUI
-            this_Mean = this_Interval.mean()
-            this_Max = this_Interval.max()
+
+        # Go fetch the data between each pair of integral cursors.
+        for i, (bottom_Bin, top_Bin) in enumerate(self.integral_Coords):
+            integral_Data = self.this_Data[bottom_Bin : top_Bin]
+            # Numpy complains if this slice has no length, so catch that.
+            if len(integral_Data) > 0:
+                self.integral_Means[i] = integral_Data.mean()
+                self.integral_Maxes[i] = integral_Data.max()
+            else:
+                # I suppose the mean and max of no data is zero?
+                self.integral_Means[i] = 0
+                self.integral_Maxes[i] = 0
+
+        # Do this separately to make the for loop declaration neater.
+        iterable = zip(
+            self.integral_Means,
+            self.integral_Maxes,
+            self.mean_TextBox,
+            self.max_TextBox)
+
+        for this_Mean, this_Max, mean_Box, max_Box in iterable:
+            # The last normalize_Button is "off" i.e. don't do normalization.
+            if self.normalize_This < (len(self.normalize_Buttons) - 1):
+                # Otherwise normalize by the value of the specified cursor.
+                mean_Factor = self.integral_Means[self.normalize_This]
+                max_Factor = self.integral_Maxes[self.normalize_This]
+
+                # Catch if this would lead to division by zero.
+                if mean_Factor > 0:
+                    this_Mean /= mean_Factor
+                else:
+                    this_Mean = np.inf
+                if max_Factor > 0:
+                    this_Max /= max_Factor # because you're worth it.
+                else:
+                    this_Max = np.inf
+
+            # Update the text box.
             mean_Box.setText(f"{this_Mean:.3E}")
             max_Box.setText(f"{this_Max:.3E}")
 
@@ -573,29 +633,22 @@ class MyWindow(QtWidgets.QMainWindow):
         if self.deltas_On:
             # Draw the lines where the click was. Update the GUI co-ordinates
             # corresponding to the click number.
-            # TODO: Tidy this up! Use click_Number to index lists?
-            if self.click_Number == 0:
-                self.click_Number = 1
-                # print(f"first {coords}")
-                self.logger.debug(f"First click at {coords}")
-                self.delta_Lines[0][1].setPos(coords.x())
-                self.delta_Lines[0][0].setPos(coords.y())
-                self.ui.click_1_X.setText(f"{coords.x():3E}")
-                self.ui.click_1_Y.setText(f"{coords.y():.0f}")
 
-            else:
-                self.click_Number = 0
-                # print(f"second {coords}")
-                self.logger.debug(f"Second click at {coords}")
-                self.delta_Lines[1][1].setPos(coords.x())
-                self.delta_Lines[1][0].setPos(coords.y())
-                self.ui.click_2_X.setText(f"{coords.x():3E}")
-                self.ui.click_2_Y.setText(f"{coords.y():.0f}")
+            self.logger.debug(f"Click number {self.click_Number} at {coords}")
+            # Move the lines to the click coordinates.
+            self.delta_Lines[self.click_Number][1].setPos(coords.x())
+            self.delta_Lines[self.click_Number][0].setPos(coords.y())
+            # Update the UI values.
+            self.click_TextBox[self.click_Number][0].setText(f"{coords.x():3E}")
+            self.click_TextBox[self.click_Number][1].setText(f"{coords.y():3E}")
 
             # Update the delta GUI values.
             self.ui.delta_X.setText(f"{coords.x() - self.last_Click.x():3E}")
             self.ui.delta_Y.setText(f"{coords.y() - self.last_Click.y():.0f}")
             self.last_Click = coords
+
+            # 0->1, 1->0
+            self.click_Number = (self.click_Number + 1) % 2
 
         elif self.integrals_On:
             # Cursors stored in a list, get the relevant ones for this click
@@ -621,6 +674,8 @@ class MyWindow(QtWidgets.QMainWindow):
 
             # Update a list so they can be stored and the integration can
             # happen live on each data refresh.
+            # YOU CAN'T SLICE THE DATA HERE; IT WILL BE OUT OF DATE ON THE
+            # NEXT on_Histo_Signal AND WON'T AUTO REFRESH CORRECTLY.
             self.integral_Coords[self.click_Number] = bottom_Bin, top_Bin
 
             # Advance click number through values 0, 1, 2, 3 repeating.
@@ -710,6 +765,14 @@ class MyWindow(QtWidgets.QMainWindow):
                                 (0, 0),
                                 (0, 0),
                                 (0, 0)]
+
+    def on_Normalize_Click(self, checked):
+        if checked:
+            for i, radio in enumerate(self.normalize_Buttons):
+                if radio.isChecked():
+                    self.logger.debug(f"Normalize button {i} is pressed")
+                    self.normalize_This = i
+
 
 app = QtWidgets.QApplication([])
 
