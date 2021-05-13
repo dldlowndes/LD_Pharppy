@@ -82,9 +82,9 @@ class MyWindow(QtWidgets.QMainWindow):
         self.integral_Coords = []
         self.integral_Means = []
         self.integral_Maxes = []
-        self.mean_TextBox = ()
-        self.max_TextBox = ()
-        self.click_TextBox = ()
+        self.mean_TextBoxes = ()
+        self.max_TextBoxes = ()
+        self.click_TextBoxes = ()
         self.normalize_Buttons = ()
         self.cursors_On = None
         self.deltas_On = None
@@ -195,21 +195,21 @@ class MyWindow(QtWidgets.QMainWindow):
                                 (0, 0)]
         self.integral_Means = [0, 0, 0, 0]
         self.integral_Maxes = [0, 0, 0, 0]
-        self.mean_TextBox = (
+        self.mean_TextBoxes = (
             self.ui.integral_Red,
             self.ui.integral_Green,
             self.ui.integral_Blue,
             self.ui.integral_Magenta
             )
 
-        self.max_TextBox = (
+        self.max_TextBoxes = (
             self.ui.max_Red,
             self.ui.max_Green,
             self.ui.max_Blue,
             self.ui.max_Magenta
             )
 
-        self.click_TextBox = (
+        self.click_TextBoxes = (
             (self.ui.click_1_X, self.ui.click_1_Y),
             (self.ui.click_2_X, self.ui.click_2_Y)
             )
@@ -536,10 +536,15 @@ class MyWindow(QtWidgets.QMainWindow):
         iterable = zip(
             self.integral_Means,
             self.integral_Maxes,
-            self.mean_TextBox,
-            self.max_TextBox)
+            self.mean_TextBoxes,
+            self.max_TextBoxes,
+            self.integral_hLines)
 
-        for this_Mean, this_Max, mean_Box, max_Box in iterable:
+        for this_Mean, this_Max, mean_Box, max_Box, (mean_Line, max_Line) in iterable:
+            # Draw horizontal lines corresponding to max and mean (looks horrible!)
+            # mean_Line.setValue(this_Mean)
+            # max_Line.setValue(this_Max)
+
             # The last normalize_Button is "off" i.e. don't do normalization.
             if self.normalize_This < (len(self.normalize_Buttons) - 1):
                 # Otherwise normalize by the value of the specified cursor.
@@ -606,8 +611,8 @@ class MyWindow(QtWidgets.QMainWindow):
         """
 
         # Get coords of cursor
-        vb = self.ui.graph_Widget.plotItem.vb
-        coords = vb.mapSceneToView(evt[0])
+        view_Box = self.ui.graph_Widget.plotItem.vb
+        coords = view_Box.mapSceneToView(evt[0])
 
         # Plot h and v lines at cursor position
         self.cursor_Lines[1].setPos(coords.x())
@@ -628,8 +633,8 @@ class MyWindow(QtWidgets.QMainWindow):
         """
 
         # Get the xy coordinates of the click.
-        vb = self.ui.graph_Widget.plotItem.vb
-        coords = vb.mapSceneToView(evt.scenePos())
+        view_Box = self.ui.graph_Widget.plotItem.vb
+        coords = view_Box.mapSceneToView(evt.scenePos())
 
         if self.deltas_On:
             # Draw the lines where the click was. Update the GUI co-ordinates
@@ -640,8 +645,8 @@ class MyWindow(QtWidgets.QMainWindow):
             self.delta_Lines[self.click_Number][1].setPos(coords.x())
             self.delta_Lines[self.click_Number][0].setPos(coords.y())
             # Update the UI values.
-            self.click_TextBox[self.click_Number][0].setText(f"{coords.x():3E}")
-            self.click_TextBox[self.click_Number][1].setText(f"{coords.y():3E}")
+            self.click_TextBoxes[self.click_Number][0].setText(f"{coords.x():3E}")
+            self.click_TextBoxes[self.click_Number][1].setText(f"{coords.y():3E}")
 
             # Update the delta GUI values.
             self.ui.delta_X.setText(f"{coords.x() - self.last_Click.x():3E}")
@@ -654,6 +659,7 @@ class MyWindow(QtWidgets.QMainWindow):
         elif self.integrals_On:
             # Cursors stored in a list, get the relevant ones for this click
             cursor_Bottom, cursor_Top = self.integral_vLines[self.click_Number]
+
             # Fetch the current desired width of the window between cursors.
             integral_Width = float(self.ui.integral_Width.text())
 
