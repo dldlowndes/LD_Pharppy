@@ -537,13 +537,11 @@ class MyWindow(QtWidgets.QMainWindow):
             self.integral_Means,
             self.integral_Maxes,
             self.mean_TextBoxes,
-            self.max_TextBoxes,
-            self.integral_hLines)
+            self.max_TextBoxes
+            )
 
-        for this_Mean, this_Max, mean_Box, max_Box, (mean_Line, max_Line) in iterable:
+        for this_Mean, this_Max, mean_Box, max_Box in iterable:
             # Draw horizontal lines corresponding to max and mean (looks horrible!)
-            # mean_Line.setValue(this_Mean)
-            # max_Line.setValue(this_Max)
 
             # The last normalize_Button is "off" i.e. don't do normalization.
             if self.normalize_This < (len(self.normalize_Buttons) - 1):
