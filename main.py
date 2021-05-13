@@ -182,6 +182,7 @@ class MyWindow(QtWidgets.QMainWindow):
         self.ui.button_ClearHistogram.clicked.connect(self.on_Clear_Histogram)
         self.ui.button_ClearIntegrals.clicked.connect(self.on_Clear_Intervals)
         self.ui.cursors_Tabber.currentChanged.connect(self.on_Cursor_Tab)
+        # All normalize radio buttons connected to the same method
         self.ui.normalize_Red.toggled.connect(self.on_Normalize_Click)
         self.ui.normalize_Green.toggled.connect(self.on_Normalize_Click)
         self.ui.normalize_Blue.toggled.connect(self.on_Normalize_Click)
@@ -767,10 +768,22 @@ class MyWindow(QtWidgets.QMainWindow):
                                 (0, 0)]
 
     def on_Normalize_Click(self, checked):
+        """
+        When a normalize radio button is clicked. Update a variable keeping
+        track of which one is clicked.
+        Note that the signal is emitted when a radio button changes state, so
+        this triggers twice on any click, once for a deactivate and once for
+        an activate. Hence this only runs for the checked radio box. (not that
+        it would do any harm but it's neater this way)
+        """
+
+        # Check the event was from a "checked" event not an "unchecked" event
         if checked:
             for i, radio in enumerate(self.normalize_Buttons):
+                # Go through all the buttons looking for the checked one.
                 if radio.isChecked():
                     self.logger.debug(f"Normalize button {i} is pressed")
+                    # Remember which button it was that was checked.
                     self.normalize_This = i
 
 
