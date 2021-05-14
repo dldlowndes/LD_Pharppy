@@ -13,12 +13,13 @@ TODO list:
     - Give option to specify DLL path on FileNotFoundError when starting
     - Read and print DLL warnings (counts too high etc)
     - Cumulative histograms
+    - Break up on_Graph_Click into separate methods, it's doing too much
   Med:
     - Curve fitting/FWHM estimate.
   Hard:
-    - Add horizontal lines in integration mode (max? mean? both?)
     - Option to update width on already placed integrals (two buttons)
-    - Add dynamic number of delta/integration cursors instead of 2/4 respectively
+    - Add dynamic number of delta/integration cursors instead of 2/4 
+    respectively
     - Investigate getting this to work with other hardware...
     - py2exe or something for distribution
     - Make a separate class for the integral cursors that wraps both vLines,
@@ -47,6 +48,7 @@ import LD_Pharp_Dummy
 # So this works nicely on my Surface.
 QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling, True)
 
+
 class MyWindow(QtWidgets.QMainWindow):
     """
     Window for the UI for the Picoharp program.
@@ -69,6 +71,9 @@ class MyWindow(QtWidgets.QMainWindow):
 
         # Dict to lookup the angles for H and V oriented lines on the plot.
         self.orientations = {"h": 0, "v": 90}
+        
+        # Colours to choose from and the order they are chosen
+        self.palette = ("r", "g", "b", "m")
 
         # Define hardware info members, then init them (and the hardware)
         self.my_Pharp = None
@@ -79,9 +84,9 @@ class MyWindow(QtWidgets.QMainWindow):
         self.Init_Hardware()
 
         # Members involved with UI, then init them (and the UI)
-        self.integral_Coords = []
-        self.integral_Means = []
-        self.integral_Maxes = []
+        self.integral_Coords = np.array([])
+        self.integral_Means = np.array([])
+        self.integral_Maxes = np.array([])
         self.mean_TextBoxes = ()
         self.max_TextBoxes = ()
         self.click_TextBoxes = ()
@@ -129,7 +134,6 @@ class MyWindow(QtWidgets.QMainWindow):
                 self.my_Pharp = LD_Pharp_Dummy.LD_Pharp()
             else:
                 # Fall over
-                # TODO: Quit program gracefully?
                 raise e
 
         # The resolutions are all 2**n multiples of the base resolution so
@@ -189,12 +193,12 @@ class MyWindow(QtWidgets.QMainWindow):
         self.ui.normalize_Magenta.toggled.connect(self.on_Normalize_Click)
         self.ui.normalize_Off.toggled.connect(self.on_Normalize_Click)
 
-        self.integral_Coords = [(0, 0),
-                                (0, 0),
-                                (0, 0),
-                                (0, 0)]
-        self.integral_Means = [0, 0, 0, 0]
-        self.integral_Maxes = [0, 0, 0, 0]
+        self.integral_Coords = np.array([(0, 0),
+                                         (0, 0),
+                                         (0, 0),
+                                         (0, 0)])
+        self.integral_Means = np.array([0.0, 0.0, 0.0, 0.0])
+        self.integral_Maxes = np.array([0.0, 0.0, 0.0, 0.0])
         self.mean_TextBoxes = (
             self.ui.integral_Red,
             self.ui.integral_Green,
@@ -270,17 +274,17 @@ class MyWindow(QtWidgets.QMainWindow):
             )
 
         self.delta_Lines = (
-            (self.Make_Line("h", "r"), self.Make_Line("v", "r")),
-            (self.Make_Line("h", "g"), self.Make_Line("v", "g"))
+            (self.Make_Line_Pair("h", "v", self.palette[0])),
+            (self.Make_Line_Pair("h", "v", self.palette[1]))
             )
 
         self.integral_vLines = (
-            (self.Make_Line("v", "r"), self.Make_Line("v", "r")),
-            (self.Make_Line("v", "g"), self.Make_Line("v", "g")),
-            (self.Make_Line("v", "b"), self.Make_Line("v", "b")),
-            (self.Make_Line("v", "m"), self.Make_Line("v", "m"))
+            (self.Make_Line_Pair("v", "v", self.palette[0])),
+            (self.Make_Line_Pair("v", "v", self.palette[1])),
+            (self.Make_Line_Pair("v", "v", self.palette[2])),
+            (self.Make_Line_Pair("v", "v", self.palette[3]))
             )
-
+        
         # Necessary? Thought it would be good for every line to be in a
         # well defined position on init...
         for line in self.cursor_Lines:
@@ -300,6 +304,14 @@ class MyWindow(QtWidgets.QMainWindow):
         return pyqtgraph.InfiniteLine(angle=this_Angle,
                                       movable=False,
                                       pen=colour)
+        
+    def Make_Line_Pair(self, orientation1, orientation2, colour):
+        """
+        Make two lines, of the same colour, of any specified orientation.
+        A bit excessive but saves some repetition
+        """
+        return (self.Make_Line(orientation1, colour),
+                self.Make_Line(orientation2, colour))
 
     def apply_Settings(self):
         """
@@ -476,21 +488,21 @@ class MyWindow(QtWidgets.QMainWindow):
         is these follow the cursor to help reading the graph
         """
         for line in self.cursor_Lines:
-            self.ui.graph_Widget.addItem(line) #, ignoreBounds=False)
+            self.ui.graph_Widget.addItem(line)
 
     def Draw_Deltas(self):
         """
         Cursors that persist on mouse clicks.
         """
         for line in itertools.chain.from_iterable(self.delta_Lines):
-            self.ui.graph_Widget.addItem(line) #, ignoreBounds=False)
+            self.ui.graph_Widget.addItem(line)
 
     def Draw_Integrals(self):
         """
         Persistent cursors. 4 pairs spaced by a user supplied value.
         """
         for line in itertools.chain.from_iterable(self.integral_vLines):
-            self.ui.graph_Widget.addItem(line) #, ignoreBounds=False)
+            self.ui.graph_Widget.addItem(line)
 
     def Remove_Cursors(self):
         """
@@ -521,8 +533,10 @@ class MyWindow(QtWidgets.QMainWindow):
         """
 
         # Go fetch the data between each pair of integral cursors.
+        # Calculate mean/max values in separate loop up here so the values
+        # can be normalized when displaying if required.
         for i, (bottom_Bin, top_Bin) in enumerate(self.integral_Coords):
-            integral_Data = self.this_Data[bottom_Bin : top_Bin]
+            integral_Data = self.this_Data[bottom_Bin: top_Bin]
             # Numpy complains if this slice has no length, so catch that.
             if len(integral_Data) > 0:
                 self.integral_Means[i] = integral_Data.mean()
@@ -540,8 +554,10 @@ class MyWindow(QtWidgets.QMainWindow):
             self.max_TextBoxes
             )
 
-        for this_Mean, this_Max, mean_Box, max_Box in iterable:
-            # Draw horizontal lines corresponding to max and mean (looks horrible!)
+        for (this_Mean,
+             this_Max,
+             mean_Box,
+             max_Box) in iterable:
 
             # The last normalize_Button is "off" i.e. don't do normalization.
             if self.normalize_This < (len(self.normalize_Buttons) - 1):
@@ -555,13 +571,22 @@ class MyWindow(QtWidgets.QMainWindow):
                 else:
                     this_Mean = np.inf
                 if max_Factor > 0:
-                    this_Max /= max_Factor # because you're worth it.
+                    this_Max /= max_Factor  # because you're worth it.
                 else:
                     this_Max = np.inf
 
             # Update the text box.
             mean_Box.setText(f"{this_Mean:.3E}")
             max_Box.setText(f"{this_Max:.3E}")
+
+        # Plot bars between the intervals of the mean values
+        bars = pyqtgraph.BarGraphItem(
+                x0 = self.integral_Coords[:,0] * self.my_Pharp.resolution * 1e-12,
+                x1 = self.integral_Coords[:,1] * self.my_Pharp.resolution * 1e-12,
+                height = self.integral_Means,
+                pens=self.palette,
+                brushes=self.palette)
+        self.ui.graph_Widget.addItem(bars)
 
     def on_Save_Histo(self):
         """
@@ -693,9 +718,8 @@ class MyWindow(QtWidgets.QMainWindow):
         """
         Toggle the live cursor on/off
         """
-        self.cursors_On = self.ui.option_Cursor.isChecked()
-
-        if self.cursors_On:
+        
+        if self.cursors_On := self.ui.option_Cursor.isChecked():
             # Redraw the cursor
             self.logger.info("Turn cursor on")
             self.Draw_Cursors()
@@ -766,10 +790,10 @@ class MyWindow(QtWidgets.QMainWindow):
 
         # Set the co-ords of the top/bottom all to zero. So the data between
         # the positions is zero
-        self.integral_Coords = [(0, 0),
-                                (0, 0),
-                                (0, 0),
-                                (0, 0)]
+        self.integral_Coords = np.array([(0, 0),
+                                         (0, 0),
+                                         (0, 0),
+                                         (0, 0)])
 
     def on_Normalize_Click(self, checked):
         """
