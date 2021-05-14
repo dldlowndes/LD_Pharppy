@@ -14,16 +14,19 @@ TODO list:
     - Read and print DLL warnings (counts too high etc)
     - Cumulative histograms
     - Break up on_Graph_Click into separate methods, it's doing too much
+    - Add options to bar chart plotting in integral mode
+      - Display max/mean/neither
+      - Opacity?
   Med:
     - Curve fitting/FWHM estimate.
   Hard:
-    - Option to update width on already placed integrals (two buttons)
-    - Add dynamic number of delta/integration cursors instead of 2/4 
+    - Option to update width on already placed integrals
+    - Add dynamic number of delta/integration cursors instead of 2/4
     respectively
     - Investigate getting this to work with other hardware...
     - py2exe or something for distribution
     - Make a separate class for the integral cursors that wraps both vLines,
-    the width, and potentially 2 hLines for mean/max values.
+    the width, and data bars
 """
 
 # pylint: disable=C0103
