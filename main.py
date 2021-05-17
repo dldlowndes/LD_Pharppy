@@ -74,7 +74,7 @@ class MyWindow(QtWidgets.QMainWindow):
 
         # Dict to lookup the angles for H and V oriented lines on the plot.
         self.orientations = {"h": 0, "v": 90}
-        
+
         # Colours to choose from and the order they are chosen
         self.palette = ("r", "g", "b", "m")
 
@@ -287,7 +287,7 @@ class MyWindow(QtWidgets.QMainWindow):
             (self.Make_Line_Pair("v", "v", self.palette[2])),
             (self.Make_Line_Pair("v", "v", self.palette[3]))
             )
-        
+
         # Necessary? Thought it would be good for every line to be in a
         # well defined position on init...
         for line in self.cursor_Lines:
@@ -307,7 +307,7 @@ class MyWindow(QtWidgets.QMainWindow):
         return pyqtgraph.InfiniteLine(angle=this_Angle,
                                       movable=False,
                                       pen=colour)
-        
+
     def Make_Line_Pair(self, orientation1, orientation2, colour):
         """
         Make two lines, of the same colour, of any specified orientation.
@@ -721,8 +721,9 @@ class MyWindow(QtWidgets.QMainWindow):
         """
         Toggle the live cursor on/off
         """
-        
-        if self.cursors_On := self.ui.option_Cursor.isChecked():
+        self.cursors_On = self.ui.option_Cursor.isChecked()
+
+        if self.cursors_On:
             # Redraw the cursor
             self.logger.info("Turn cursor on")
             self.Draw_Cursors()
