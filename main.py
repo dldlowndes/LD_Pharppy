@@ -9,20 +9,19 @@ Requires: Python 3.7+, Numpy, PyQt5, PyQtGraph.
 
 TODO list:
   Easy:
-    - Disable settings button when data is running (doesn't work anyway)
     - Give option to specify DLL path on FileNotFoundError when starting
     - Read and print DLL warnings (counts too high etc)
     - Cumulative histograms
   Med:
     - Curve fitting/FWHM estimate.
-  Hard:
-    - Option to update width on already placed integrals
+  Hard
     - Add dynamic number of delta/integration cursors instead of 2/4
     respectively
     - Investigate getting this to work with other hardware...
     - py2exe or something for distribution
     - Make a separate class for the integral cursors that wraps both vLines,
     the width, and data bars
+        - Option to update width on already placed integrals
 """
 
 # pylint: disable=C0103
@@ -38,6 +37,7 @@ import sys
 import numpy as np
 from PyQt5 import QtWidgets, QtCore, QtGui
 import pyqtgraph
+# import scipy.signal
 
 import acq_Thread
 import settings_gui
@@ -93,10 +93,12 @@ class MyWindow(QtWidgets.QMainWindow):
 
         # Members involved with UI, then init them (and the UI)
         self.integral_Coords = np.array([])
-        self.integral_Means = np.array([])
-        self.integral_Maxes = np.array([])
+        self.integral_Means = np.zeros(4)
+        self.integral_Maxes = np.zeros(4)
+        self.integral_SDs = np.zeros(4)
         self.mean_TextBoxes = ()
         self.max_TextBoxes = ()
+        self.fwhm_TextBoxes = ()
         self.click_TextBoxes = ()
         self.normalize_Buttons = ()
         self.cursors_On = None
@@ -205,8 +207,6 @@ class MyWindow(QtWidgets.QMainWindow):
                                          (0, 0),
                                          (0, 0),
                                          (0, 0)])
-        self.integral_Means = np.array([0.0, 0.0, 0.0, 0.0])
-        self.integral_Maxes = np.array([0.0, 0.0, 0.0, 0.0])
         self.mean_TextBoxes = (
             self.ui.integral_Red,
             self.ui.integral_Green,
@@ -232,6 +232,13 @@ class MyWindow(QtWidgets.QMainWindow):
             self.ui.normalize_Blue,
             self.ui.normalize_Magenta,
             self.ui.normalize_Off
+            )
+
+        self.fwhm_TextBoxes = (
+            self.ui.fwhm_Red,
+            self.ui.fwhm_Green,
+            self.ui.fwhm_Blue,
+            self.ui.fwhm_Magenta
             )
 
     def Init_Plot(self):
@@ -540,33 +547,57 @@ class MyWindow(QtWidgets.QMainWindow):
         text box.
         """
 
+        resolution_ps = self.my_Pharp.resolution * 1e-12
+
         # Go fetch the data between each pair of integral cursors.
         # Calculate mean/max values in separate loop up here so the values
         # can be normalized when displaying if required.
         for i, (bottom_Bin, top_Bin) in enumerate(self.integral_Coords):
             integral_Data = self.this_Data[bottom_Bin: top_Bin]
+            #this_X_Data = self.x_Data[bottom_Bin: top_Bin]
+
             # Numpy complains if this slice has no length, so catch that.
             if len(integral_Data) > 0:
                 self.integral_Means[i] = integral_Data.mean()
                 self.integral_Maxes[i] = integral_Data.max()
+
+                # Get FWHM by literally counting the number of bins above half
+                # the maximum value (after subtracting the noise floor)
+                y_Range = integral_Data.max() - integral_Data.min()
+                half_Max = y_Range / 2
+                fwhm_Bins = sum(integral_Data > half_Max) * resolution_ps
+                self.integral_SDs[i] = fwhm_Bins / 2.355
+
+                # TODO: Get the peak position right!
+                # fit_Data = scipy.signal.gaussian(len(this_X_Data),
+                #                                  self.integral_SDs[i] /resolution_ps)
+
+                # fit_Graph = pyqtgraph.PlotCurveItem(
+                #     x=this_X_Data,
+                #     y=fit_Data * integral_Data.max(),
+                #     pen=self.palette[i],
+                #     )
+                # self.ui.graph_Widget.addItem(fit_Graph)
+
             else:
                 # I suppose the mean and max of no data is zero?
                 self.integral_Means[i] = 0
                 self.integral_Maxes[i] = 0
+                self.integral_SDs[i] = 0
+
 
         # Do this separately to make the for loop declaration neater.
         iterable = zip(
             self.integral_Means,
             self.integral_Maxes,
+            self.integral_SDs,
             self.mean_TextBoxes,
-            self.max_TextBoxes
+            self.max_TextBoxes,
+            self.fwhm_TextBoxes,
             )
 
-        for (this_Mean,
-             this_Max,
-             mean_Box,
-             max_Box) in iterable:
-
+        for (this_Mean, this_Max, this_SD,
+             mean_Box, max_Box, fwhm_Box) in iterable:
             # The last normalize_Button is "off" i.e. don't do normalization.
             if self.normalize_This < (len(self.normalize_Buttons) - 1):
                 # Otherwise normalize by the value of the specified cursor.
@@ -586,26 +617,27 @@ class MyWindow(QtWidgets.QMainWindow):
             # Update the text box.
             mean_Box.setText(f"{this_Mean:.3E}")
             max_Box.setText(f"{this_Max:.3E}")
+            fwhm_Box.setText(f"{this_SD * 2.355:.3E}")
 
-        # Plot bars between the interval cursors
-        resolution_ps = self.my_Pharp.resolution * 1e-12
-        # Solid bars at the means
-        mean_Bars = pyqtgraph.BarGraphItem(
-                x0 = self.integral_Coords[:,0] * resolution_ps,
-                x1 = self.integral_Coords[:,1] * resolution_ps,
-                height = self.integral_Means,
-                pens=self.palette,
-                brushes=self.palette)
-        # Transparentish bars at the maxes
-        max_Bars = pyqtgraph.BarGraphItem(
-                x0 = self.integral_Coords[:,0] * resolution_ps,
-                x1 = self.integral_Coords[:,1] * resolution_ps,
-                height = self.integral_Maxes,
-                pens=self.palette,
-                brushes=self.palette_Alpha)
+        if self.ui.option_ShowBars.isChecked():
+            # Plot bars between the interval cursors
+            # Solid bars at the means
+            mean_Bars = pyqtgraph.BarGraphItem(
+                    x0 = self.integral_Coords[:,0] * resolution_ps,
+                    x1 = self.integral_Coords[:,1] * resolution_ps,
+                    height = self.integral_Means,
+                    pens=self.palette,
+                    brushes=self.palette)
+            # Transparentish bars at the maxes
+            max_Bars = pyqtgraph.BarGraphItem(
+                    x0 = self.integral_Coords[:,0] * resolution_ps,
+                    x1 = self.integral_Coords[:,1] * resolution_ps,
+                    height = self.integral_Maxes,
+                    pens=self.palette,
+                    brushes=self.palette_Alpha)
 
-        self.ui.graph_Widget.addItem(mean_Bars)
-        self.ui.graph_Widget.addItem(max_Bars)
+            self.ui.graph_Widget.addItem(mean_Bars)
+            self.ui.graph_Widget.addItem(max_Bars)
 
     def on_Save_Histo(self):
         """
