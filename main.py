@@ -13,10 +13,6 @@ TODO list:
     - Give option to specify DLL path on FileNotFoundError when starting
     - Read and print DLL warnings (counts too high etc)
     - Cumulative histograms
-    - Break up on_Graph_Click into separate methods, it's doing too much
-    - Add options to bar chart plotting in integral mode
-      - Display max/mean/neither
-      - Opacity?
   Med:
     - Curve fitting/FWHM estimate.
   Hard:
@@ -76,7 +72,16 @@ class MyWindow(QtWidgets.QMainWindow):
         self.orientations = {"h": 0, "v": 90}
 
         # Colours to choose from and the order they are chosen
-        self.palette = ("r", "g", "b", "m")
+        self.palette = (
+            QtGui.QColor(255, 0, 0),
+            QtGui.QColor(0, 255, 0),
+            QtGui.QColor(0, 0, 255),
+            QtGui.QColor(255, 0, 255)
+            )
+        # Take the palette and make a copy with transparancy (alpha=64 seems
+        # good?)
+        self.palette_Alpha = [
+            QtGui.QColor(*col.getRgb()[:3], 64) for col in self.palette]
 
         # Define hardware info members, then init them (and the hardware)
         self.my_Pharp = None
@@ -582,14 +587,25 @@ class MyWindow(QtWidgets.QMainWindow):
             mean_Box.setText(f"{this_Mean:.3E}")
             max_Box.setText(f"{this_Max:.3E}")
 
-        # Plot bars between the intervals of the mean values
-        bars = pyqtgraph.BarGraphItem(
-                x0 = self.integral_Coords[:,0] * self.my_Pharp.resolution * 1e-12,
-                x1 = self.integral_Coords[:,1] * self.my_Pharp.resolution * 1e-12,
+        # Plot bars between the interval cursors
+        resolution_ps = self.my_Pharp.resolution * 1e-12
+        # Solid bars at the means
+        mean_Bars = pyqtgraph.BarGraphItem(
+                x0 = self.integral_Coords[:,0] * resolution_ps,
+                x1 = self.integral_Coords[:,1] * resolution_ps,
                 height = self.integral_Means,
                 pens=self.palette,
                 brushes=self.palette)
-        self.ui.graph_Widget.addItem(bars)
+        # Transparentish bars at the maxes
+        max_Bars = pyqtgraph.BarGraphItem(
+                x0 = self.integral_Coords[:,0] * resolution_ps,
+                x1 = self.integral_Coords[:,1] * resolution_ps,
+                height = self.integral_Maxes,
+                pens=self.palette,
+                brushes=self.palette_Alpha)
+
+        self.ui.graph_Widget.addItem(mean_Bars)
+        self.ui.graph_Widget.addItem(max_Bars)
 
     def on_Save_Histo(self):
         """
@@ -663,59 +679,72 @@ class MyWindow(QtWidgets.QMainWindow):
         coords = view_Box.mapSceneToView(evt.scenePos())
 
         if self.deltas_On:
-            # Draw the lines where the click was. Update the GUI co-ordinates
-            # corresponding to the click number.
-
-            self.logger.debug(f"Click number {self.click_Number} at {coords}")
-            # Move the lines to the click coordinates.
-            self.delta_Lines[self.click_Number][1].setPos(coords.x())
-            self.delta_Lines[self.click_Number][0].setPos(coords.y())
-            # Update the UI values.
-            self.click_TextBoxes[self.click_Number][0].setText(f"{coords.x():3E}")
-            self.click_TextBoxes[self.click_Number][1].setText(f"{coords.y():3E}")
-
-            # Update the delta GUI values.
-            self.ui.delta_X.setText(f"{coords.x() - self.last_Click.x():3E}")
-            self.ui.delta_Y.setText(f"{coords.y() - self.last_Click.y():.0f}")
-            self.last_Click = coords
-
-            # 0->1, 1->0
-            self.click_Number = (self.click_Number + 1) % 2
+            self.on_Click_Deltas(coords)
 
         elif self.integrals_On:
-            # Cursors stored in a list, get the relevant ones for this click
-            cursor_Bottom, cursor_Top = self.integral_vLines[self.click_Number]
-
-            # Fetch the current desired width of the window between cursors.
-            integral_Width = float(self.ui.integral_Width.text())
-
-            # Centre the cursors on the click point, calculate the actual
-            # cursor positions.
-            middle = coords.x()
-            bottom_Position = middle - (integral_Width / 2)
-            top_Position = middle + (integral_Width / 2)
-
-            # Set the cursor positions
-            cursor_Bottom.setPos(bottom_Position)
-            cursor_Top.setPos(top_Position)
-
-            # Calculate the histogram bin numbers of the cursors (the graph
-            # gives them in x axis units)
-            resolution_ps = self.my_Pharp.resolution * 1e-12
-            bottom_Bin = int(bottom_Position / resolution_ps)
-            top_Bin = int(top_Position / resolution_ps)
-
-            # Update a list so they can be stored and the integration can
-            # happen live on each data refresh.
-            # YOU CAN'T SLICE THE DATA HERE; IT WILL BE OUT OF DATE ON THE
-            # NEXT on_Histo_Signal AND WON'T AUTO REFRESH CORRECTLY.
-            self.integral_Coords[self.click_Number] = bottom_Bin, top_Bin
-
-            # Advance click number through values 0, 1, 2, 3 repeating.
-            self.click_Number = (self.click_Number + 1) % 4
+            self.on_Click_Integrals(coords)
         else:
             # Something's gone wrong if this happens.
             pass
+
+    def on_Click_Deltas(self, coords):
+        """
+        Draw the lines where the click was. Update the GUI co-ordinates
+        corresponding to the click number.
+        """
+
+        self.logger.debug(f"Click number {self.click_Number} at {coords}")
+        # Move the lines to the click coordinates.
+        self.delta_Lines[self.click_Number][1].setPos(coords.x())
+        self.delta_Lines[self.click_Number][0].setPos(coords.y())
+        # Update the UI values.
+        self.click_TextBoxes[self.click_Number][0].setText(f"{coords.x():3E}")
+        self.click_TextBoxes[self.click_Number][1].setText(f"{coords.y():3E}")
+
+        # Update the delta GUI values.
+        self.ui.delta_X.setText(f"{coords.x() - self.last_Click.x():3E}")
+        self.ui.delta_Y.setText(f"{coords.y() - self.last_Click.y():.0f}")
+        self.last_Click = coords
+
+        # 0->1, 1->0
+        self.click_Number = (self.click_Number + 1) % 2
+
+    def on_Click_Integrals(self, coords):
+        """
+        Draw the lines where the click was. Update the GUI co-ordinates
+        corresponding to the click number.
+        """
+
+        # Cursors stored in a list, get the relevant ones for this click
+        cursor_Bottom, cursor_Top = self.integral_vLines[self.click_Number]
+
+        # Fetch the current desired width of the window between cursors.
+        integral_Width = float(self.ui.integral_Width.text())
+
+        # Centre the cursors on the click point, calculate the actual
+        # cursor positions.
+        middle = coords.x()
+        bottom_Position = middle - (integral_Width / 2)
+        top_Position = middle + (integral_Width / 2)
+
+        # Set the cursor positions
+        cursor_Bottom.setPos(bottom_Position)
+        cursor_Top.setPos(top_Position)
+
+        # Calculate the histogram bin numbers of the cursors (the graph
+        # gives them in x axis units)
+        resolution_ps = self.my_Pharp.resolution * 1e-12
+        bottom_Bin = int(bottom_Position / resolution_ps)
+        top_Bin = int(top_Position / resolution_ps)
+
+        # Update a list so they can be stored and the integration can
+        # happen live on each data refresh.
+        # YOU CAN'T SLICE THE DATA HERE; IT WILL BE OUT OF DATE ON THE
+        # NEXT on_Histo_Signal AND WON'T AUTO REFRESH CORRECTLY.
+        self.integral_Coords[self.click_Number] = bottom_Bin, top_Bin
+
+        # Advance click number through values 0, 1, 2, 3 repeating.
+        self.click_Number = (self.click_Number + 1) % 4
 
     def on_Cursor_Button(self):
         """
