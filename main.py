@@ -95,7 +95,7 @@ class MyWindow(QtWidgets.QMainWindow):
         self.Init_Hardware()
 
         # Members involved with UI, then init them (and the UI)
-        self.integral_Coords = np.zeros((4, 2))
+        self.integral_Coords = np.zeros((4, 2), dtype=np.int)
         self.integral_Means = np.zeros(4)
         self.integral_Maxes = np.zeros(4)
         self.integral_SDs = np.zeros(4)
