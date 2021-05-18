@@ -13,7 +13,8 @@ TODO list:
     - Read and print DLL warnings (counts too high etc)
     - Cumulative histograms
   Med:
-    - Curve fitting/FWHM estimate.
+    - Curve fitting (choose function - not just gaussian).
+    - BUG: Integral bars only show when x=0 is visible on axis! (what.)
   Hard
     - Add dynamic number of delta/integration cursors instead of 2/4
     respectively
@@ -37,7 +38,7 @@ import sys
 import numpy as np
 from PyQt5 import QtWidgets, QtCore, QtGui
 import pyqtgraph
-# import scipy.signal
+import scipy.signal
 
 import acq_Thread
 import settings_gui
@@ -87,8 +88,9 @@ class MyWindow(QtWidgets.QMainWindow):
         self.my_Pharp = None
         self.base_Resolution = None
         self.allowed_Resolutions = None
-        self.this_Data = None
-        self.x_Data = None
+        self.this_Data = np.zeros(65536)
+        self.last_Histogram = np.zeros(65536)
+        self.x_Data = np.zeros(65536)
         self.Init_Hardware()
 
         # Members involved with UI, then init them (and the UI)
@@ -245,9 +247,6 @@ class MyWindow(QtWidgets.QMainWindow):
         """
         Init the plot widget and containers relating so it.
         """
-
-        # Empty data structure.
-        self.last_Histogram = np.zeros(65536)
 
         # Modify the plot window
         self.ui.graph_Widget.plotItem.setLabel("left", "Counts")
@@ -437,6 +436,7 @@ class MyWindow(QtWidgets.QMainWindow):
         Handle the hsitogram when the hardware thread emits one.
         """
 
+        # TODO: Make this += for cumulative trace
         self.this_Data = histogram_Data
 
         # There are 65536 bins, but if (1/sync) is less than (65536*resolution)
@@ -448,12 +448,12 @@ class MyWindow(QtWidgets.QMainWindow):
         # Trim the histogram and labels so the empty bins (that will never
         # fill) are not plotted. Then plot them.
         self.ui.graph_Widget.plot(self.x_Data[:last_Full_Bin],
-                                  histogram_Data[:last_Full_Bin],
+                                  self.this_Data[:last_Full_Bin],
                                   clear=True)
         # Change the plot limits so that the auto scale doesn't go crazy with
         # the cursors (if they're on) (plus a little margin so the labels show)
         x_Limit = self.x_Data[last_Full_Bin] * 1.05
-        y_Limit = histogram_Data.max() * 1.05
+        y_Limit = self.this_Data.max() * 1.05
         self.ui.graph_Widget.plotItem.vb.setLimits(xMin=0,
                                                    yMin=0,
                                                    xMax=x_Limit,
@@ -471,7 +471,7 @@ class MyWindow(QtWidgets.QMainWindow):
                 self.Display_Integrals()
 
         # Remember the last histogram, so it can be saved.
-        self.last_Histogram = histogram_Data
+        self.last_Histogram = self.this_Data
         self.last_X_Data = self.x_Data
 
     def on_Cursor_Tab(self, tab_Number):
@@ -554,7 +554,7 @@ class MyWindow(QtWidgets.QMainWindow):
         # can be normalized when displaying if required.
         for i, (bottom_Bin, top_Bin) in enumerate(self.integral_Coords):
             integral_Data = self.this_Data[bottom_Bin: top_Bin]
-            #this_X_Data = self.x_Data[bottom_Bin: top_Bin]
+            this_X_Data = self.x_Data[bottom_Bin: top_Bin]
 
             # Numpy complains if this slice has no length, so catch that.
             if len(integral_Data) > 0:
@@ -568,16 +568,18 @@ class MyWindow(QtWidgets.QMainWindow):
                 fwhm_Bins = sum(integral_Data > half_Max) * resolution_ps
                 self.integral_SDs[i] = fwhm_Bins / 2.355
 
-                # TODO: Get the peak position right!
-                # fit_Data = scipy.signal.gaussian(len(this_X_Data),
-                #                                  self.integral_SDs[i] /resolution_ps)
-
-                # fit_Graph = pyqtgraph.PlotCurveItem(
-                #     x=this_X_Data,
-                #     y=fit_Data * integral_Data.max(),
-                #     pen=self.palette[i],
-                #     )
-                # self.ui.graph_Widget.addItem(fit_Graph)
+#                fit_Middle = np.average(this_X_Data, weights=integral_Data)
+#                integral_Middle_Value = np.median(this_X_Data)
+#                middle_Offset = integral_Middle_Value - fit_Middle
+#                fit_Data = scipy.signal.gaussian(len(this_X_Data),
+#                                                 self.integral_SDs[i] /resolution_ps)
+#
+#                fit_Graph = pyqtgraph.PlotCurveItem(
+#                        x=this_X_Data - middle_Offset,
+#                        y=fit_Data * integral_Data.max(),
+#                        pen=self.palette[i],
+#                        )
+#                self.ui.graph_Widget.addItem(fit_Graph)
 
             else:
                 # I suppose the mean and max of no data is zero?
