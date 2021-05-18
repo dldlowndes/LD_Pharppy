@@ -12,6 +12,7 @@ TODO list:
     - Give option to specify DLL path on FileNotFoundError when starting
     - Read and print DLL warnings (counts too high etc)
     - Cumulative histograms
+    - Default options into an ini file
   Med:
     - Curve fitting (choose function - not just gaussian).
     - BUG: Integral bars only show when x=0 is visible on axis! (what.)
@@ -74,10 +75,10 @@ class MyWindow(QtWidgets.QMainWindow):
 
         # Colours to choose from and the order they are chosen
         self.palette = (
-            QtGui.QColor(255, 0, 0),
-            QtGui.QColor(0, 255, 0),
-            QtGui.QColor(0, 0, 255),
-            QtGui.QColor(255, 0, 255)
+            QtGui.QColor(255, 0, 0),  # red
+            QtGui.QColor(0, 255, 0),  # green
+            QtGui.QColor(0, 0, 255),  # blue
+            QtGui.QColor(255, 0, 255) # magenta
             )
         # Take the palette and make a copy with transparancy (alpha=64 seems
         # good?)
@@ -94,7 +95,7 @@ class MyWindow(QtWidgets.QMainWindow):
         self.Init_Hardware()
 
         # Members involved with UI, then init them (and the UI)
-        self.integral_Coords = np.array([])
+        self.integral_Coords = np.zeros((4, 2))
         self.integral_Means = np.zeros(4)
         self.integral_Maxes = np.zeros(4)
         self.integral_SDs = np.zeros(4)
@@ -205,10 +206,6 @@ class MyWindow(QtWidgets.QMainWindow):
         self.ui.normalize_Magenta.toggled.connect(self.on_Normalize_Click)
         self.ui.normalize_Off.toggled.connect(self.on_Normalize_Click)
 
-        self.integral_Coords = np.array([(0, 0),
-                                         (0, 0),
-                                         (0, 0),
-                                         (0, 0)])
         self.mean_TextBoxes = (
             self.ui.integral_Red,
             self.ui.integral_Green,
