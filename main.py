@@ -12,10 +12,15 @@ TODO list:
     - Give option to specify DLL path on FileNotFoundError when starting
     - Read and print DLL warnings (counts too high etc)
     - Cumulative histograms
-    - Default options into an ini file
+    - Default options into an ini file (ongoing)
+    - Save/Load ini files, have previous settings reloaded on next session
+    - "Factory reset" option to settings because of above
+    - Check the types (int, float) for some of the options, eg Sync offset GUI
+    value is a float but the DLL value is an int.
   Med:
     - Curve fitting (choose function - not just gaussian).
-    - BUG: Integral bars only show when x=0 is visible on axis! (what.)
+    - BUG: Integral bars only show when x=0 is visible on axis! (what.) - might
+    have to re-draw the bars every time the cursor moves to fix!!!
   Hard
     - Add dynamic number of delta/integration cursors instead of 2/4
     respectively
@@ -264,7 +269,7 @@ class MyWindow(QtWidgets.QMainWindow):
         # Connect mouse events to functions
         self.proxy = pyqtgraph.SignalProxy(
             self.ui.graph_Widget.sceneObj.sigMouseMoved,
-            rateLimit=60,
+            rateLimit=20,
             slot=self.on_Mouse_Move
             )
         self.ui.graph_Widget.sceneObj.sigMouseClicked.connect(
