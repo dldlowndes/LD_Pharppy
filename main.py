@@ -45,6 +45,7 @@ import acq_Thread
 import settings_gui
 import LD_Pharp
 import LD_Pharp_Dummy
+import LD_Pharp_Config
 
 # So this works nicely on my Surface.
 QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling, True)
@@ -92,6 +93,7 @@ class MyWindow(QtWidgets.QMainWindow):
         self.this_Data = np.zeros(65536)
         self.last_Histogram = np.zeros(65536)
         self.x_Data = np.zeros(65536)
+        self.pharppy_Config = LD_Pharp_Config.LD_Pharppy_Settings("defaults.ini")
         self.Init_Hardware()
 
         # Members involved with UI, then init them (and the UI)
@@ -340,22 +342,18 @@ class MyWindow(QtWidgets.QMainWindow):
             resolution_Req = self.ui.resolution.currentText()
             binning = np.log2(float(resolution_Req) / self.base_Resolution)
 
-            options = {
-                "binning": int(binning),
-                "sync_Offset": int(self.ui.sync_Offset.value()),
-                "sync_Divider": int(self.ui.sync_Divider.currentText()),
-                "CFD0_ZeroCross": int(self.ui.CFD0_Zerocross.value()),
-                "CFD0_Level": int(self.ui.CFD0_Level.value()),
-                "CFD1_ZeroCross": int(self.ui.CFD1_Zerocross.value()),
-                "CFD1_Level": int(self.ui.CFD1_Level.value()),
-                "acq_Time": int(self.ui.acq_Time.value())
-                }
+            pharp_Config = self.pharppy_Config.Device_Settings
+            pharp_Config.binning = int(binning)
+            pharp_Config.sync_Offset = self.ui.sync_Offset.value()
+            pharp_Config.sync_Divider = int(self.ui.sync_Divider.currentText())
+            pharp_Config.CFD0_ZeroCrossing = int(self.ui.CFD0_Zerocross.value())
+            pharp_Config.CFD0_Level = int(self.ui.CFD0_Level.value())
+            pharp_Config.CFD1_ZeroCrossing = int(self.ui.CFD1_Zerocross.value())
+            pharp_Config.CFD1_Level = int(self.ui.CFD1_Level.value())
+            pharp_Config.acq_Time = int(self.ui.acq_Time.value())
 
-            self.logger.info(f"Push settings\n {options}")
-            self.my_Pharp.Update_Settings(**options)
-
-            # Remember the settings that were last pushed.
-            self.current_Options = options
+            self.logger.info(f"Push settings\n {pharp_Config}")
+            self.my_Pharp.Update_Settings(pharp_Config)
 
             # If binning (resolution) changes, the histogram x axis labels
             # change. Update this. The max number of bins is 65536, this will
@@ -371,29 +369,22 @@ class MyWindow(QtWidgets.QMainWindow):
         Some sensible defaults of the options. Sets the UI elements to the
         defaults and then calls the function that reads them and pushes.
         """
-        default_Options = {
-            "binning": 0,
-            "sync_Offset": 0,
-            "sync_Divider": 1,
-            "CFD0_ZeroCross": 10,
-            "CFD0_Level": 50,
-            "CFD1_ZeroCross": 10,
-            "CFD1_Level": 50,
-            "acq_Time": 500
-            }
 
-        binning = default_Options["binning"]
+        self.pharppy_Config = LD_Pharp_Config.LD_Pharppy_Settings("defaults.ini")
+        pharp_Config = self.pharppy_Config.Device_Settings
+
+        binning = pharp_Config.binning
         resolution = self.base_Resolution * (2 ** binning)
 
         self.ui.resolution.setCurrentText(f"{resolution}")
-        self.ui.sync_Offset.setValue(default_Options["sync_Offset"])
-        self.ui.sync_Divider.setCurrentText(
-            str(default_Options["sync_Divider"]))
-        self.ui.CFD0_Level.setValue(default_Options["CFD0_Level"])
-        self.ui.CFD0_Zerocross.setValue(default_Options["CFD0_ZeroCross"])
-        self.ui.CFD1_Level.setValue(default_Options["CFD1_Level"])
-        self.ui.CFD1_Zerocross.setValue(default_Options["CFD1_ZeroCross"])
-        self.ui.acq_Time.setValue(default_Options["acq_Time"])
+        self.ui.sync_Offset.setValue(pharp_Config.sync_Offset)
+        print(f"Just set sync offset, value now {self.ui.sync_Offset.value()}")
+        self.ui.sync_Divider.setCurrentText(str(pharp_Config.sync_Divider))
+        self.ui.CFD0_Level.setValue(pharp_Config.CFD0_Level)
+        self.ui.CFD0_Zerocross.setValue(pharp_Config.CFD0_ZeroCrossing)
+        self.ui.CFD1_Level.setValue(pharp_Config.CFD1_Level)
+        self.ui.CFD1_Zerocross.setValue(pharp_Config.CFD1_ZeroCrossing)
+        self.ui.acq_Time.setValue(pharp_Config.acq_Time)
 
         self.logger.info("Reset settings to defaults")
         self.apply_Settings()

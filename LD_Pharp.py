@@ -9,6 +9,7 @@ mode for humans to use.
 import logging
 
 import LD_PharpDLL
+import LD_Pharp_Config
 
 # Dunno what to do with this right now but it's in the source code now
 # TODO: Use these?
@@ -131,16 +132,7 @@ class LD_Pharp:
         self.logger = logging.getLogger("PHarp.Hardware")
         logging.basicConfig(level=logging.DEBUG)
 
-        self._default_Options = {
-                "binning": 0,
-                "sync_Offset": 0,
-                "sync_Divider": 1,
-                "CFD0_ZeroCross": 10,
-                "CFD0_Level": 50,
-                "CFD1_ZeroCross": 10,
-                "CFD1_Level": 50,
-                "acq_Time": 500
-                }
+        self._default_Options = LD_Pharp_Config.LD_Pharp_Config()
         self.options = self._default_Options
 
         # Connect to the Picoharp device.
@@ -174,38 +166,25 @@ class LD_Pharp:
         self.logger.debug(f"Bye")
         self.my_PharpDLL.Close()
 
-    def Update_Settings(self, sync_Divider, sync_Offset, CFD0_Level,
-                        CFD0_ZeroCross, CFD1_Level, CFD1_ZeroCross, binning,
-                        acq_Time):
+    def Update_Settings(self, pharp_Config):
         """
         Even though args are best sent as an unpacked dict, enforcing the
         parameters separately enforces that they all get sent.
         """
 
-        # Rebuild the options dict so it can be remembered.
-        new_Options = {
-                "binning": binning,
-                "sync_Offset": sync_Offset,
-                "sync_Divider": sync_Divider,
-                "CFD0_ZeroCross": CFD0_ZeroCross,
-                "CFD0_Level": CFD0_Level,
-                "CFD1_ZeroCross": CFD1_ZeroCross,
-                "CFD1_Level": CFD1_Level,
-                "acq_Time": acq_Time
-                }
-        # Put the new dictionary where the old one was
-        self.options = new_Options
+        self.options = pharp_Config
 
         # Set the ones that need to be set now with functions.
-        self.my_PharpDLL.Set_SyncDiv(self.options["sync_Divider"])
-        self.my_PharpDLL.Set_InputCFD(self.options["CFD0_Level"],
-                                      self.options["CFD0_ZeroCross"],
-                                      self.options["CFD1_Level"],
-                                      self.options["CFD1_ZeroCross"])
-        self.my_PharpDLL.Set_Binning(self.options["binning"])
-        self.my_PharpDLL.Set_SyncOffset(self.options["sync_Offset"])
+        self.my_PharpDLL.Set_SyncDiv(pharp_Config.sync_Divider)
+        self.my_PharpDLL.Set_InputCFD(pharp_Config.CFD0_Level,
+                                      pharp_Config.CFD0_ZeroCross,
+                                      pharp_Config.CFD1_Level,
+                                      pharp_Config.CFD1_ZeroCross
+                                      )
+        self.my_PharpDLL.Set_Binning(pharp_Config.binning)
+        self.my_PharpDLL.Set_SyncOffset(pharp_Config.sync_Offset)
         # Figure out the resolution that is implied by the requested binning.
-        new_Resolution = self.base_Resolution * (2 ** self.options["binning"])
+        new_Resolution = self.base_Resolution * (2 ** pharp_Config.binning)
         self.logger.debug(f"Asked for resolution {new_Resolution}")
         # Check that the resolution requested is the same as the resolution
         # the Picoharp thinks it's providing.
@@ -230,7 +209,7 @@ class LD_Pharp:
         # TODO: Optionally be able to clear this?
         self.my_PharpDLL.ClearHistMem()
 
-        self.my_PharpDLL.Start(self.options["acq_Time"])
+        self.my_PharpDLL.Start(self.options.acq_Time)
 
         # Ask the Picoharp if it's done yet. Either because acq_Time has passed
         # or because a bin in the histogram has been filled.
