@@ -344,7 +344,7 @@ class MyWindow(QtWidgets.QMainWindow):
 
             pharp_Config = self.pharppy_Config.Device_Settings
             pharp_Config.binning = int(binning)
-            pharp_Config.sync_Offset = self.ui.sync_Offset.value()
+            pharp_Config.sync_Offset = int(self.ui.sync_Offset.value())
             pharp_Config.sync_Divider = int(self.ui.sync_Divider.currentText())
             pharp_Config.CFD0_ZeroCrossing = int(self.ui.CFD0_Zerocross.value())
             pharp_Config.CFD0_Level = int(self.ui.CFD0_Level.value())

@@ -5,7 +5,7 @@ class LD_Pharp_Config():
     def __init__(self, config_File=None):
         # Defaults
         self._binning = 0
-        self._sync_Offset = 0.0
+        self._sync_Offset = 0
         self._sync_Divider = 1
         self._CFD0_ZeroCrossing = 10
         self._CFD0_Level = 50
@@ -44,9 +44,7 @@ class LD_Pharp_Config():
 
     @sync_Offset.setter
     def sync_Offset(self, value):
-        print(f"Value: {value}, {type(value)}")
         self._sync_Offset = value
-        print(f"Set to: {self._sync_Offset}, {type(self._sync_Offset)}")
 
     @property
     def sync_Divider(self):
@@ -79,6 +77,14 @@ class LD_Pharp_Config():
     @CFD1_ZeroCrossing.setter
     def CFD1_ZeroCrossing(self, value):
         self._CFD1_ZeroCrossing = value
+
+    @property
+    def CFD1_Level(self):
+        return self._CFD1_Level
+
+    @CFD1_Level.setter
+    def CFD1_Level(self, value):
+        self._CFD1_Level = value
 
     @property
     def acq_Time(self):

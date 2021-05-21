@@ -159,8 +159,7 @@ class LD_Pharp:
         self.resolution = self.my_PharpDLL.Get_Resolution()
         self.logger.debug(f"Resolution is {self.resolution}")
 
-        # Pass dictionary as kwargs
-        self.Update_Settings(**self._default_Options)
+        self.Update_Settings(self._default_Options)
 
     def __del__(self):
         self.logger.debug(f"Bye")
@@ -173,13 +172,12 @@ class LD_Pharp:
         """
 
         self.options = pharp_Config
-
         # Set the ones that need to be set now with functions.
         self.my_PharpDLL.Set_SyncDiv(pharp_Config.sync_Divider)
         self.my_PharpDLL.Set_InputCFD(pharp_Config.CFD0_Level,
-                                      pharp_Config.CFD0_ZeroCross,
+                                      pharp_Config.CFD0_ZeroCrossing,
                                       pharp_Config.CFD1_Level,
-                                      pharp_Config.CFD1_ZeroCross
+                                      pharp_Config.CFD1_ZeroCrossing
                                       )
         self.my_PharpDLL.Set_Binning(pharp_Config.binning)
         self.my_PharpDLL.Set_SyncOffset(pharp_Config.sync_Offset)
