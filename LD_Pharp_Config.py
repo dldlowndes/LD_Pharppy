@@ -16,19 +16,20 @@ class LD_Pharp_Config():
         if config_File:
             self.Load_From_File(config_File)
 
-        print("Settings constructed")
+    def to_Dict(self):
+        params = {"Binning": str(self.binning),
+                  "Sync Offset": str(self.sync_Offset),
+                  "Sync Divider": str(self.sync_Divider),
+                  "CFD0 Zero Crossing": str(self.CFD0_ZeroCrossing),
+                  "CFD0 Level": str(self.CFD0_Level),
+                  "CFD1 Zero Crossing": str(self.CFD1_ZeroCrossing),
+                  "CFD1 Level": str(self.CFD1_Level),
+                  "Acquisition Time": str(self.acq_Time)
+                  }
+        return params
 
     def __repr__(self):
-        params = {"Binning": self.binning,
-                  "Sync Offset": self.sync_Offset,
-                  "Sync Divider": self.sync_Divider,
-                  "CFD0 Zero Crossing": self.CFD0_ZeroCrossing,
-                  "CFD0 Level": self.CFD0_Level,
-                  "CFD1 Zero Crossing": self.CFD1_ZeroCrossing,
-                  "CFD1 Level": self.CFD1_Level,
-                  "Acq. Time": self.acq_Time
-                  }
-        return str(params)
+        return str(self.to_Dict())
 
     @property
     def binning(self):
@@ -36,7 +37,7 @@ class LD_Pharp_Config():
 
     @binning.setter
     def binning(self, value):
-        self._binning = value
+        self._binning = int(value)
 
     @property
     def sync_Offset(self):
@@ -44,7 +45,7 @@ class LD_Pharp_Config():
 
     @sync_Offset.setter
     def sync_Offset(self, value):
-        self._sync_Offset = value
+        self._sync_Offset = int(value)
 
     @property
     def sync_Divider(self):
@@ -52,7 +53,7 @@ class LD_Pharp_Config():
 
     @sync_Divider.setter
     def sync_Divider(self, value):
-        self._sync_Divider = value
+        self._sync_Divider = int(value)
 
     @property
     def CFD0_ZeroCrossing(self):
@@ -60,7 +61,7 @@ class LD_Pharp_Config():
 
     @CFD0_ZeroCrossing.setter
     def CFD0_ZeroCrossing(self, value):
-        self._CFD0_ZeroCrossing = value
+        self._CFD0_ZeroCrossing = int(value)
 
     @property
     def CFD0_Level(self):
@@ -68,7 +69,7 @@ class LD_Pharp_Config():
 
     @CFD0_Level.setter
     def CFD0_Level(self, value):
-        self._CFD0_Level = value
+        self._CFD0_Level = int(value)
 
     @property
     def CFD1_ZeroCrossing(self):
@@ -76,7 +77,7 @@ class LD_Pharp_Config():
 
     @CFD1_ZeroCrossing.setter
     def CFD1_ZeroCrossing(self, value):
-        self._CFD1_ZeroCrossing = value
+        self._CFD1_ZeroCrossing = int(value)
 
     @property
     def CFD1_Level(self):
@@ -84,7 +85,7 @@ class LD_Pharp_Config():
 
     @CFD1_Level.setter
     def CFD1_Level(self, value):
-        self._CFD1_Level = value
+        self._CFD1_Level = int(value)
 
     @property
     def acq_Time(self):
@@ -92,6 +93,7 @@ class LD_Pharp_Config():
 
     @acq_Time.setter
     def acq_Time(self, value):
+        value = int(value)
         if (value < 250):
             print(f"Acq time of {value} too short for GUI to remain responsive")
             print(f"Value set to 250 instead")
@@ -110,77 +112,72 @@ class LD_Pharppy_Settings():
         if config_File:
             self.Load_From_File(config_File)
 
+    def to_Dict(self):
+        config = {"Show Cursor": str(self.show_Cursor),
+                  "Show Deltas": str(self.show_Deltas),
+                  "Show Bars": str(self.show_Bars)
+                  }
+        return config
+
+    def __repr__(self):
+        return str(self.to_Dict()) + self.Device_Settings.__repr__()
+
     @property
     def show_Cursor(self):
         return self._show_Cursor
 
     @show_Cursor.setter
     def show_Cursor(self, value):
-        self._show_Cursor = value
+        self._show_Cursor = bool(distutils.util.strtobool(value))
 
     @property
     def show_Deltas(self):
-        return bool(distutils.util.strtobool(self._show_Deltas))
+        return self._show_Deltas
 
     @show_Deltas.setter
     def show_Deltas(self, value):
-        self._show_Deltas = value
+        self._show_Deltas = bool(distutils.util.strtobool(value))
 
     @property
     def show_Bars(self):
-        return bool(distutils.util.strtobool(self._show_Bars))
+        return self._show_Bars
 
     @show_Bars.setter
     def show_Bars(self, value):
-        self._show_Bars = value
+        self._show_Bars = bool(distutils.util.strtobool(value))
 
     def Load_From_File(self, path):
         config = configparser.ConfigParser()
         config.read(path)
+        print(f"Read config file from {path}")
 
         hw_Settings = config["Hardware Settings"]
         sw_Settings = config["Software Settings"]
 
-        self.Device_Settings.binning = int(
-            hw_Settings["Binning"]
-            )
-        self.Device_Settings.sync_Offset = int(
-            hw_Settings["Sync Offset"]
-            )
-        self.Device_Settings.sync_Divider = int(
-            hw_Settings["Sync Divider"]
-            )
-        self.Device_Settings.CFD0_ZeroCrossing = int(
-            hw_Settings["CFD0 Zero Crossing"]
-            )
-        self.Device_Settings.CFD0_Level = int(
-            hw_Settings["CFD0 Level"]
-            )
-        self.Device_Settings.CFD1_ZeroCrossing = int(
-            hw_Settings["CFD1 Zero Crossing"]
-            )
-        self.Device_Settings.CFD1_Level = int(
-            hw_Settings["CFD1 Level"]
-            )
-        self.Device_Settings.acq_Time = int(
-            hw_Settings["Acquisition Time"]
-            )
+        self.Device_Settings.binning = hw_Settings["Binning"]
+        self.Device_Settings.sync_Offset = hw_Settings["Sync Offset"]
+        self.Device_Settings.sync_Divider = hw_Settings["Sync Divider"]
+        self.Device_Settings.CFD0_ZeroCrossing = hw_Settings["CFD0 Zero Crossing"]
+        self.Device_Settings.CFD0_Level = hw_Settings["CFD0 Level"]
+        self.Device_Settings.CFD1_ZeroCrossing = hw_Settings["CFD1 Zero Crossing"]
+        self.Device_Settings.CFD1_Level = hw_Settings["CFD1 Level"]
+        self.Device_Settings.acq_Time = hw_Settings["Acquisition Time"]
 
-        self.show_Cursor = bool(
-            distutils.util.strtobool(sw_Settings["Show Cursor"])
-            )
-        self.show_Deltas = bool(
-            distutils.util.strtobool(sw_Settings["Show Deltas"])
-            )
-        self.show_Bars = bool(
-            distutils.util.strtobool(sw_Settings["Show Bars"])
-            )
+        self.show_Cursor = sw_Settings["Show Cursor"]
+        self.show_Deltas = sw_Settings["Show Deltas"]
+        self.show_Bars = sw_Settings["Show Bars"]
 
     def Save_To_File(self, path):
-        if path.endswidth("defaults.ini"):
+        if not path.endswith(".ini"):
+            path += ".ini"
+        if path.endswith("defaults.ini"):
             raise ValueError
 
         with open(path, "w") as out_File:
+            config = configparser.ConfigParser()
+            config["Hardware Settings"] = self.Device_Settings.to_Dict()
+            config["Software Settings"] = self.to_Dict()
+
             config.write(out_File)
 
 if __name__ == "__main__":
