@@ -11,16 +11,15 @@ TODO list:
   Easy:
     - Give option to specify DLL path on FileNotFoundError when starting
     - Read and print DLL warnings (counts too high etc)
-    - Cumulative histograms
-    - Default options into an ini file (ongoing)
-    - Save/Load ini files, have previous settings reloaded on next session
-    - "Factory reset" option to settings because of above
-    - Check the types (int, float) for some of the options, eg Sync offset GUI
-    value is a float but the DLL value is an int.
+    - Cumulative histograms (add option in ini and gui)
+    - Default options into an ini file
+    - Rename the settings/config methods, they're using confusingly similar
+    words to mean different things.
+    - Break out GUI options into separate class in LD_Pharp_Config.
+    - Add default mode and integral gate width to config.
   Med:
     - Curve fitting (choose function - not just gaussian).
-    - BUG: Integral bars only show when x=0 is visible on axis! (what.) - might
-    have to re-draw the bars every time the cursor moves to fix!!!
+    - BUG: Integral bars only show when x=0 is visible on axis! (what.)
   Hard
     - Add dynamic number of delta/integration cursors instead of 2/4
     respectively
@@ -39,6 +38,7 @@ TODO list:
 
 import itertools
 import logging
+import os
 import sys
 
 import numpy as np
@@ -181,18 +181,20 @@ class MyWindow(QtWidgets.QMainWindow):
             self.ui.resolution.addItem(f"{res}")
         self.ui.resolution.setCurrentText("self.base_Resolution")
 
-        self.ui.filename.setText("save_filename.csv")
+        self.ui.data_Filename.setText("save_filename.csv")
         self.ui.status.setText("Counting")
         self.current_Options = {}
         self.apply_Default_Settings()
 
-        # Cursor option defaults
-        self.ui.option_Cursor.setChecked(True)
         self.cursors_On = self.ui.option_Cursor.isChecked()
-        self.ui.option_Deltas.setChecked(True)
         self.deltas_On = self.ui.option_Deltas.isChecked()
         self.integrals_On = False
         self.ui.cursors_Tabber.setCurrentIndex(0)
+
+        # Scan for settings ini files and populate the dropdown for loading.
+        self.detected_inis = [x for x in os.listdir() if x.endswith(".ini")]
+        for ini in self.detected_inis:
+            self.ui.existing_inis.addItem(ini)
 
         # Connect UI elements to functions
         self.ui.button_ApplySettings.clicked.connect(self.apply_Settings)
@@ -206,6 +208,8 @@ class MyWindow(QtWidgets.QMainWindow):
         self.ui.button_ClearHistogram.clicked.connect(self.on_Clear_Histogram)
         self.ui.button_ClearIntegrals.clicked.connect(self.on_Clear_Intervals)
         self.ui.cursors_Tabber.currentChanged.connect(self.on_Cursor_Tab)
+        self.ui.button_SaveSettings.clicked.connect(self.on_Save_Settings)
+        self.ui.button_LoadSettings.clicked.connect(self.on_Load_Settings)
         # All normalize radio buttons connected to the same method
         self.ui.normalize_Red.toggled.connect(self.on_Normalize_Click)
         self.ui.normalize_Green.toggled.connect(self.on_Normalize_Click)
@@ -269,7 +273,7 @@ class MyWindow(QtWidgets.QMainWindow):
         # Connect mouse events to functions
         self.proxy = pyqtgraph.SignalProxy(
             self.ui.graph_Widget.sceneObj.sigMouseMoved,
-            rateLimit=20,
+            rateLimit=60,
             slot=self.on_Mouse_Move
             )
         self.ui.graph_Widget.sceneObj.sigMouseClicked.connect(
@@ -369,27 +373,40 @@ class MyWindow(QtWidgets.QMainWindow):
             self.x_Data = np.arange(x_Min, x_Max, x_Step)
             self.x_Data /= 1e12  # convert to seconds
 
+            self.pharppy_Config.show_Cursor = str(
+                self.ui.option_Cursor.isChecked())
+            self.pharppy_Config.show_Deltas = str(
+                self.ui.option_Deltas.isChecked())
+            self.pharppy_Config.show_Bars = str(
+                self.ui.option_ShowBars.isChecked())
+
     def apply_Default_Settings(self):
+        default_Config = LD_Pharp_Config.LD_Pharppy_Settings("defaults.ini")
+
+        self.update_Config_GUI_Then_Push(default_Config)
+
+    def update_Config_GUI_Then_Push(self, config):
         """
         Some sensible defaults of the options. Sets the UI elements to the
         defaults and then calls the function that reads them and pushes.
         """
-
-        self.pharppy_Config = LD_Pharp_Config.LD_Pharppy_Settings("defaults.ini")
-        pharp_Config = self.pharppy_Config.Device_Settings
+        pharp_Config = config.Device_Settings
 
         binning = pharp_Config.binning
         resolution = self.base_Resolution * (2 ** binning)
 
         self.ui.resolution.setCurrentText(f"{resolution}")
         self.ui.sync_Offset.setValue(pharp_Config.sync_Offset)
-        print(f"Just set sync offset, value now {self.ui.sync_Offset.value()}")
         self.ui.sync_Divider.setCurrentText(str(pharp_Config.sync_Divider))
         self.ui.CFD0_Level.setValue(pharp_Config.CFD0_Level)
         self.ui.CFD0_Zerocross.setValue(pharp_Config.CFD0_ZeroCrossing)
         self.ui.CFD1_Level.setValue(pharp_Config.CFD1_Level)
         self.ui.CFD1_Zerocross.setValue(pharp_Config.CFD1_ZeroCrossing)
         self.ui.acq_Time.setValue(pharp_Config.acq_Time)
+
+        self.ui.option_Cursor.setChecked(config.show_Cursor)
+        self.ui.option_Deltas.setChecked(config.show_Deltas)
+        self.ui.option_ShowBars.setChecked(config.show_Bars)
 
         self.logger.info("Reset settings to defaults")
         self.apply_Settings()
@@ -408,6 +425,8 @@ class MyWindow(QtWidgets.QMainWindow):
             self.acq_Thread.histogram_Active = False
             self.ui.button_ApplySettings.setEnabled(True)
             self.ui.button_Defaults.setEnabled(True)
+            self.ui.button_LoadSettings.setEnabled(True)
+            self.ui.button_SaveSettings.setEnabled(True)
         else:
             self.logger.info("Start histogramming")
             self.on_Clear_Histogram()
@@ -415,6 +434,8 @@ class MyWindow(QtWidgets.QMainWindow):
             self.acq_Thread.histogram_Active = True
             self.ui.button_ApplySettings.setEnabled(False)
             self.ui.button_Defaults.setEnabled(False)
+            self.ui.button_LoadSettings.setEnabled(False)
+            self.ui.button_SaveSettings.setEnabled(False)
 
     def on_Count_Signal(self, ch0, ch1):
         """
@@ -640,7 +661,7 @@ class MyWindow(QtWidgets.QMainWindow):
         there won't be certainty as to exactly what the histogram looks like.
         """
         # Read the filename box from the UI.
-        filename = self.ui.filename.text()
+        filename = self.ui.data_Filename.text()
 
         # Zip the bins and counts together into a structured array so the
         # bins get output as floats and the counts as ints.
@@ -874,6 +895,31 @@ class MyWindow(QtWidgets.QMainWindow):
                     # Remember which button it was that was checked.
                     self.normalize_This = i
 
+    def on_Save_Settings(self):
+        filename = self.ui.settings_SaveName.text()
+        if not filename.endswith(".ini"):
+            filename += ".ini"
+        if filename in self.detected_inis:
+            self.logger.error("Log file name exists")
+            raise ValueError
+        self.logger.info(f"Saving latest applied settings to {filename}")
+        self.pharppy_Config.Save_To_File(filename)
+
+        # Clear the UI element listing existing ini files in re-scan.
+        # Seems the best place to put this so it keeps roughly up to date with
+        # the directory contents (for example deleting files via explorer)
+        self.ui.existing_inis.clear()
+        self.detected_inis = [x for x in os.listdir() if x.endswith(".ini")]
+        for ini in self.detected_inis:
+            self.ui.existing_inis.addItem(ini)
+
+    def on_Load_Settings(self):
+        filename = self.ui.existing_inis.currentText()
+        self.logger.info(f"Loading settings file from {filename}")
+
+        self.pharppy_Config.Load_From_File(filename)
+        print(f"New config {self.pharppy_Config}")
+        self.update_Config_GUI_Then_Push(self.pharppy_Config)
 
 app = QtWidgets.QApplication([])
 
