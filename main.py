@@ -99,6 +99,7 @@ class MyWindow(QtWidgets.QMainWindow):
         self.x_Data = np.zeros(65536)
         # default settings
         self.pharppy_Config = LD_Pharp_Config.LD_Pharp_Config()
+        self.pharppy_Config.Save_To_File("defaults.ini")
         self.Init_Hardware()
 
         # Members involved with UI, then init them (and the UI)
@@ -510,7 +511,7 @@ class MyWindow(QtWidgets.QMainWindow):
 
         # Tab 0 is deltas mode (two cursors, calculate difference between them)
         if tab_Number == 0:
-            self.deltas_On = self.ui.option_Deltas.isChecked()
+            self.deltas_On = self.pharppy_Config.sw_Settings.show_Deltas
             self.integrals_On = False
 
         # Tab 1 is integrals mode

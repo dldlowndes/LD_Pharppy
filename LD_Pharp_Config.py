@@ -252,7 +252,7 @@ class LD_Pharp_Config():
         
         config = configparser.ConfigParser()
         config.read(path)
-        print(f"Read config file from {path}")
+        #print(f"Read config file from {path}")
 
         hw_Settings = config["Hardware Settings"]
         sw_Settings = config["Software Settings"]
@@ -275,8 +275,6 @@ class LD_Pharp_Config():
     def Save_To_File(self, path):
         if not path.endswith(".ini"):
             path += ".ini"
-        if path.endswith("defaults.ini"):
-            raise ValueError
 
         with open(path, "w") as out_File:
             config = configparser.ConfigParser()
