@@ -132,8 +132,7 @@ class LD_Pharp:
         self.logger = logging.getLogger("PHarp.Hardware")
         logging.basicConfig(level=logging.DEBUG)
 
-        self._default_Options = LD_Pharp_Config.LD_Pharp_Config()
-        self.options = self._default_Options
+        self.hw_Settings = LD_Pharp_Config.LD_Pharp_Config()
 
         # Connect to the Picoharp device.
         self.my_PharpDLL = LD_PharpDLL.LD_PharpDLL(device_Number)
@@ -159,30 +158,30 @@ class LD_Pharp:
         self.resolution = self.my_PharpDLL.Get_Resolution()
         self.logger.debug(f"Resolution is {self.resolution}")
 
-        self.Update_Settings(self._default_Options)
+        self.Update_Settings(self.hw_Settings)
 
     def __del__(self):
         self.logger.debug(f"Bye")
         self.my_PharpDLL.Close()
 
-    def Update_Settings(self, pharp_Config):
+    def Update_Settings(self, hw_Settings):
         """
         Even though args are best sent as an unpacked dict, enforcing the
         parameters separately enforces that they all get sent.
         """
 
-        self.options = pharp_Config
+        self.hw_Settings = hw_Settings
         # Set the ones that need to be set now with functions.
-        self.my_PharpDLL.Set_SyncDiv(pharp_Config.sync_Divider)
-        self.my_PharpDLL.Set_InputCFD(pharp_Config.CFD0_Level,
-                                      pharp_Config.CFD0_ZeroCrossing,
-                                      pharp_Config.CFD1_Level,
-                                      pharp_Config.CFD1_ZeroCrossing
+        self.my_PharpDLL.Set_SyncDiv(hw_Settings.sync_Divider)
+        self.my_PharpDLL.Set_InputCFD(hw_Settings.CFD0_Level,
+                                      hw_Settings.CFD0_ZeroCrossing,
+                                      hw_Settings.CFD1_Level,
+                                      hw_Settings.CFD1_ZeroCrossing
                                       )
-        self.my_PharpDLL.Set_Binning(pharp_Config.binning)
-        self.my_PharpDLL.Set_SyncOffset(pharp_Config.sync_Offset)
+        self.my_PharpDLL.Set_Binning(hw_Settings.binning)
+        self.my_PharpDLL.Set_SyncOffset(hw_Settings.sync_Offset)
         # Figure out the resolution that is implied by the requested binning.
-        new_Resolution = self.base_Resolution * (2 ** pharp_Config.binning)
+        new_Resolution = self.base_Resolution * (2 ** hw_Settings.binning)
         self.logger.debug(f"Asked for resolution {new_Resolution}")
         # Check that the resolution requested is the same as the resolution
         # the Picoharp thinks it's providing.

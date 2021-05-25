@@ -43,7 +43,7 @@ class Acq_Thread(QtCore.QThread):
                 # Otherwise wait (roughly) as long as it would have taken for
                 # the histogram to have been collected. (otherwise the count
                 # rate gets polled too frequently)
-                time.sleep(self.my_Pharp.options.acq_Time / 1000)
+                time.sleep(self.my_Pharp.hw_Settings.acq_Time / 1000)
 
     def stop(self):
         self.thread_Active = False

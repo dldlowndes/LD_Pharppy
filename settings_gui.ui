@@ -173,15 +173,9 @@
                </widget>
               </item>
               <item row="0" column="0">
-               <widget class="QCheckBox" name="option_Cursor">
-                <property name="maximumSize">
-                 <size>
-                  <width>16777215</width>
-                  <height>20</height>
-                 </size>
-                </property>
+               <widget class="QCheckBox" name="option_Cumulative">
                 <property name="text">
-                 <string>Cursor On</string>
+                 <string>Cumulative</string>
                 </property>
                </widget>
               </item>
@@ -856,7 +850,7 @@
          <enum>QTabWidget::Rounded</enum>
         </property>
         <property name="currentIndex">
-         <number>1</number>
+         <number>0</number>
         </property>
         <widget class="QWidget" name="tab_Deltas">
          <attribute name="title">
@@ -1201,7 +1195,20 @@
             <item row="1" column="2">
              <widget class="QCheckBox" name="option_Deltas">
               <property name="text">
-               <string>Deltas On?</string>
+               <string>Deltas On</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="1">
+             <widget class="QCheckBox" name="option_Cursor">
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>20</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>Cursor On</string>
               </property>
              </widget>
             </item>

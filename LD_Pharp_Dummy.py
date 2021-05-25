@@ -32,7 +32,7 @@ class LD_Pharp:
 
         """
 
-        self.options = LD_Pharp_Config.LD_Pharp_Config()
+        self.hw_Settings = LD_Pharp_Config.LD_Pharp_Config().hw_Settings
 
         self.base_Resolution = 4.0  # picoseconds
         self.resolution = self.base_Resolution
@@ -40,15 +40,13 @@ class LD_Pharp:
     def __del__(self):
         self.logger.debug(f"Bye")
 
-    def Update_Settings(self, pharp_Config):
-        """
-        Even though args are best sent as an unpacked dict, enforcing the
-        parameters separately enforces that they all get sent.
+    def Update_Settings(self, hw_Settings):
         """
 
-        self.options = pharp_Config
+        """
+        self.hw_Settings = hw_Settings
 
-        new_Resolution = self.base_Resolution * (2 ** self.options.binning)
+        new_Resolution = self.base_Resolution * (2 ** self.hw_Settings.binning)
         self.logger.debug(f"Asked for resolution {new_Resolution}")
         # Check that the resolution requested is the same as the resolution
         # the Picoharp thinks it's providing.
@@ -80,7 +78,7 @@ class LD_Pharp:
 
         final = np.pad(final, (0, 65536-25000), "constant", constant_values=0)
 
-        time.sleep(self.options.acq_Time / 1000)
+        time.sleep(self.hw_Settings.acq_Time / 1000)
 
         return final
 

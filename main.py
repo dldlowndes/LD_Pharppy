@@ -11,15 +11,14 @@ TODO list:
   Easy:
     - Give option to specify DLL path on FileNotFoundError when starting
     - Read and print DLL warnings (counts too high etc)
-    - Cumulative histograms (add option in ini and gui)
-    - Default options into an ini file
-    - Rename the settings/config methods, they're using confusingly similar
-    words to mean different things.
-    - Break out GUI options into separate class in LD_Pharp_Config.
-    - Add default mode and integral gate width to config.
+    - Add default mode and cumulative mode to ini config.
+    - Type checking in config setters so they take either str or relevant  type
   Med:
     - Curve fitting (choose function - not just gaussian).
     - BUG: Integral bars only show when x=0 is visible on axis! (what.)
+    - Keep track of whether the settings GUI values have been modified since
+    the last time settings were applied (and grey out the save button if they
+    have)
   Hard
     - Add dynamic number of delta/integration cursors instead of 2/4
     respectively
@@ -98,11 +97,12 @@ class MyWindow(QtWidgets.QMainWindow):
         self.this_Data = np.zeros(65536)
         self.last_Histogram = np.zeros(65536)
         self.x_Data = np.zeros(65536)
-        self.pharppy_Config = LD_Pharp_Config.LD_Pharppy_Settings("defaults.ini")
+        # default settings
+        self.pharppy_Config = LD_Pharp_Config.LD_Pharp_Config()
         self.Init_Hardware()
 
         # Members involved with UI, then init them (and the UI)
-        self.integral_Coords = np.zeros((4, 2), dtype=np.int)
+        self.integral_Coords = np.zeros((4, 2), dtype=int)
         self.integral_Means = np.zeros(4)
         self.integral_Maxes = np.zeros(4)
         self.integral_SDs = np.zeros(4)
@@ -114,6 +114,7 @@ class MyWindow(QtWidgets.QMainWindow):
         self.cursors_On = None
         self.deltas_On = None
         self.integrals_On = None
+        self.bars_On = None
         self.current_Options = None
         self.Init_UI()
         # Init_UI has set up the normalize buttons, the last one is checked by
@@ -184,10 +185,11 @@ class MyWindow(QtWidgets.QMainWindow):
         self.ui.data_Filename.setText("save_filename.csv")
         self.ui.status.setText("Counting")
         self.current_Options = {}
-        self.apply_Default_Settings()
+        self.Apply_Default_Settings()
 
         self.cursors_On = self.ui.option_Cursor.isChecked()
         self.deltas_On = self.ui.option_Deltas.isChecked()
+        self.bars_On = self.ui.option_ShowBars.isChecked()
         self.integrals_On = False
         self.ui.cursors_Tabber.setCurrentIndex(0)
 
@@ -197,13 +199,14 @@ class MyWindow(QtWidgets.QMainWindow):
             self.ui.existing_inis.addItem(ini)
 
         # Connect UI elements to functions
-        self.ui.button_ApplySettings.clicked.connect(self.apply_Settings)
-        self.ui.button_Defaults.clicked.connect(self.apply_Default_Settings)
+        self.ui.button_ApplySettings.clicked.connect(self.Push_Settings_To_HW)
+        self.ui.button_Defaults.clicked.connect(self.Apply_Default_Settings)
         self.ui.button_StartStop.clicked.connect(self.start_Stop)
         self.ui.button_SaveHisto.clicked.connect(self.on_Save_Histo)
         self.ui.button_AutoRange.clicked.connect(self.on_Auto_Range)
         self.ui.option_Cursor.stateChanged.connect(self.on_Cursor_Button)
         self.ui.option_Deltas.stateChanged.connect(self.on_Deltas_Button)
+        self.ui.option_ShowBars.stateChanged.connect(self.on_Bars_Button)
         self.ui.button_ClearDeltas.clicked.connect(self.on_Clear_Deltas)
         self.ui.button_ClearHistogram.clicked.connect(self.on_Clear_Histogram)
         self.ui.button_ClearIntegrals.clicked.connect(self.on_Clear_Intervals)
@@ -335,7 +338,7 @@ class MyWindow(QtWidgets.QMainWindow):
         return (self.Make_Line(orientation1, colour),
                 self.Make_Line(orientation2, colour))
 
-    def apply_Settings(self):
+    def Push_Settings_To_HW(self):
         """
         Get the settings from the UI and tell the picoharp to update them.
         """
@@ -351,65 +354,60 @@ class MyWindow(QtWidgets.QMainWindow):
             resolution_Req = self.ui.resolution.currentText()
             binning = np.log2(float(resolution_Req) / self.base_Resolution)
 
-            pharp_Config = self.pharppy_Config.Device_Settings
-            pharp_Config.binning = int(binning)
-            pharp_Config.sync_Offset = int(self.ui.sync_Offset.value())
-            pharp_Config.sync_Divider = int(self.ui.sync_Divider.currentText())
-            pharp_Config.CFD0_ZeroCrossing = int(self.ui.CFD0_Zerocross.value())
-            pharp_Config.CFD0_Level = int(self.ui.CFD0_Level.value())
-            pharp_Config.CFD1_ZeroCrossing = int(self.ui.CFD1_Zerocross.value())
-            pharp_Config.CFD1_Level = int(self.ui.CFD1_Level.value())
-            pharp_Config.acq_Time = int(self.ui.acq_Time.value())
+            hw_Settings = self.pharppy_Config.hw_Settings
+            hw_Settings.binning = int(binning)
+            hw_Settings.sync_Offset = int(self.ui.sync_Offset.value())
+            hw_Settings.sync_Divider = int(self.ui.sync_Divider.currentText())
+            hw_Settings.CFD0_ZeroCrossing = int(self.ui.CFD0_Zerocross.value())
+            hw_Settings.CFD0_Level = int(self.ui.CFD0_Level.value())
+            hw_Settings.CFD1_ZeroCrossing = int(self.ui.CFD1_Zerocross.value())
+            hw_Settings.CFD1_Level = int(self.ui.CFD1_Level.value())
+            hw_Settings.acq_Time = int(self.ui.acq_Time.value())
 
-            self.logger.info(f"Push settings\n {pharp_Config}")
-            self.my_Pharp.Update_Settings(pharp_Config)
+            self.logger.info(f"Push settings\n {hw_Settings}")
+            self.my_Pharp.Update_Settings(hw_Settings)
 
             # If binning (resolution) changes, the histogram x axis labels
             # change. Update this. The max number of bins is 65536, this will
             # be trimmed in the plotting function.
-            x_Min = 0
-            x_Max = 65536 * self.my_Pharp.resolution
-            x_Step = self.my_Pharp.resolution
-            self.x_Data = np.arange(x_Min, x_Max, x_Step)
-            self.x_Data /= 1e12  # convert to seconds
+            self.x_Data = np.arange(0,
+                                    65536 * self.my_Pharp.resolution,
+                                    self.my_Pharp.resolution
+                                    ) / 1e12
 
-            self.pharppy_Config.show_Cursor = str(
-                self.ui.option_Cursor.isChecked())
-            self.pharppy_Config.show_Deltas = str(
-                self.ui.option_Deltas.isChecked())
-            self.pharppy_Config.show_Bars = str(
-                self.ui.option_ShowBars.isChecked())
+    def Apply_Default_Settings(self):
+        default_Config = LD_Pharp_Config.LD_Pharp_Config()
 
-    def apply_Default_Settings(self):
-        default_Config = LD_Pharp_Config.LD_Pharppy_Settings("defaults.ini")
+        self.Update_Settings_GUI(default_Config)
+        self.Push_Settings_To_HW()
 
-        self.update_Config_GUI_Then_Push(default_Config)
-
-    def update_Config_GUI_Then_Push(self, config):
+    def Update_Settings_GUI(self, config):
         """
         Some sensible defaults of the options. Sets the UI elements to the
         defaults and then calls the function that reads them and pushes.
         """
-        pharp_Config = config.Device_Settings
+        hw_Settings = config.hw_Settings
+        sw_Settings = config.sw_Settings
 
-        binning = pharp_Config.binning
+        binning = hw_Settings.binning
         resolution = self.base_Resolution * (2 ** binning)
 
         self.ui.resolution.setCurrentText(f"{resolution}")
-        self.ui.sync_Offset.setValue(pharp_Config.sync_Offset)
-        self.ui.sync_Divider.setCurrentText(str(pharp_Config.sync_Divider))
-        self.ui.CFD0_Level.setValue(pharp_Config.CFD0_Level)
-        self.ui.CFD0_Zerocross.setValue(pharp_Config.CFD0_ZeroCrossing)
-        self.ui.CFD1_Level.setValue(pharp_Config.CFD1_Level)
-        self.ui.CFD1_Zerocross.setValue(pharp_Config.CFD1_ZeroCrossing)
-        self.ui.acq_Time.setValue(pharp_Config.acq_Time)
+        self.ui.sync_Offset.setValue(hw_Settings.sync_Offset)
+        self.ui.sync_Divider.setCurrentText(str(hw_Settings.sync_Divider))
+        self.ui.CFD0_Level.setValue(hw_Settings.CFD0_Level)
+        self.ui.CFD0_Zerocross.setValue(hw_Settings.CFD0_ZeroCrossing)
+        self.ui.CFD1_Level.setValue(hw_Settings.CFD1_Level)
+        self.ui.CFD1_Zerocross.setValue(hw_Settings.CFD1_ZeroCrossing)
+        self.ui.acq_Time.setValue(hw_Settings.acq_Time)
 
-        self.ui.option_Cursor.setChecked(config.show_Cursor)
-        self.ui.option_Deltas.setChecked(config.show_Deltas)
-        self.ui.option_ShowBars.setChecked(config.show_Bars)
+        self.ui.option_Cursor.setChecked(sw_Settings.show_Cursor)
+        self.ui.option_Deltas.setChecked(sw_Settings.show_Deltas)
+        self.ui.option_ShowBars.setChecked(sw_Settings.show_Bars)
+        self.ui.integral_Width.setText(f"{sw_Settings.integral_Width}")
 
         self.logger.info("Reset settings to defaults")
-        self.apply_Settings()
+        self.Push_Settings_To_HW()
 
     def start_Stop(self):
         """
@@ -450,8 +448,10 @@ class MyWindow(QtWidgets.QMainWindow):
         Handle the hsitogram when the hardware thread emits one.
         """
 
-        # TODO: Make this += for cumulative trace
-        self.this_Data = histogram_Data
+        if self.ui.option_Cumulative.isChecked():
+            self.this_Data += histogram_Data
+        else:
+            self.this_Data = histogram_Data
 
         # There are 65536 bins, but if (1/sync) is less than (65536*resolution)
         # then there will just be empty bins at the end of the histogram array.
@@ -635,7 +635,7 @@ class MyWindow(QtWidgets.QMainWindow):
             max_Box.setText(f"{this_Max:.3E}")
             fwhm_Box.setText(f"{this_SD * 2.355:.3E}")
 
-        if self.ui.option_ShowBars.isChecked():
+        if self.bars_On: 
             # Plot bars between the interval cursors
             # Solid bars at the means
             mean_Bars = pyqtgraph.BarGraphItem(
@@ -799,6 +799,7 @@ class MyWindow(QtWidgets.QMainWindow):
         Toggle the live cursor on/off
         """
         self.cursors_On = self.ui.option_Cursor.isChecked()
+        self.pharppy_Config.sw_Settings.show_Cursor = str(self.cursors_On)
 
         if self.cursors_On:
             # Redraw the cursor
@@ -818,6 +819,7 @@ class MyWindow(QtWidgets.QMainWindow):
         """
 
         self.deltas_On = self.ui.option_Deltas.isChecked()
+        self.pharppy_Config.sw_Settings.show_Deltas = str(self.deltas_On)
 
         # I think this will always be zero (everything sets this to zero when
         # it's switched off) but let's be safe and set it to zero here.
@@ -831,6 +833,15 @@ class MyWindow(QtWidgets.QMainWindow):
             # Remove the delta cursors
             self.logger.info("Turn deltas off")
             self.Remove_Deltas()
+
+    def on_Bars_Button(self):
+        """
+        Toggle display of bars in integral mode showing max/mean values
+        inside the interval.
+        """
+        
+        self.bars_On = self.ui.option_ShowBars.isChecked()
+        self.pharppy_Config.sw_Settings.show_Bars = str(self.bars_On)
 
     def on_Clear_Deltas(self):
         """
@@ -896,30 +907,62 @@ class MyWindow(QtWidgets.QMainWindow):
                     self.normalize_This = i
 
     def on_Save_Settings(self):
+        """
+        Save the most recent settings that were pushed to the hardware to an
+        ini file with a name specified by the GUI element settings_SaveName
+        """
+        
         filename = self.ui.settings_SaveName.text()
+        # Enforce the file type
         if not filename.endswith(".ini"):
             filename += ".ini"
+        # rescan the folder for existing files before enforcing that the
+        # filename can't clash with an existing one.
+        self.detected_inis = [x for x in os.listdir() if x.endswith(".ini")]
+        # prevent accidental overwriting of previous ini files
         if filename in self.detected_inis:
             self.logger.error("Log file name exists")
             raise ValueError
         self.logger.info(f"Saving latest applied settings to {filename}")
+        
+        # Urgh, until this gets sorted integral_Width is an annoying special
+        # case here.
+        self.pharppy_Config.sw_Settings.integral_Width = self.ui.integral_Width.text()
+        
         self.pharppy_Config.Save_To_File(filename)
 
-        # Clear the UI element listing existing ini files in re-scan.
-        # Seems the best place to put this so it keeps roughly up to date with
-        # the directory contents (for example deleting files via explorer)
+        # Update the list of existing ini files now there's another one. Could
+        # save a call to os.listdir here since it was performed above but it's
+        # not really a problem and there's more certainty doing it like this.
         self.ui.existing_inis.clear()
         self.detected_inis = [x for x in os.listdir() if x.endswith(".ini")]
         for ini in self.detected_inis:
             self.ui.existing_inis.addItem(ini)
 
     def on_Load_Settings(self):
+        """
+        Load an ini file that's in the parent folder of this application.
+        The program auto scans for .ini files and adds them to a dropdown
+        """
+        
+        # Filename specified by selecting from the dropdown in the GUI
         filename = self.ui.existing_inis.currentText()
         self.logger.info(f"Loading settings file from {filename}")
 
+        # Load the config, update the GUI and then push the settings displayed
+        # in the GUI to the hardware (this ensures the GUI and the hardware
+        # match, in case there's some weird error updating the GUI)
         self.pharppy_Config.Load_From_File(filename)
         print(f"New config {self.pharppy_Config}")
-        self.update_Config_GUI_Then_Push(self.pharppy_Config)
+        self.Update_Settings_GUI(self.pharppy_Config)
+        self.Push_Settings_To_HW()
+        
+        # Might as well re-scan again to make sure the dropdown is most up to
+        # date. (in case the user has deleted any ini files)
+        self.ui.existing_inis.clear()
+        self.detected_inis = [x for x in os.listdir() if x.endswith(".ini")]
+        for ini in self.detected_inis:
+            self.ui.existing_inis.addItem(ini)
 
 app = QtWidgets.QApplication([])
 
