@@ -850,7 +850,7 @@
          <enum>QTabWidget::Rounded</enum>
         </property>
         <property name="currentIndex">
-         <number>0</number>
+         <number>1</number>
         </property>
         <widget class="QWidget" name="tab_Deltas">
          <attribute name="title">
@@ -1220,347 +1220,383 @@
          <attribute name="title">
           <string>Integrate</string>
          </attribute>
-         <layout class="QGridLayout" name="gridLayout_13">
-          <item row="3" column="1" colspan="2">
-           <widget class="QLineEdit" name="max_Red">
-            <property name="maximumSize">
-             <size>
-              <width>16777215</width>
-              <height>14</height>
-             </size>
-            </property>
-           </widget>
+         <layout class="QVBoxLayout" name="verticalLayout_2">
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_4">
+            <item>
+             <widget class="QLabel" name="label_6">
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>14</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>Integral Width:</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLineEdit" name="integral_Width"/>
+            </item>
+            <item>
+             <widget class="QPushButton" name="button_IntegralWidth">
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>20</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>20</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>Apply</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <spacer name="horizontalSpacer">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>40</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item>
+             <widget class="QCheckBox" name="option_ShowBars">
+              <property name="text">
+               <string>Show Bars</string>
+              </property>
+              <property name="checked">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="button_ClearIntegrals">
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>20</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>20</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>Clear Markers</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
           </item>
-          <item row="0" column="1" colspan="2">
-           <widget class="QLabel" name="label_6">
-            <property name="maximumSize">
-             <size>
-              <width>16777215</width>
-              <height>14</height>
-             </size>
-            </property>
-            <property name="text">
-             <string>Integral Width:</string>
-            </property>
-           </widget>
-          </item>
-          <item row="2" column="0">
-           <widget class="QLabel" name="label_7">
-            <property name="maximumSize">
-             <size>
-              <width>16777215</width>
-              <height>14</height>
-             </size>
-            </property>
-            <property name="text">
-             <string>Mean:</string>
-            </property>
-           </widget>
-          </item>
-          <item row="2" column="1" colspan="2">
-           <widget class="QLineEdit" name="integral_Red">
-            <property name="maximumSize">
-             <size>
-              <width>16777215</width>
-              <height>14</height>
-             </size>
-            </property>
-           </widget>
-          </item>
-          <item row="5" column="9">
-           <widget class="QRadioButton" name="normalize_Off">
-            <property name="maximumSize">
-             <size>
-              <width>16777215</width>
-              <height>14</height>
-             </size>
-            </property>
-            <property name="text">
-             <string>Off</string>
-            </property>
-            <property name="checked">
-             <bool>true</bool>
-            </property>
-           </widget>
-          </item>
-          <item row="0" column="3" colspan="2">
-           <widget class="QLineEdit" name="integral_Width">
-            <property name="maximumSize">
-             <size>
-              <width>16777215</width>
-              <height>14</height>
-             </size>
-            </property>
-            <property name="text">
-             <string>5e-9</string>
-            </property>
-           </widget>
-          </item>
-          <item row="5" column="0">
-           <widget class="QLabel" name="label_9">
-            <property name="maximumSize">
-             <size>
-              <width>16777215</width>
-              <height>14</height>
-             </size>
-            </property>
-            <property name="text">
-             <string>Normalize:</string>
-            </property>
-           </widget>
-          </item>
-          <item row="1" column="1">
-           <widget class="QLabel" name="label">
-            <property name="maximumSize">
-             <size>
-              <width>16777215</width>
-              <height>14</height>
-             </size>
-            </property>
-            <property name="text">
-             <string>Red</string>
-            </property>
-           </widget>
-          </item>
-          <item row="3" column="5" colspan="2">
-           <widget class="QLineEdit" name="max_Blue">
-            <property name="maximumSize">
-             <size>
-              <width>16777215</width>
-              <height>14</height>
-             </size>
-            </property>
-           </widget>
-          </item>
-          <item row="0" column="7" colspan="2">
-           <widget class="QPushButton" name="button_ClearIntegrals">
-            <property name="maximumSize">
-             <size>
-              <width>16777215</width>
-              <height>14</height>
-             </size>
-            </property>
-            <property name="text">
-             <string>Clear Markers</string>
-            </property>
-           </widget>
-          </item>
-          <item row="4" column="1" colspan="2">
-           <widget class="QLineEdit" name="fwhm_Red">
-            <property name="maximumSize">
-             <size>
-              <width>16777215</width>
-              <height>14</height>
-             </size>
-            </property>
-           </widget>
-          </item>
-          <item row="5" column="8">
-           <widget class="QRadioButton" name="normalize_Magenta">
-            <property name="maximumSize">
-             <size>
-              <width>16777215</width>
-              <height>14</height>
-             </size>
-            </property>
-            <property name="text">
-             <string/>
-            </property>
-           </widget>
-          </item>
-          <item row="1" column="3">
-           <widget class="QLabel" name="label_3">
-            <property name="maximumSize">
-             <size>
-              <width>16777215</width>
-              <height>14</height>
-             </size>
-            </property>
-            <property name="text">
-             <string>Green</string>
-            </property>
-           </widget>
-          </item>
-          <item row="5" column="6">
-           <widget class="QRadioButton" name="normalize_Blue">
-            <property name="maximumSize">
-             <size>
-              <width>16777215</width>
-              <height>14</height>
-             </size>
-            </property>
-            <property name="text">
-             <string/>
-            </property>
-           </widget>
-          </item>
-          <item row="4" column="0">
-           <widget class="QLabel" name="label_11">
-            <property name="maximumSize">
-             <size>
-              <width>16777215</width>
-              <height>14</height>
-             </size>
-            </property>
-            <property name="text">
-             <string>Fit FWHM:</string>
-            </property>
-           </widget>
-          </item>
-          <item row="3" column="7" colspan="2">
-           <widget class="QLineEdit" name="max_Magenta">
-            <property name="maximumSize">
-             <size>
-              <width>16777215</width>
-              <height>14</height>
-             </size>
-            </property>
-           </widget>
-          </item>
-          <item row="1" column="7">
-           <widget class="QLabel" name="label_5">
-            <property name="maximumSize">
-             <size>
-              <width>16777215</width>
-              <height>14</height>
-             </size>
-            </property>
-            <property name="text">
-             <string>Magenta</string>
-            </property>
-           </widget>
-          </item>
-          <item row="2" column="7" colspan="2">
-           <widget class="QLineEdit" name="integral_Magenta">
-            <property name="maximumSize">
-             <size>
-              <width>16777215</width>
-              <height>14</height>
-             </size>
-            </property>
-           </widget>
-          </item>
-          <item row="3" column="0">
-           <widget class="QLabel" name="label_8">
-            <property name="maximumSize">
-             <size>
-              <width>16777215</width>
-              <height>14</height>
-             </size>
-            </property>
-            <property name="text">
-             <string>Max:</string>
-            </property>
-           </widget>
-          </item>
-          <item row="4" column="3" colspan="2">
-           <widget class="QLineEdit" name="fwhm_Green">
-            <property name="maximumSize">
-             <size>
-              <width>16777215</width>
-              <height>14</height>
-             </size>
-            </property>
-           </widget>
-          </item>
-          <item row="4" column="5" colspan="2">
-           <widget class="QLineEdit" name="fwhm_Blue">
-            <property name="maximumSize">
-             <size>
-              <width>16777215</width>
-              <height>14</height>
-             </size>
-            </property>
-           </widget>
-          </item>
-          <item row="1" column="5">
-           <widget class="QLabel" name="label_4">
-            <property name="maximumSize">
-             <size>
-              <width>16777215</width>
-              <height>14</height>
-             </size>
-            </property>
-            <property name="text">
-             <string>Blue</string>
-            </property>
-           </widget>
-          </item>
-          <item row="2" column="3" colspan="2">
-           <widget class="QLineEdit" name="integral_Green">
-            <property name="maximumSize">
-             <size>
-              <width>16777215</width>
-              <height>14</height>
-             </size>
-            </property>
-           </widget>
-          </item>
-          <item row="3" column="3" colspan="2">
-           <widget class="QLineEdit" name="max_Green">
-            <property name="maximumSize">
-             <size>
-              <width>16777215</width>
-              <height>14</height>
-             </size>
-            </property>
-           </widget>
-          </item>
-          <item row="5" column="2">
-           <widget class="QRadioButton" name="normalize_Red">
-            <property name="maximumSize">
-             <size>
-              <width>16777215</width>
-              <height>14</height>
-             </size>
-            </property>
-            <property name="text">
-             <string/>
-            </property>
-           </widget>
-          </item>
-          <item row="5" column="4">
-           <widget class="QRadioButton" name="normalize_Green">
-            <property name="maximumSize">
-             <size>
-              <width>16777215</width>
-              <height>14</height>
-             </size>
-            </property>
-            <property name="text">
-             <string/>
-            </property>
-           </widget>
-          </item>
-          <item row="4" column="7" colspan="2">
-           <widget class="QLineEdit" name="fwhm_Magenta">
-            <property name="maximumSize">
-             <size>
-              <width>16777215</width>
-              <height>14</height>
-             </size>
-            </property>
-           </widget>
-          </item>
-          <item row="2" column="5" colspan="2">
-           <widget class="QLineEdit" name="integral_Blue">
-            <property name="maximumSize">
-             <size>
-              <width>16777215</width>
-              <height>14</height>
-             </size>
-            </property>
-           </widget>
-          </item>
-          <item row="0" column="6">
-           <widget class="QCheckBox" name="option_ShowBars">
-            <property name="text">
-             <string>Show Bars</string>
-            </property>
-            <property name="checked">
-             <bool>true</bool>
-            </property>
-           </widget>
+          <item>
+           <layout class="QGridLayout" name="gridLayout_13">
+            <item row="0" column="1">
+             <widget class="QLabel" name="label">
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>14</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>Red</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="3">
+             <widget class="QLabel" name="label_3">
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>14</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>Green</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="5">
+             <widget class="QLabel" name="label_4">
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>14</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>Blue</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="7">
+             <widget class="QLabel" name="label_5">
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>14</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>Magenta</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="0">
+             <widget class="QLabel" name="label_7">
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>14</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>Mean:</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="1" colspan="2">
+             <widget class="QLineEdit" name="integral_Red">
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>14</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="3" colspan="2">
+             <widget class="QLineEdit" name="integral_Green">
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>14</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="5" colspan="2">
+             <widget class="QLineEdit" name="integral_Blue">
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>14</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="7" colspan="2">
+             <widget class="QLineEdit" name="integral_Magenta">
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>14</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="0">
+             <widget class="QLabel" name="label_8">
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>14</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>Max:</string>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="1" colspan="2">
+             <widget class="QLineEdit" name="max_Red">
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>14</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="3" colspan="2">
+             <widget class="QLineEdit" name="max_Green">
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>14</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="5" colspan="2">
+             <widget class="QLineEdit" name="max_Blue">
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>14</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="7" colspan="2">
+             <widget class="QLineEdit" name="max_Magenta">
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>14</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="0">
+             <widget class="QLabel" name="label_11">
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>14</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>Fit FWHM:</string>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="1" colspan="2">
+             <widget class="QLineEdit" name="fwhm_Red">
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>14</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="3" colspan="2">
+             <widget class="QLineEdit" name="fwhm_Green">
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>14</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="5" colspan="2">
+             <widget class="QLineEdit" name="fwhm_Blue">
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>14</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="7" colspan="2">
+             <widget class="QLineEdit" name="fwhm_Magenta">
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>14</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+            <item row="4" column="0">
+             <widget class="QLabel" name="label_9">
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>14</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>Normalize:</string>
+              </property>
+             </widget>
+            </item>
+            <item row="4" column="2">
+             <widget class="QRadioButton" name="normalize_Red">
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>14</height>
+               </size>
+              </property>
+              <property name="text">
+               <string/>
+              </property>
+             </widget>
+            </item>
+            <item row="4" column="4">
+             <widget class="QRadioButton" name="normalize_Green">
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>14</height>
+               </size>
+              </property>
+              <property name="text">
+               <string/>
+              </property>
+             </widget>
+            </item>
+            <item row="4" column="6">
+             <widget class="QRadioButton" name="normalize_Blue">
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>14</height>
+               </size>
+              </property>
+              <property name="text">
+               <string/>
+              </property>
+             </widget>
+            </item>
+            <item row="4" column="8">
+             <widget class="QRadioButton" name="normalize_Magenta">
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>14</height>
+               </size>
+              </property>
+              <property name="text">
+               <string/>
+              </property>
+             </widget>
+            </item>
+            <item row="4" column="9">
+             <widget class="QRadioButton" name="normalize_Off">
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>14</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>Off</string>
+              </property>
+              <property name="checked">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+           </layout>
           </item>
          </layout>
         </widget>

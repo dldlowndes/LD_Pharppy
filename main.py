@@ -116,6 +116,7 @@ class MyWindow(QtWidgets.QMainWindow):
         self.integrals_On = None
         self.bars_On = None
         self.current_Options = None
+        self.detected_inis = []
         self.Init_UI()
         # Init_UI has set up the normalize buttons, the last one is checked by
         # default, so this should be the initial state.
@@ -210,6 +211,7 @@ class MyWindow(QtWidgets.QMainWindow):
         self.ui.button_ClearDeltas.clicked.connect(self.on_Clear_Deltas)
         self.ui.button_ClearHistogram.clicked.connect(self.on_Clear_Histogram)
         self.ui.button_ClearIntegrals.clicked.connect(self.on_Clear_Intervals)
+        self.ui.button_IntegralWidth.clicked.connect(self.on_Integral_Width_Button)
         self.ui.cursors_Tabber.currentChanged.connect(self.on_Cursor_Tab)
         self.ui.button_SaveSettings.clicked.connect(self.on_Save_Settings)
         self.ui.button_LoadSettings.clicked.connect(self.on_Load_Settings)
@@ -376,6 +378,12 @@ class MyWindow(QtWidgets.QMainWindow):
                                     ) / 1e12
 
     def Apply_Default_Settings(self):
+        """
+        Make a default config file by making another instance of
+        LD_Pharp_Config with no arguments. Update the GUI, then read the
+        GUI for the settings to send to the hardware.
+        """
+
         default_Config = LD_Pharp_Config.LD_Pharp_Config()
 
         self.Update_Settings_GUI(default_Config)
@@ -386,8 +394,10 @@ class MyWindow(QtWidgets.QMainWindow):
         Some sensible defaults of the options. Sets the UI elements to the
         defaults and then calls the function that reads them and pushes.
         """
-        hw_Settings = config.hw_Settings
-        sw_Settings = config.sw_Settings
+
+        self.pharppy_Config = config
+        hw_Settings = self.pharppy_Config.hw_Settings
+        sw_Settings = self.pharppy_Config.sw_Settings
 
         binning = hw_Settings.binning
         resolution = self.base_Resolution * (2 ** binning)
@@ -510,6 +520,13 @@ class MyWindow(QtWidgets.QMainWindow):
         # Something's gone very awry. There are only tabs 0 and 1...
         else:
             pass
+
+    def on_Integral_Width_Button(self):
+        """
+        Take new value for integral width from the GUI.
+        """
+        new_Width = self.ui.integral_Width.text()
+        self.pharppy_Config.sw_Settings.integral_Width = new_Width
 
     def Draw_Cursors(self):
         """
@@ -635,7 +652,7 @@ class MyWindow(QtWidgets.QMainWindow):
             max_Box.setText(f"{this_Max:.3E}")
             fwhm_Box.setText(f"{this_SD * 2.355:.3E}")
 
-        if self.bars_On: 
+        if self.bars_On:
             # Plot bars between the interval cursors
             # Solid bars at the means
             mean_Bars = pyqtgraph.BarGraphItem(
@@ -767,7 +784,7 @@ class MyWindow(QtWidgets.QMainWindow):
         cursor_Bottom, cursor_Top = self.integral_vLines[self.click_Number]
 
         # Fetch the current desired width of the window between cursors.
-        integral_Width = float(self.ui.integral_Width.text())
+        integral_Width = self.pharppy_Config.sw_Settings.integral_Width
 
         # Centre the cursors on the click point, calculate the actual
         # cursor positions.
@@ -839,7 +856,7 @@ class MyWindow(QtWidgets.QMainWindow):
         Toggle display of bars in integral mode showing max/mean values
         inside the interval.
         """
-        
+
         self.bars_On = self.ui.option_ShowBars.isChecked()
         self.pharppy_Config.sw_Settings.show_Bars = str(self.bars_On)
 
@@ -911,7 +928,7 @@ class MyWindow(QtWidgets.QMainWindow):
         Save the most recent settings that were pushed to the hardware to an
         ini file with a name specified by the GUI element settings_SaveName
         """
-        
+
         filename = self.ui.settings_SaveName.text()
         # Enforce the file type
         if not filename.endswith(".ini"):
@@ -924,11 +941,7 @@ class MyWindow(QtWidgets.QMainWindow):
             self.logger.error("Log file name exists")
             raise ValueError
         self.logger.info(f"Saving latest applied settings to {filename}")
-        
-        # Urgh, until this gets sorted integral_Width is an annoying special
-        # case here.
-        self.pharppy_Config.sw_Settings.integral_Width = self.ui.integral_Width.text()
-        
+
         self.pharppy_Config.Save_To_File(filename)
 
         # Update the list of existing ini files now there's another one. Could
@@ -944,7 +957,7 @@ class MyWindow(QtWidgets.QMainWindow):
         Load an ini file that's in the parent folder of this application.
         The program auto scans for .ini files and adds them to a dropdown
         """
-        
+
         # Filename specified by selecting from the dropdown in the GUI
         filename = self.ui.existing_inis.currentText()
         self.logger.info(f"Loading settings file from {filename}")
@@ -956,7 +969,7 @@ class MyWindow(QtWidgets.QMainWindow):
         print(f"New config {self.pharppy_Config}")
         self.Update_Settings_GUI(self.pharppy_Config)
         self.Push_Settings_To_HW()
-        
+
         # Might as well re-scan again to make sure the dropdown is most up to
         # date. (in case the user has deleted any ini files)
         self.ui.existing_inis.clear()
