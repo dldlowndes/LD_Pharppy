@@ -111,7 +111,7 @@ errcodes_h = {
 
 
 class LD_Pharp:
-    def __init__(self, device_Number=0):
+    def __init__(self, device_Number=0, hw_Config=None):
         """
         Binning:
             How many bins of width "resolution" to combine to output the
@@ -132,7 +132,12 @@ class LD_Pharp:
         self.logger = logging.getLogger("PHarp.Hardware")
         logging.basicConfig(level=logging.DEBUG)
 
-        self.hw_Settings = LD_Pharp_Config.LD_Pharp_Config().hw_Settings
+        if isinstance(hw_Config, type(None)):
+            self.logger.debug("Making default HW settings")
+            self.hw_Settings = LD_Pharp_Config.LD_Pharp_Config()
+        else:
+            self.logger.debug("HW Settings passed in")
+            self.hw_Settings = hw_Config
 
         # Connect to the Picoharp device.
         self.my_PharpDLL = LD_PharpDLL.LD_PharpDLL(device_Number)

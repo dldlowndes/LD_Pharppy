@@ -136,7 +136,7 @@ class MyWindow(QtWidgets.QMainWindow):
         """
 
         try:
-            self.my_Pharp = LD_Pharp.LD_Pharp(0)
+            self.my_Pharp = LD_Pharp.LD_Pharp(0, self.pharppy_Config.hw_Settings)
         except (FileNotFoundError, UnboundLocalError) as e:
             # FileNotFoundError if DLL can't be found.
             # UnboundLocalError if the DLL can't find a Picoharp.
@@ -154,7 +154,7 @@ class MyWindow(QtWidgets.QMainWindow):
                 )
             if error_Response == QtGui.QMessageBox.Yes:
                 # Go get the simulator and launch it.
-                self.my_Pharp = LD_Pharp_Dummy.LD_Pharp()
+                self.my_Pharp = LD_Pharp_Dummy.LD_Pharp(0, self.pharppy_Config.hw_Settings)
             else:
                 # Fall over
                 raise e

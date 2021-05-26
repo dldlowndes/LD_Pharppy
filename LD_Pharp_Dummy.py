@@ -11,7 +11,7 @@ import time
 import LD_Pharp_Config
 
 class LD_Pharp:
-    def __init__(self, device_Number=0):
+    def __init__(self, device_Number=0, hw_Config=None):
         self.logger = logging.getLogger("PHarp")
         logging.basicConfig(level=logging.DEBUG)
 
@@ -32,7 +32,12 @@ class LD_Pharp:
 
         """
 
-        self.hw_Settings = LD_Pharp_Config.LD_Pharp_Config().hw_Settings
+        if isinstance(hw_Config, type(None)):
+            self.logger.debug("Making default HW settings")
+            self.hw_Settings = LD_Pharp_Config.LD_Pharp_Config()
+        else:
+            self.logger.debug("HW Settings passed in")
+            self.hw_Settings = hw_Config
 
         self.base_Resolution = 4.0  # picoseconds
         self.resolution = self.base_Resolution
