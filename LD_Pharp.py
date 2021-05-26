@@ -132,7 +132,7 @@ class LD_Pharp:
         self.logger = logging.getLogger("PHarp.Hardware")
         logging.basicConfig(level=logging.DEBUG)
 
-        self.hw_Settings = LD_Pharp_Config.LD_Pharp_Config()
+        self.hw_Settings = LD_Pharp_Config.LD_Pharp_Config().hw_Settings
 
         # Connect to the Picoharp device.
         self.my_PharpDLL = LD_PharpDLL.LD_PharpDLL(device_Number)
@@ -206,7 +206,7 @@ class LD_Pharp:
         # TODO: Optionally be able to clear this?
         self.my_PharpDLL.ClearHistMem()
 
-        self.my_PharpDLL.Start(self.options.acq_Time)
+        self.my_PharpDLL.Start(self.hw_Settings.acq_Time)
 
         # Ask the Picoharp if it's done yet. Either because acq_Time has passed
         # or because a bin in the histogram has been filled.
