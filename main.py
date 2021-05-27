@@ -13,6 +13,8 @@ TODO list:
     - Read and print DLL warnings (counts too high etc)
     - Add default mode and cumulative mode to ini config.
     - Type checking in config setters so they take either str or relevant  type
+    - use the X data to limit the plot axis when there's no data (otherwise
+    cursor clicks with no data cause an exception)
   Med:
     - Curve fitting (choose function - not just gaussian).
     - BUG: Integral bars only show when x=0 is visible on axis! (what.)
@@ -116,7 +118,6 @@ class MyWindow(QtWidgets.QMainWindow):
         self.deltas_On = None
         self.integrals_On = None
         self.bars_On = None
-        self.current_Options = None
         self.detected_inis = []
         self.Init_UI()
         # Init_UI has set up the normalize buttons, the last one is checked by
@@ -186,8 +187,7 @@ class MyWindow(QtWidgets.QMainWindow):
 
         self.ui.data_Filename.setText("save_filename.csv")
         self.ui.status.setText("Counting")
-        self.current_Options = {}
-        self.Apply_Default_Settings()
+        self.Update_Settings_GUI()
 
         self.cursors_On = self.ui.option_Cursor.isChecked()
         self.deltas_On = self.ui.option_Deltas.isChecked()
@@ -261,6 +261,13 @@ class MyWindow(QtWidgets.QMainWindow):
         """
         Init the plot widget and containers relating so it.
         """
+        
+        # X labels for the plot. The hardware only sends Y values so the
+        # x values need to be inferred from the resolution.
+        self.x_Data = np.arange(0,
+                        65536 * self.my_Pharp.resolution,
+                        self.my_Pharp.resolution
+                        ) / 1e12
 
         # Modify the plot window
         self.ui.graph_Widget.plotItem.setLabel("left", "Counts")
@@ -390,19 +397,22 @@ class MyWindow(QtWidgets.QMainWindow):
         self.Update_Settings_GUI(default_Config)
         self.Push_Settings_To_HW()
 
-    def Update_Settings_GUI(self, config):
+    def Update_Settings_GUI(self, config=None):
         """
-        Some sensible defaults of the options. Sets the UI elements to the
-        defaults and then calls the function that reads them and pushes.
+        Copy the values from the LD_Pharp_Config object to the relevant boxes
+        in the GUI
         """
 
-        self.pharppy_Config = config
+        if isinstance(config, LD_Pharp_Config.LD_Pharp_Config):
+            self.pharppy_Config = config
+            
         hw_Settings = self.pharppy_Config.hw_Settings
         sw_Settings = self.pharppy_Config.sw_Settings
 
         binning = hw_Settings.binning
         resolution = self.base_Resolution * (2 ** binning)
 
+        self.logger.info("Update GUI elements")
         self.ui.resolution.setCurrentText(f"{resolution}")
         self.ui.sync_Offset.setValue(hw_Settings.sync_Offset)
         self.ui.sync_Divider.setCurrentText(str(hw_Settings.sync_Divider))
@@ -416,9 +426,6 @@ class MyWindow(QtWidgets.QMainWindow):
         self.ui.option_Deltas.setChecked(sw_Settings.show_Deltas)
         self.ui.option_ShowBars.setChecked(sw_Settings.show_Bars)
         self.ui.integral_Width.setText(f"{sw_Settings.integral_Width}")
-
-        self.logger.info("Reset settings to defaults")
-        self.Push_Settings_To_HW()
 
     def start_Stop(self):
         """
