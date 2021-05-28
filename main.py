@@ -48,6 +48,7 @@ import pyqtgraph
 import scipy.signal
 
 import acq_Thread
+import graph_Markers
 import settings_gui
 import LD_Pharp
 import LD_Pharp_Dummy
@@ -129,6 +130,7 @@ class MyWindow(QtWidgets.QMainWindow):
         self.last_X_Data = None
         self.click_Number = 0
         self.last_Click = None
+        self.cursor_Marker = graph_Markers.XY_Cursor(self.ui.graph_Widget)
         self.Init_Plot()
 
     def Init_Hardware(self):
@@ -303,11 +305,6 @@ class MyWindow(QtWidgets.QMainWindow):
         # that persist after click (for one click before they move again), and
         # Four that are just pairs of vertical lines to appear round clicks in
         # "integral" mode.
-        self.cursor_Lines = (
-            self.Make_Line("h", "y"),
-            self.Make_Line("v", "y")
-            )
-
         self.delta_Lines = (
             (self.Make_Line_Pair("h", "v", self.palette[0])),
             (self.Make_Line_Pair("h", "v", self.palette[1]))
@@ -319,11 +316,12 @@ class MyWindow(QtWidgets.QMainWindow):
             (self.Make_Line_Pair("v", "v", self.palette[2])),
             (self.Make_Line_Pair("v", "v", self.palette[3]))
             )
+        
+        self.cursor_Marker.coords = (0, 0)
+        self.cursor_Marker.colour = (255, 255, 0)
 
         # Necessary? Thought it would be good for every line to be in a
         # well defined position on init...
-        for line in self.cursor_Lines:
-            line.setPos(0)
         for line in itertools.chain.from_iterable(self.delta_Lines):
             line.setPos(0)
         for line in itertools.chain.from_iterable(self.integral_vLines):
@@ -541,8 +539,7 @@ class MyWindow(QtWidgets.QMainWindow):
         Add a vertical line and a horizontal line to the plot widget. The idea
         is these follow the cursor to help reading the graph
         """
-        for line in self.cursor_Lines:
-            self.ui.graph_Widget.addItem(line)
+        self.cursor_Marker.Add_To_Plot()
 
     def Draw_Deltas(self):
         """
@@ -562,8 +559,7 @@ class MyWindow(QtWidgets.QMainWindow):
         """
         Remove the cursor lines from the plot widget
         """
-        for line in self.cursor_Lines:
-            self.ui.graph_Widget.removeItem(line)
+        self.cursor_Marker.Remove_From_Plot()
 
     def Remove_Deltas(self):
         """
@@ -730,8 +726,7 @@ class MyWindow(QtWidgets.QMainWindow):
         coords = view_Box.mapSceneToView(evt[0])
 
         # Plot h and v lines at cursor position
-        self.cursor_Lines[1].setPos(coords.x())
-        self.cursor_Lines[0].setPos(coords.y())
+        self.cursor_Marker.coords = (coords.x(), coords.y())
 
         # Update GUI cursor co-ordinates
         self.ui.current_X.setText(f"{coords.x():3E}")
