@@ -136,7 +136,6 @@ class Integral_Cursor(Generic_Cursor):
             int(self._left_Position / self._resolution),
             int(self._right_Position / self._resolution)
             )
-        print("Data bins now ", self._data_Bins)
         
         self._lines[0].setPos(self._left_Position)
         self._lines[1].setPos(self._right_Position)

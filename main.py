@@ -26,9 +26,6 @@ TODO list:
     respectively
     - Investigate getting this to work with other hardware...
     - py2exe or something for distribution
-    - Make a separate class for the integral cursors that wraps both vLines,
-    the width, and data bars
-        - Option to update width on already placed integrals
 """
 
 # pylint: disable=C0103
@@ -897,7 +894,7 @@ class MyWindow(QtWidgets.QMainWindow):
         # in the GUI to the hardware (this ensures the GUI and the hardware
         # match, in case there's some weird error updating the GUI)
         self.pharppy_Config.Load_From_File(filename)
-        print(f"New config {self.pharppy_Config}")
+        self.logger.debug(f"New config {self.pharppy_Config}")
         self.Update_Settings_GUI(self.pharppy_Config)
         self.Push_Settings_To_HW()
 
