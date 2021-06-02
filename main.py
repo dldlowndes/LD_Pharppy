@@ -613,6 +613,19 @@ class MyWindow(QtWidgets.QMainWindow):
         for ((this_Mean, this_Max, this_FWHM),
              mean_Box, max_Box, fwhm_Box) in iterable:
         
+            if self.normalize_This < len(self.normalize_Buttons) - 1:
+                mean_Factor = integrals_Readings[self.normalize_This][0]
+                max_Factor = integrals_Readings[self.normalize_This][1]
+                
+                if mean_Factor > 0:
+                    this_Mean /= mean_Factor
+                else:
+                    this_Mean = np.inf
+                if max_Factor > 0:
+                    this_Max /= max_Factor
+                else:
+                    this_Max = np.inf
+            
             mean_Box.setText(f"{this_Mean:.3E}")
             max_Box.setText(f"{this_Max:.3E}")
             fwhm_Box.setText(f"{this_FWHM:.3E}")
