@@ -104,7 +104,7 @@ class LD_PharpDLL:
         """
         return_Code = self.phlib.PH_StartMeas(self.device_Number_ct,
                                               ctypes.c_int(tacq))
-        self.logger.debug(f"Measuring for {tacq}ms")
+        #self.logger.debug(f"Measuring for {tacq}ms")
         return self.ProcessReturnCode(return_Code)
 
     def Stop(self):
@@ -113,7 +113,7 @@ class LD_PharpDLL:
         """
 
         return_Code = self.phlib.PH_StopMeas(self.device_Number_ct)
-        self.logger.debug(f"Stopped")
+        #self.logger.debug(f"Stopped")
         return self.ProcessReturnCode(return_Code)
 
 #    def Read_FIFO(self):

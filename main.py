@@ -390,7 +390,12 @@ class MyWindow(QtWidgets.QMainWindow):
             self.x_Data = np.arange(0,
                                     65536 * self.my_Pharp.resolution,
                                     self.my_Pharp.resolution
-                                    ) / 1e12
+                                    ) * 1e-12
+
+            # Let the cursors know the resolution has been updated (since the
+            # data->bin mapping depends on resolution)                                    
+            for cursor in self.integral_Cursors:
+                cursor.resolution = self.my_Pharp.resolution * 1e-12
 
     def Apply_Default_Settings(self):
         """

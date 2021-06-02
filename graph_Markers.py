@@ -119,6 +119,14 @@ class Integral_Cursor(Generic_Cursor):
     @property
     def resolution(self):
         return self._resolution
+    
+    @resolution.setter
+    def resolution(self, value):
+        self._resolution = value
+        # Resolution change means the left and right lines need to be updated
+        # since the scaling from time->bins has changed. The bars will take
+        # care of themselves on the next data update
+        self._Update_Lines()
 
     def _Update_Lines(self):
         self._left_Position = self._coords[0] - (self._width / 2)
@@ -128,6 +136,7 @@ class Integral_Cursor(Generic_Cursor):
             int(self._left_Position / self._resolution),
             int(self._right_Position / self._resolution)
             )
+        print("Data bins now ", self._data_Bins)
         
         self._lines[0].setPos(self._left_Position)
         self._lines[1].setPos(self._right_Position)
