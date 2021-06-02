@@ -130,7 +130,8 @@ class MyWindow(QtWidgets.QMainWindow):
         self.last_X_Data = None
         self.click_Number = 0
         self.last_Click = None
-        self.cursor_Marker = graph_Markers.XY_Cursor(self.ui.graph_Widget)
+        self.cursor_Marker = graph_Markers.XY_Cursor(self.ui.graph_Widget,
+                                                     QtGui.QColor(255, 255, 0))
         self.Init_Plot()
 
     def Init_Hardware(self):
@@ -317,6 +318,14 @@ class MyWindow(QtWidgets.QMainWindow):
             (self.Make_Line_Pair("v", "v", self.palette[3]))
             )
         
+        self.integral_Cursors = [
+            graph_Markers.Integral_Cursor(
+                self.ui.graph_Widget,
+                self.palette[i],
+                self.my_Pharp.resolution * 1e-12)
+            for i in range(4)
+            ]
+        
         self.cursor_Marker.coords = (0, 0)
         self.cursor_Marker.colour = (255, 255, 0)
 
@@ -324,8 +333,8 @@ class MyWindow(QtWidgets.QMainWindow):
         # well defined position on init...
         for line in itertools.chain.from_iterable(self.delta_Lines):
             line.setPos(0)
-        for line in itertools.chain.from_iterable(self.integral_vLines):
-            line.setPos(0)
+        # for line in itertools.chain.from_iterable(self.integral_vLines):
+        #     line.setPos(0)
 
     def Make_Line(self, orientation, colour):
         """
@@ -534,6 +543,9 @@ class MyWindow(QtWidgets.QMainWindow):
         new_Width = self.ui.integral_Width.text()
         self.pharppy_Config.sw_Settings.integral_Width = new_Width
 
+        for cursor in self.integral_Cursors:
+            cursor.width = self.pharppy_Config.sw_Settings.integral_Width
+
     def Draw_Cursors(self):
         """
         Add a vertical line and a horizontal line to the plot widget. The idea
@@ -552,8 +564,10 @@ class MyWindow(QtWidgets.QMainWindow):
         """
         Persistent cursors. 4 pairs spaced by a user supplied value.
         """
-        for line in itertools.chain.from_iterable(self.integral_vLines):
-            self.ui.graph_Widget.addItem(line)
+        # for line in itertools.chain.from_iterable(self.integral_vLines):
+        #     self.ui.graph_Widget.addItem(line)
+        for integral in self.integral_Cursors:
+            integral.Add_To_Plot()
 
     def Remove_Cursors(self):
         """
@@ -572,8 +586,10 @@ class MyWindow(QtWidgets.QMainWindow):
         """
         Remove integral cursors.
         """
-        for line in itertools.chain.from_iterable(self.integral_vLines):
-            self.ui.graph_Widget.removeItem(line)
+        # for line in itertools.chain.from_iterable(self.integral_vLines):
+        #     self.ui.graph_Widget.removeItem(line)
+        for integral in self.integral_Cursors:
+            integral.Remove_From_Plot()
 
     def Display_Integrals(self):
         """
@@ -582,99 +598,24 @@ class MyWindow(QtWidgets.QMainWindow):
         text box.
         """
 
-        resolution_ps = self.my_Pharp.resolution * 1e-12
-
-        # Go fetch the data between each pair of integral cursors.
-        # Calculate mean/max values in separate loop up here so the values
-        # can be normalized when displaying if required.
-        for i, (bottom_Bin, top_Bin) in enumerate(self.integral_Coords):
-            integral_Data = self.this_Data[bottom_Bin: top_Bin]
-            this_X_Data = self.x_Data[bottom_Bin: top_Bin]
-
-            # Numpy complains if this slice has no length, so catch that.
-            if len(integral_Data) > 0:
-                self.integral_Means[i] = integral_Data.mean()
-                self.integral_Maxes[i] = integral_Data.max()
-
-                # Get FWHM by literally counting the number of bins above half
-                # the maximum value (after subtracting the noise floor)
-                y_Range = integral_Data.max() - integral_Data.min()
-                half_Max = y_Range / 2
-                fwhm_Bins = sum(integral_Data > half_Max) * resolution_ps
-                self.integral_SDs[i] = fwhm_Bins / 2.355
-
-#                fit_Middle = np.average(this_X_Data, weights=integral_Data)
-#                integral_Middle_Value = np.median(this_X_Data)
-#                middle_Offset = integral_Middle_Value - fit_Middle
-#                fit_Data = scipy.signal.gaussian(len(this_X_Data),
-#                                                 self.integral_SDs[i] /resolution_ps)
-#
-#                fit_Graph = pyqtgraph.PlotCurveItem(
-#                        x=this_X_Data - middle_Offset,
-#                        y=fit_Data * integral_Data.max(),
-#                        pen=self.palette[i],
-#                        )
-#                self.ui.graph_Widget.addItem(fit_Graph)
-
-            else:
-                # I suppose the mean and max of no data is zero?
-                self.integral_Means[i] = 0
-                self.integral_Maxes[i] = 0
-                self.integral_SDs[i] = 0
-
-
-        # Do this separately to make the for loop declaration neater.
+        integrals_Readings = [
+            cursor.Update_Stats(self.this_Data, self.bars_On)
+            for cursor in self.integral_Cursors
+            ]
+        
         iterable = zip(
-            self.integral_Means,
-            self.integral_Maxes,
-            self.integral_SDs,
+            integrals_Readings,
             self.mean_TextBoxes,
             self.max_TextBoxes,
-            self.fwhm_TextBoxes,
+            self.fwhm_TextBoxes
             )
-
-        for (this_Mean, this_Max, this_SD,
+        
+        for ((this_Mean, this_Max, this_FWHM),
              mean_Box, max_Box, fwhm_Box) in iterable:
-            # The last normalize_Button is "off" i.e. don't do normalization.
-            if self.normalize_This < (len(self.normalize_Buttons) - 1):
-                # Otherwise normalize by the value of the specified cursor.
-                mean_Factor = self.integral_Means[self.normalize_This]
-                max_Factor = self.integral_Maxes[self.normalize_This]
-
-                # Catch if this would lead to division by zero.
-                if mean_Factor > 0:
-                    this_Mean /= mean_Factor
-                else:
-                    this_Mean = np.inf
-                if max_Factor > 0:
-                    this_Max /= max_Factor  # because you're worth it.
-                else:
-                    this_Max = np.inf
-
-            # Update the text box.
+        
             mean_Box.setText(f"{this_Mean:.3E}")
             max_Box.setText(f"{this_Max:.3E}")
-            fwhm_Box.setText(f"{this_SD * 2.355:.3E}")
-
-        if self.bars_On:
-            # Plot bars between the interval cursors
-            # Solid bars at the means
-            mean_Bars = pyqtgraph.BarGraphItem(
-                    x0 = self.integral_Coords[:,0] * resolution_ps,
-                    x1 = self.integral_Coords[:,1] * resolution_ps,
-                    height = self.integral_Means,
-                    pens=self.palette,
-                    brushes=self.palette)
-            # Transparentish bars at the maxes
-            max_Bars = pyqtgraph.BarGraphItem(
-                    x0 = self.integral_Coords[:,0] * resolution_ps,
-                    x1 = self.integral_Coords[:,1] * resolution_ps,
-                    height = self.integral_Maxes,
-                    pens=self.palette,
-                    brushes=self.palette_Alpha)
-
-            self.ui.graph_Widget.addItem(mean_Bars)
-            self.ui.graph_Widget.addItem(max_Bars)
+            fwhm_Box.setText(f"{this_FWHM:.3E}")
 
     def on_Save_Histo(self):
         """
@@ -783,33 +724,9 @@ class MyWindow(QtWidgets.QMainWindow):
         corresponding to the click number.
         """
 
-        # Cursors stored in a list, get the relevant ones for this click
-        cursor_Bottom, cursor_Top = self.integral_vLines[self.click_Number]
-
-        # Fetch the current desired width of the window between cursors.
-        integral_Width = self.pharppy_Config.sw_Settings.integral_Width
-
-        # Centre the cursors on the click point, calculate the actual
-        # cursor positions.
-        middle = coords.x()
-        bottom_Position = middle - (integral_Width / 2)
-        top_Position = middle + (integral_Width / 2)
-
-        # Set the cursor positions
-        cursor_Bottom.setPos(bottom_Position)
-        cursor_Top.setPos(top_Position)
-
-        # Calculate the histogram bin numbers of the cursors (the graph
-        # gives them in x axis units)
-        resolution_ps = self.my_Pharp.resolution * 1e-12
-        bottom_Bin = int(bottom_Position / resolution_ps)
-        top_Bin = int(top_Position / resolution_ps)
-
-        # Update a list so they can be stored and the integration can
-        # happen live on each data refresh.
-        # YOU CAN'T SLICE THE DATA HERE; IT WILL BE OUT OF DATE ON THE
-        # NEXT on_Histo_Signal AND WON'T AUTO REFRESH CORRECTLY.
-        self.integral_Coords[self.click_Number] = bottom_Bin, top_Bin
+        this_Cursor = self.integral_Cursors[self.click_Number]
+        this_Cursor.coords = (coords.x(), coords.y())
+        this_Cursor.width = self.pharppy_Config.sw_Settings.integral_Width
 
         # Advance click number through values 0, 1, 2, 3 repeating.
         self.click_Number = (self.click_Number + 1) % 4
@@ -897,15 +814,8 @@ class MyWindow(QtWidgets.QMainWindow):
         self.click_Number = 0
 
         # Move all the interval lines to zero. (i.e. hide them)
-        for line in itertools.chain.from_iterable(self.integral_vLines):
-            line.setPos(0)
-
-        # Set the co-ords of the top/bottom all to zero. So the data between
-        # the positions is zero
-        self.integral_Coords = np.array([(0, 0),
-                                         (0, 0),
-                                         (0, 0),
-                                         (0, 0)])
+        for cursor in self.integral_Cursors:
+            cursor.Reset_Remove()
 
     def on_Normalize_Click(self, checked):
         """
