@@ -18,7 +18,7 @@ class LD_PharpDLL:
     phlib.h without the user having to worry about ctypes everywhere.
     """
 
-    def __init__(self, device_Number):
+    def __init__(self, device_Number, dll_Path=None):
         """
         The examples seem to try and open all device numbers up to some limit
         (8?) and see what comes back. That seems weird so let's just have one
@@ -34,16 +34,19 @@ class LD_PharpDLL:
         arch = platform.architecture()[0]
         self.logger.info(f"Detected {os_Name}, {arch}")
 
-        if os_Name == "Linux":
-            if arch == "64bit":
-                dll_Path = os.path.abspath("/usr/local/lib64/ph300/phlib.so")
-            else:
-                dll_Path = os.path.abspath("/usr/local/lib/ph300/phlib.so")
-        elif os_Name == "Windows":
-            if arch == "64bit":
-                dll_Path = os.path.abspath("C:\Windows\System32\phlib64.dll")
-            else:
-                dll_Path = os.path.abspath("C:\Windows\SysWOW64\phlib.dll")
+        default_DLL_Paths = {
+            "Linux": {"64bit": "/usr/local/lib64/ph300/phlib.so",
+                      "32bit": "/usr/local/lib/ph300/phlib.so"},
+            "Windows": {"64bit": "C:\Windows\System32\phlib64.dll",
+                        "32bit": "C:\Windows\SysWOW64\phlib.dll"}
+            }
+
+        if isinstance(dll_Path, str):
+            pass
+        else:
+            dll_Path = default_DLL_Paths[os_Name][arch]
+        
+        dll_Path = os.path.abspath(dll_Path)
 
         self.phlib = ctypes.CDLL(dll_Path)
         self.device_Number_ct = ctypes.c_int(device_Number)

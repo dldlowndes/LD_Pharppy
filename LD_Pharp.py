@@ -111,7 +111,7 @@ errcodes_h = {
 
 
 class LD_Pharp:
-    def __init__(self, device_Number=0, hw_Config=None):
+    def __init__(self, device_Number=0, hw_Config=None, dll_Path=None):
         """
         Binning:
             How many bins of width "resolution" to combine to output the
@@ -140,7 +140,7 @@ class LD_Pharp:
             self.hw_Settings = hw_Config
 
         # Connect to the Picoharp device.
-        self.my_PharpDLL = LD_PharpDLL.LD_PharpDLL(device_Number)
+        self.my_PharpDLL = LD_PharpDLL.LD_PharpDLL(device_Number, dll_Path)
 
         # TODO: Check this is the expected version.
         self.library_Version = self.my_PharpDLL.Get_LibraryVersion()
