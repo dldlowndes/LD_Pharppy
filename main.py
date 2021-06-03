@@ -28,10 +28,14 @@ TODO list:
     - py2exe or something for distribution
 """
 
+# Quieten pylint recommendations
+# Quiet naming conventions
 # pylint: disable=C0103
+# Quiet too many attributes
 # pylint: disable=R0902
+# Quiet too many methods
 # pylint: disable=R0904
-# pylint: disable=W0511
+# Quiet f strings in log messages
 # pylint: disable=W1203
 
 import itertools
@@ -42,7 +46,6 @@ import sys
 import numpy as np
 from PyQt5 import QtWidgets, QtCore, QtGui
 import pyqtgraph
-import scipy.signal
 
 import acq_Thread
 import graph_Markers
@@ -129,7 +132,12 @@ class MyWindow(QtWidgets.QMainWindow):
         self.last_Click = None
         self.cursor_Marker = graph_Markers.XY_Cursor(self.ui.graph_Widget,
                                                      QtGui.QColor(255, 255, 0))
+        self.delta_Cursors = []
         self.Init_Plot()
+
+##############################################################################
+# INIT METHODS
+##############################################################################
 
     def Init_Hardware(self):
         """
@@ -137,13 +145,19 @@ class MyWindow(QtWidgets.QMainWindow):
         """
 
         try:
-            self.my_Pharp = LD_Pharp.LD_Pharp(0, self.pharppy_Config.hw_Settings)
-        except (FileNotFoundError, UnboundLocalError) as e:
-            # FileNotFoundError if DLL can't be found.
+            self.my_Pharp = LD_Pharp.LD_Pharp(
+                0,
+                self.pharppy_Config.hw_Settings
+                )
+        except (UnboundLocalError, FileNotFoundError) as e:
+            # FileNotFoundError if the DLL can't be found
             # UnboundLocalError if the DLL can't find a Picoharp.
             self.logger.warning(e)
-            self.logger.info("Picoharp library or Picoharp device not found")
-            self.logger.info("Prompt user if they want to use simulation mode")
+            if isinstance(e, FileNotFoundError):
+                self.logger.info("phlib dll not found. Is it installed?")
+            if isinstance(e, UnboundLocalError):
+                self.logger.info("Picoharp not found. Not plugged in or powered?")
+                self.logger.info("Prompt user if they want to use simulation mode")
             # If the dll can't get a device handle, the program falls over,
             # Alert the user and give the option to run the barebones simulator
             # which allows the UI to be explored with some representative data.
@@ -155,7 +169,9 @@ class MyWindow(QtWidgets.QMainWindow):
                 )
             if error_Response == QtGui.QMessageBox.Yes:
                 # Go get the simulator and launch it.
-                self.my_Pharp = LD_Pharp_Dummy.LD_Pharp(0, self.pharppy_Config.hw_Settings)
+                self.my_Pharp = LD_Pharp_Dummy.LD_Pharp(
+                    0,
+                    self.pharppy_Config.hw_Settings)
             else:
                 # Fall over
                 raise e
@@ -261,7 +277,7 @@ class MyWindow(QtWidgets.QMainWindow):
         """
         Init the plot widget and containers relating so it.
         """
-        
+
         # X labels for the plot. The hardware only sends Y values so the
         # x values need to be inferred from the resolution.
         self.x_Data = np.arange(0,
@@ -299,22 +315,10 @@ class MyWindow(QtWidgets.QMainWindow):
         # Holds the co-ordinates of the most previous click.
         self.last_Click = QtCore.QPoint(0, 0)
 
-        # Set up crosshairs for markers, one that follows the mouse, two
-        # that persist after click (for one click before they move again), and
-        # Four that are just pairs of vertical lines to appear round clicks in
-        # "integral" mode.
-        self.delta_Lines = (
-            (self.Make_Line_Pair("h", "v", self.palette[0])),
-            (self.Make_Line_Pair("h", "v", self.palette[1]))
-            )
+        self.delta_Cursors = [graph_Markers.XY_Cursor(self.ui.graph_Widget,
+                                                      self.palette[i])
+                              for i in range(2)]
 
-        self.integral_vLines = (
-            (self.Make_Line_Pair("v", "v", self.palette[0])),
-            (self.Make_Line_Pair("v", "v", self.palette[1])),
-            (self.Make_Line_Pair("v", "v", self.palette[2])),
-            (self.Make_Line_Pair("v", "v", self.palette[3]))
-            )
-        
         self.integral_Cursors = [
             graph_Markers.Integral_Cursor(
                 self.ui.graph_Widget,
@@ -322,35 +326,18 @@ class MyWindow(QtWidgets.QMainWindow):
                 self.my_Pharp.resolution * 1e-12)
             for i in range(4)
             ]
-        
+
         self.cursor_Marker.coords = (0, 0)
         self.cursor_Marker.colour = (255, 255, 0)
 
         # Necessary? Thought it would be good for every line to be in a
         # well defined position on init...
-        for line in itertools.chain.from_iterable(self.delta_Lines):
-            line.setPos(0)
-        # for line in itertools.chain.from_iterable(self.integral_vLines):
-        #     line.setPos(0)
+        for cursor in self.delta_Cursors:
+            cursor.coords = (0, 0)
 
-    def Make_Line(self, orientation, colour):
-        """
-        Make a pyqtgraph line object, orientation either "h" or "v", colour
-        is a single character passed directly to the pyqtgraph.InifiniteLine
-        constructor.
-        """
-        this_Angle = self.orientations[orientation.lower()]
-        return pyqtgraph.InfiniteLine(angle=this_Angle,
-                                      movable=False,
-                                      pen=colour)
-
-    def Make_Line_Pair(self, orientation1, orientation2, colour):
-        """
-        Make two lines, of the same colour, of any specified orientation.
-        A bit excessive but saves some repetition
-        """
-        return (self.Make_Line(orientation1, colour),
-                self.Make_Line(orientation2, colour))
+##############################################################################
+# HARDWARE SETTINGS METHODS
+##############################################################################
 
     def Push_Settings_To_HW(self):
         """
@@ -390,7 +377,7 @@ class MyWindow(QtWidgets.QMainWindow):
                                     ) * 1e-12
 
             # Let the cursors know the resolution has been updated (since the
-            # data->bin mapping depends on resolution)                                    
+            # data->bin mapping depends on resolution)
             for cursor in self.integral_Cursors:
                 cursor.resolution = self.my_Pharp.resolution * 1e-12
 
@@ -414,7 +401,7 @@ class MyWindow(QtWidgets.QMainWindow):
 
         if isinstance(config, LD_Pharp_Config.LD_Pharp_Config):
             self.pharppy_Config = config
-            
+
         hw_Settings = self.pharppy_Config.hw_Settings
         sw_Settings = self.pharppy_Config.sw_Settings
 
@@ -435,6 +422,64 @@ class MyWindow(QtWidgets.QMainWindow):
         self.ui.option_Deltas.setChecked(sw_Settings.show_Deltas)
         self.ui.option_ShowBars.setChecked(sw_Settings.show_Bars)
         self.ui.integral_Width.setText(f"{sw_Settings.integral_Width}")
+
+    def on_Load_Settings(self):
+        """
+        Load an ini file that's in the parent folder of this application.
+        The program auto scans for .ini files and adds them to a dropdown
+        """
+
+        # Filename specified by selecting from the dropdown in the GUI
+        filename = self.ui.existing_inis.currentText()
+        self.logger.info(f"Loading settings file from {filename}")
+
+        # Load the config, update the GUI and then push the settings displayed
+        # in the GUI to the hardware (this ensures the GUI and the hardware
+        # match, in case there's some weird error updating the GUI)
+        self.pharppy_Config.Load_From_File(filename)
+        self.logger.debug(f"New config {self.pharppy_Config}")
+        self.Update_Settings_GUI(self.pharppy_Config)
+        self.Push_Settings_To_HW()
+
+        # Might as well re-scan again to make sure the dropdown is most up to
+        # date. (in case the user has deleted any ini files)
+        self.ui.existing_inis.clear()
+        self.detected_inis = [x for x in os.listdir() if x.endswith(".ini")]
+        for ini in self.detected_inis:
+            self.ui.existing_inis.addItem(ini)
+
+    def on_Save_Settings(self):
+        """
+        Save the most recent settings that were pushed to the hardware to an
+        ini file with a name specified by the GUI element settings_SaveName
+        """
+
+        filename = self.ui.settings_SaveName.text()
+        # Enforce the file type
+        if not filename.endswith(".ini"):
+            filename += ".ini"
+        # rescan the folder for existing files before enforcing that the
+        # filename can't clash with an existing one.
+        self.detected_inis = [x for x in os.listdir() if x.endswith(".ini")]
+        # prevent accidental overwriting of previous ini files
+        if filename in self.detected_inis:
+            self.logger.error("Log file name exists")
+            raise ValueError
+        self.logger.info(f"Saving latest applied settings to {filename}")
+
+        self.pharppy_Config.Save_To_File(filename)
+
+        # Update the list of existing ini files now there's another one. Could
+        # save a call to os.listdir here since it was performed above but it's
+        # not really a problem and there's more certainty doing it like this.
+        self.ui.existing_inis.clear()
+        self.detected_inis = [x for x in os.listdir() if x.endswith(".ini")]
+        for ini in self.detected_inis:
+            self.ui.existing_inis.addItem(ini)
+
+##############################################################################
+# HARDWARE INTERFACE METHODS
+##############################################################################
 
     def start_Stop(self):
         """
@@ -515,6 +560,26 @@ class MyWindow(QtWidgets.QMainWindow):
         self.last_Histogram = self.this_Data
         self.last_X_Data = self.x_Data
 
+##############################################################################
+# GUI METHODS (NON GRAPHING)
+##############################################################################
+
+    def on_Cursor_Button(self):
+        """
+        Toggle the live cursor on/off
+        """
+        self.cursors_On = self.ui.option_Cursor.isChecked()
+        self.pharppy_Config.sw_Settings.show_Cursor = str(self.cursors_On)
+
+        if self.cursors_On:
+            # Redraw the cursor
+            self.logger.info("Turn cursor on")
+            self.Draw_Cursors()
+        else:
+            # Remove the cursor
+            self.logger.info("Turn cursor off")
+            self.Remove_Cursors()
+
     def on_Cursor_Tab(self, tab_Number):
         """
         If the cursors tab is switched between "deltas" and "integrate" mode.
@@ -548,89 +613,24 @@ class MyWindow(QtWidgets.QMainWindow):
         for cursor in self.integral_Cursors:
             cursor.width = self.pharppy_Config.sw_Settings.integral_Width
 
-    def Draw_Cursors(self):
+    def on_Normalize_Click(self, checked):
         """
-        Add a vertical line and a horizontal line to the plot widget. The idea
-        is these follow the cursor to help reading the graph
-        """
-        self.cursor_Marker.Add_To_Plot()
-
-    def Draw_Deltas(self):
-        """
-        Cursors that persist on mouse clicks.
-        """
-        for line in itertools.chain.from_iterable(self.delta_Lines):
-            self.ui.graph_Widget.addItem(line)
-
-    def Draw_Integrals(self):
-        """
-        Persistent cursors. 4 pairs spaced by a user supplied value.
-        """
-        # for line in itertools.chain.from_iterable(self.integral_vLines):
-        #     self.ui.graph_Widget.addItem(line)
-        for integral in self.integral_Cursors:
-            integral.Add_To_Plot()
-
-    def Remove_Cursors(self):
-        """
-        Remove the cursor lines from the plot widget
-        """
-        self.cursor_Marker.Remove_From_Plot()
-
-    def Remove_Deltas(self):
-        """
-        Remove the deltas from the plot widget.
-        """
-        for line in itertools.chain.from_iterable(self.delta_Lines):
-            self.ui.graph_Widget.removeItem(line)
-
-    def Remove_Integrals(self):
-        """
-        Remove integral cursors.
-        """
-        # for line in itertools.chain.from_iterable(self.integral_vLines):
-        #     self.ui.graph_Widget.removeItem(line)
-        for integral in self.integral_Cursors:
-            integral.Remove_From_Plot()
-
-    def Display_Integrals(self):
-        """
-        Go through the coordinates of the integral cursors, summing the bins
-        between the bottom and top values. Display the sum in the relevant
-        text box.
+        When a normalize radio button is clicked. Update a variable keeping
+        track of which one is clicked.
+        Note that the signal is emitted when a radio button changes state, so
+        this triggers twice on any click, once for a deactivate and once for
+        an activate. Hence this only runs for the checked radio box. (not that
+        it would do any harm but it's neater this way)
         """
 
-        integrals_Readings = [
-            cursor.Update_Stats(self.this_Data, self.bars_On)
-            for cursor in self.integral_Cursors
-            ]
-        
-        iterable = zip(
-            integrals_Readings,
-            self.mean_TextBoxes,
-            self.max_TextBoxes,
-            self.fwhm_TextBoxes
-            )
-        
-        for ((this_Mean, this_Max, this_FWHM),
-             mean_Box, max_Box, fwhm_Box) in iterable:
-        
-            if self.normalize_This < len(self.normalize_Buttons) - 1:
-                mean_Factor = integrals_Readings[self.normalize_This][0]
-                max_Factor = integrals_Readings[self.normalize_This][1]
-                
-                if mean_Factor > 0:
-                    this_Mean /= mean_Factor
-                else:
-                    this_Mean = np.inf
-                if max_Factor > 0:
-                    this_Max /= max_Factor
-                else:
-                    this_Max = np.inf
-            
-            mean_Box.setText(f"{this_Mean:.3E}")
-            max_Box.setText(f"{this_Max:.3E}")
-            fwhm_Box.setText(f"{this_FWHM:.3E}")
+        # Check the event was from a "checked" event not an "unchecked" event
+        if checked:
+            for i, radio in enumerate(self.normalize_Buttons):
+                # Go through all the buttons looking for the checked one.
+                if radio.isChecked():
+                    self.logger.debug(f"Normalize button {i} is pressed")
+                    # Remember which button it was that was checked.
+                    self.normalize_This = i
 
     def on_Save_Histo(self):
         """
@@ -656,6 +656,94 @@ class MyWindow(QtWidgets.QMainWindow):
 
         self.logger.info(f"Histogram saved as {filename}")
 
+##############################################################################
+# PLOTTING METHODS
+##############################################################################
+
+    def Draw_Cursors(self):
+        """
+        Add a vertical line and a horizontal line to the plot widget. The idea
+        is these follow the cursor to help reading the graph
+        """
+        self.cursor_Marker.Add_To_Plot()
+
+    def Draw_Deltas(self):
+        """
+        Cursors that persist on mouse clicks.
+        """
+        for cursor in self.delta_Cursors:
+            cursor.Add_To_Plot()
+
+    def Draw_Integrals(self):
+        """
+        Persistent cursors. 4 pairs spaced by a user supplied value.
+        """
+        # for line in itertools.chain.from_iterable(self.integral_vLines):
+        #     self.ui.graph_Widget.addItem(line)
+        for integral in self.integral_Cursors:
+            integral.Add_To_Plot()
+
+    def Remove_Cursors(self):
+        """
+        Remove the cursor lines from the plot widget
+        """
+        self.cursor_Marker.Remove_From_Plot()
+
+    def Remove_Deltas(self):
+        """
+        Remove the deltas from the plot widget.
+        """
+        for cursor in self.delta_Cursors:
+            cursor.Remove_From_Plot()
+
+    def Remove_Integrals(self):
+        """
+        Remove integral cursors.
+        """
+        # for line in itertools.chain.from_iterable(self.integral_vLines):
+        #     self.ui.graph_Widget.removeItem(line)
+        for integral in self.integral_Cursors:
+            integral.Remove_From_Plot()
+
+    def Display_Integrals(self):
+        """
+        Go through the coordinates of the integral cursors, summing the bins
+        between the bottom and top values. Display the sum in the relevant
+        text box.
+        """
+
+        integrals_Readings = [
+            cursor.Update_Stats(self.this_Data, self.bars_On)
+            for cursor in self.integral_Cursors
+            ]
+
+        iterable = zip(
+            integrals_Readings,
+            self.mean_TextBoxes,
+            self.max_TextBoxes,
+            self.fwhm_TextBoxes
+            )
+
+        for ((this_Mean, this_Max, this_FWHM),
+             mean_Box, max_Box, fwhm_Box) in iterable:
+
+            if self.normalize_This < len(self.normalize_Buttons) - 1:
+                mean_Factor = integrals_Readings[self.normalize_This][0]
+                max_Factor = integrals_Readings[self.normalize_This][1]
+
+                if mean_Factor > 0:
+                    this_Mean /= mean_Factor
+                else:
+                    this_Mean = np.inf
+                if max_Factor > 0:
+                    this_Max /= max_Factor
+                else:
+                    this_Max = np.inf
+
+            mean_Box.setText(f"{this_Mean:.3E}")
+            max_Box.setText(f"{this_Max:.3E}")
+            fwhm_Box.setText(f"{this_FWHM:.3E}")
+
     def on_Auto_Range(self):
         """
         Tell the plot widget to fit the full histogram on the plot.
@@ -663,6 +751,38 @@ class MyWindow(QtWidgets.QMainWindow):
         # pyqtgraph has our back on this one!
         self.logger.debug("Auto range histogram")
         self.ui.graph_Widget.plotItem.autoBtnClicked()
+
+    def on_Bars_Button(self):
+        """
+        Toggle display of bars in integral mode showing max/mean values
+        inside the interval.
+        """
+
+        self.bars_On = self.ui.option_ShowBars.isChecked()
+        self.pharppy_Config.sw_Settings.show_Bars = str(self.bars_On)
+
+    def on_Clear_Deltas(self):
+        """
+        Get rid of the current displayed deltas cursors without turning off
+        the deltas, also resets.
+        """
+        self.logger.info("Clear deltas")
+
+        # Put all the lines to zero (hide them)
+        for cursor in self.delta_Cursors:
+            cursor.coords = (0, 0)
+
+        # Fill GUI with zeros.
+        self.ui.click_1_X.setText(f"{0}")
+        self.ui.click_1_Y.setText(f"{0}")
+        self.ui.click_2_X.setText(f"{0}")
+        self.ui.click_2_Y.setText(f"{0}")
+        self.ui.delta_X.setText(f"{0}")
+        self.ui.delta_Y.setText(f"{0}")
+
+        # Reset so the first click after this is the first delta
+        self.click_Number = 0
+        self.last_Click = QtCore.QPoint(0, 0)
 
     def on_Clear_Histogram(self):
         """
@@ -672,44 +792,19 @@ class MyWindow(QtWidgets.QMainWindow):
         self.logger.debug("Clear histogram")
         self.ui.graph_Widget.plotItem.clear()
 
-    def on_Mouse_Move(self, evt):
+    def on_Clear_Intervals(self):
         """
-        Move the crosshair that follows the mouse to the mouse position.
-        """
-
-        # Get coords of cursor
-        view_Box = self.ui.graph_Widget.plotItem.vb
-        coords = view_Box.mapSceneToView(evt[0])
-
-        # Plot h and v lines at cursor position
-        self.cursor_Marker.coords = (coords.x(), coords.y())
-
-        # Update GUI cursor co-ordinates
-        self.ui.current_X.setText(f"{coords.x():3E}")
-        self.ui.current_Y.setText(f"{coords.y():.0f}")
-
-    def on_Graph_Click(self, evt):
-        """
-        Clicks on the graph now depend on what the state of the
-        self.ui.cursors_Tabber UI object. If it's set for deltas, clicking puts
-        down one of two cursors and the X and Y different are written to text
-        boxes.
-        If it's set for integrals, pairs of cursors are placed (up to 4) and
-        the bin values between them are summed (live).
+        Clear the interval cursors from the plot.
+        Update the display
         """
 
-        # Get the xy coordinates of the click.
-        view_Box = self.ui.graph_Widget.plotItem.vb
-        coords = view_Box.mapSceneToView(evt.scenePos())
+        # So the first interval displayed after clikcing this is the first
+        # one in the list
+        self.click_Number = 0
 
-        if self.deltas_On:
-            self.on_Click_Deltas(coords)
-
-        elif self.integrals_On:
-            self.on_Click_Integrals(coords)
-        else:
-            # Something's gone wrong if this happens.
-            pass
+        # Move all the interval lines to zero. (i.e. hide them)
+        for cursor in self.integral_Cursors:
+            cursor.Reset_Remove()
 
     def on_Click_Deltas(self, coords):
         """
@@ -719,8 +814,8 @@ class MyWindow(QtWidgets.QMainWindow):
 
         self.logger.debug(f"Click number {self.click_Number} at {coords}")
         # Move the lines to the click coordinates.
-        self.delta_Lines[self.click_Number][1].setPos(coords.x())
-        self.delta_Lines[self.click_Number][0].setPos(coords.y())
+        self.delta_Cursors[self.click_Number].coords = (coords.x(), coords.y())
+
         # Update the UI values.
         self.click_TextBoxes[self.click_Number][0].setText(f"{coords.x():3E}")
         self.click_TextBoxes[self.click_Number][1].setText(f"{coords.y():3E}")
@@ -746,22 +841,6 @@ class MyWindow(QtWidgets.QMainWindow):
         # Advance click number through values 0, 1, 2, 3 repeating.
         self.click_Number = (self.click_Number + 1) % 4
 
-    def on_Cursor_Button(self):
-        """
-        Toggle the live cursor on/off
-        """
-        self.cursors_On = self.ui.option_Cursor.isChecked()
-        self.pharppy_Config.sw_Settings.show_Cursor = str(self.cursors_On)
-
-        if self.cursors_On:
-            # Redraw the cursor
-            self.logger.info("Turn cursor on")
-            self.Draw_Cursors()
-        else:
-            # Remove the cursor
-            self.logger.info("Turn cursor off")
-            self.Remove_Cursors()
-
     def on_Deltas_Button(self):
         """
         Toggle the (display) of the cursors that appear on mouse clicks for
@@ -786,124 +865,52 @@ class MyWindow(QtWidgets.QMainWindow):
             self.logger.info("Turn deltas off")
             self.Remove_Deltas()
 
-    def on_Bars_Button(self):
+    def on_Graph_Click(self, evt):
         """
-        Toggle display of bars in integral mode showing max/mean values
-        inside the interval.
-        """
-
-        self.bars_On = self.ui.option_ShowBars.isChecked()
-        self.pharppy_Config.sw_Settings.show_Bars = str(self.bars_On)
-
-    def on_Clear_Deltas(self):
-        """
-        Get rid of the current displayed deltas cursors without turning off
-        the deltas, also resets.
-        """
-        self.logger.info("Clear deltas")
-
-        # Put all the lines to zero (hide them)
-        for line in itertools.chain.from_iterable(self.delta_Lines):
-            line.setPos(0)
-
-        # Fill GUI with zeros.
-        self.ui.click_1_X.setText(f"{0}")
-        self.ui.click_1_Y.setText(f"{0}")
-        self.ui.click_2_X.setText(f"{0}")
-        self.ui.click_2_Y.setText(f"{0}")
-        self.ui.delta_X.setText(f"{0}")
-        self.ui.delta_Y.setText(f"{0}")
-
-        # Reset so the first click after this is the first delta
-        self.click_Number = 0
-        self.last_Click = QtCore.QPoint(0, 0)
-
-    def on_Clear_Intervals(self):
-        """
-        Clear the interval cursors from the plot.
-        Update the display
+        Clicks on the graph now depend on what the state of the
+        self.ui.cursors_Tabber UI object. If it's set for deltas, clicking puts
+        down one of two cursors and the X and Y different are written to text
+        boxes.
+        If it's set for integrals, pairs of cursors are placed (up to 4) and
+        the bin values between them are summed (live).
         """
 
-        # So the first interval displayed after clikcing this is the first
-        # one in the list
-        self.click_Number = 0
+        # Get the xy coordinates of the click.
+        view_Box = self.ui.graph_Widget.plotItem.vb
+        coords = view_Box.mapSceneToView(evt.scenePos())
 
-        # Move all the interval lines to zero. (i.e. hide them)
-        for cursor in self.integral_Cursors:
-            cursor.Reset_Remove()
+        if self.deltas_On:
+            self.on_Click_Deltas(coords)
 
-    def on_Normalize_Click(self, checked):
+        elif self.integrals_On:
+            self.on_Click_Integrals(coords)
+        else:
+            # Something's gone wrong if this happens.
+            pass
+
+    def on_Mouse_Move(self, evt):
         """
-        When a normalize radio button is clicked. Update a variable keeping
-        track of which one is clicked.
-        Note that the signal is emitted when a radio button changes state, so
-        this triggers twice on any click, once for a deactivate and once for
-        an activate. Hence this only runs for the checked radio box. (not that
-        it would do any harm but it's neater this way)
-        """
-
-        # Check the event was from a "checked" event not an "unchecked" event
-        if checked:
-            for i, radio in enumerate(self.normalize_Buttons):
-                # Go through all the buttons looking for the checked one.
-                if radio.isChecked():
-                    self.logger.debug(f"Normalize button {i} is pressed")
-                    # Remember which button it was that was checked.
-                    self.normalize_This = i
-
-    def on_Save_Settings(self):
-        """
-        Save the most recent settings that were pushed to the hardware to an
-        ini file with a name specified by the GUI element settings_SaveName
+        Move the crosshair that follows the mouse to the mouse position.
         """
 
-        filename = self.ui.settings_SaveName.text()
-        # Enforce the file type
-        if not filename.endswith(".ini"):
-            filename += ".ini"
-        # rescan the folder for existing files before enforcing that the
-        # filename can't clash with an existing one.
-        self.detected_inis = [x for x in os.listdir() if x.endswith(".ini")]
-        # prevent accidental overwriting of previous ini files
-        if filename in self.detected_inis:
-            self.logger.error("Log file name exists")
-            raise ValueError
-        self.logger.info(f"Saving latest applied settings to {filename}")
+        # Get coords of cursor
+        view_Box = self.ui.graph_Widget.plotItem.vb
+        coords = view_Box.mapSceneToView(evt[0])
 
-        self.pharppy_Config.Save_To_File(filename)
+        # Plot h and v lines at cursor position
+        self.cursor_Marker.coords = (coords.x(), coords.y())
 
-        # Update the list of existing ini files now there's another one. Could
-        # save a call to os.listdir here since it was performed above but it's
-        # not really a problem and there's more certainty doing it like this.
-        self.ui.existing_inis.clear()
-        self.detected_inis = [x for x in os.listdir() if x.endswith(".ini")]
-        for ini in self.detected_inis:
-            self.ui.existing_inis.addItem(ini)
+        # Update GUI cursor co-ordinates
+        self.ui.current_X.setText(f"{coords.x():3E}")
+        self.ui.current_Y.setText(f"{coords.y():.0f}")
 
-    def on_Load_Settings(self):
-        """
-        Load an ini file that's in the parent folder of this application.
-        The program auto scans for .ini files and adds them to a dropdown
-        """
+        # Hack. For some reason the cursor moving removes any bars that the
+        # cursor overlaps. This way at least they're only missing for
+        if self.bars_On:
+            for cursor in self.integral_Cursors:
+                cursor.Remove_Bars()
+                cursor.Add_Bars()
 
-        # Filename specified by selecting from the dropdown in the GUI
-        filename = self.ui.existing_inis.currentText()
-        self.logger.info(f"Loading settings file from {filename}")
-
-        # Load the config, update the GUI and then push the settings displayed
-        # in the GUI to the hardware (this ensures the GUI and the hardware
-        # match, in case there's some weird error updating the GUI)
-        self.pharppy_Config.Load_From_File(filename)
-        self.logger.debug(f"New config {self.pharppy_Config}")
-        self.Update_Settings_GUI(self.pharppy_Config)
-        self.Push_Settings_To_HW()
-
-        # Might as well re-scan again to make sure the dropdown is most up to
-        # date. (in case the user has deleted any ini files)
-        self.ui.existing_inis.clear()
-        self.detected_inis = [x for x in os.listdir() if x.endswith(".ini")]
-        for ini in self.detected_inis:
-            self.ui.existing_inis.addItem(ini)
 
 app = QtWidgets.QApplication([])
 
