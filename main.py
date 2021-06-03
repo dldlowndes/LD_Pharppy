@@ -707,16 +707,21 @@ class MyWindow(QtWidgets.QMainWindow):
 
     def Display_Integrals(self):
         """
-        Go through the coordinates of the integral cursors, summing the bins
-        between the bottom and top values. Display the sum in the relevant
-        text box.
+        Send the histogram data to the cursors objects, which know where to
+        look for the data between their markers.
+        Integral cursor objects calculate and return the mean, max and fwhm 
+        of the data between the markers.
+        Then Update the GUI as well (including optional normalizing)
         """
 
+        # Send the histogram data to each cursor so it can extract the relevant
+        # data, update the bars and returns the mean, max and fwhm values.
         integrals_Readings = [
             cursor.Update_Stats(self.this_Data, self.bars_On)
             for cursor in self.integral_Cursors
             ]
 
+        # A big iterable so let's define it separate to the for loop
         iterable = zip(
             integrals_Readings,
             self.mean_TextBoxes,
@@ -724,13 +729,16 @@ class MyWindow(QtWidgets.QMainWindow):
             self.fwhm_TextBoxes
             )
 
+        # Update the GUI
         for ((this_Mean, this_Max, this_FWHM),
              mean_Box, max_Box, fwhm_Box) in iterable:
 
+            # Check if normalization is turned on, and if so for which channel
             if self.normalize_This < len(self.normalize_Buttons) - 1:
                 mean_Factor = integrals_Readings[self.normalize_This][0]
                 max_Factor = integrals_Readings[self.normalize_This][1]
 
+                # Check for invalid normalization factors
                 if mean_Factor > 0:
                     this_Mean /= mean_Factor
                 else:
@@ -740,6 +748,7 @@ class MyWindow(QtWidgets.QMainWindow):
                 else:
                     this_Max = np.inf
 
+            # Finally, update the GUI
             mean_Box.setText(f"{this_Mean:.3E}")
             max_Box.setText(f"{this_Max:.3E}")
             fwhm_Box.setText(f"{this_FWHM:.3E}")
@@ -764,7 +773,7 @@ class MyWindow(QtWidgets.QMainWindow):
     def on_Clear_Deltas(self):
         """
         Get rid of the current displayed deltas cursors without turning off
-        the deltas, also resets.
+        the deltas mode, also resets click number.
         """
         self.logger.info("Clear deltas")
 
@@ -795,7 +804,6 @@ class MyWindow(QtWidgets.QMainWindow):
     def on_Clear_Intervals(self):
         """
         Clear the interval cursors from the plot.
-        Update the display
         """
 
         # So the first interval displayed after clikcing this is the first
@@ -911,11 +919,11 @@ class MyWindow(QtWidgets.QMainWindow):
                 cursor.Remove_Bars()
                 cursor.Add_Bars()
 
-
-app = QtWidgets.QApplication([])
-
-application = MyWindow()
-
-application.show()
-
-sys.exit(app.exec())
+if __name__ == "__main__":
+    app = QtWidgets.QApplication([])
+    
+    application = MyWindow()
+    
+    application.show()
+    
+    sys.exit(app.exec())
