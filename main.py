@@ -889,7 +889,6 @@ class MyWindow(QtWidgets.QMainWindow):
 
         if self.deltas_On:
             self.on_Click_Deltas(coords)
-
         elif self.integrals_On:
             self.on_Click_Integrals(coords)
         else:
@@ -914,7 +913,7 @@ class MyWindow(QtWidgets.QMainWindow):
 
         # Hack. For some reason the cursor moving removes any bars that the
         # cursor overlaps. This way at least they're only missing for
-        if self.bars_On:
+        if self.bars_On and self.integrals_On:
             for cursor in self.integral_Cursors:
                 cursor.Remove_Bars()
                 cursor.Add_Bars()
