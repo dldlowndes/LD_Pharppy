@@ -15,13 +15,13 @@ TODO list:
     - Type checking in config setters so they take either str or relevant type
     - use the X data to limit the plot axis when there's no data (otherwise
     cursor clicks with no data cause an exception)
-    - Make a minimal conda yml or requirements.txt file
+    - Make a MINIMAL conda yml or requirements.txt file
+    - Counts mode tab showing counts in BIG.
+    - Counts mode line graph of channel counts (two y axes)
+    - Auto stop and restart hardware to send settings during running
   Med:
     - Curve fitting (choose function - not just gaussian).
     - BUG: Integral bars only show when x=0 is visible on axis! (what.)
-    - Keep track of whether the settings GUI values have been modified since
-    the last time settings were applied (and grey out the save button if they
-    have)
   Hard
     - Add dynamic number of delta/integration cursors instead of 2/4
     respectively
