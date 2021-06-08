@@ -12,9 +12,10 @@ TODO list:
     - Give option to specify DLL path on FileNotFoundError when starting
     - Read and print DLL warnings (counts too high etc)
     - Add default mode and cumulative mode to ini config.
-    - Type checking in config setters so they take either str or relevant  type
+    - Type checking in config setters so they take either str or relevant type
     - use the X data to limit the plot axis when there's no data (otherwise
     cursor clicks with no data cause an exception)
+    - Make a minimal conda yml or requirements.txt file
   Med:
     - Curve fitting (choose function - not just gaussian).
     - BUG: Integral bars only show when x=0 is visible on axis! (what.)
@@ -38,7 +39,6 @@ TODO list:
 # Quiet f strings in log messages
 # pylint: disable=W1203
 
-import itertools
 import logging
 import os
 import sys
@@ -46,6 +46,7 @@ import sys
 import numpy as np
 from PyQt5 import QtWidgets, QtCore, QtGui
 import pyqtgraph
+import qdarkstyle
 
 import acq_Thread
 import graph_Markers
@@ -78,9 +79,6 @@ class MyWindow(QtWidgets.QMainWindow):
         # Number of DPs to round counts data to.
         self.count_Precision = 3
 
-        # Dict to lookup the angles for H and V oriented lines on the plot.
-        self.orientations = {"h": 0, "v": 90}
-
         # Colours to choose from and the order they are chosen
         self.palette = (
             QtGui.QColor(255, 0, 0),  # red
@@ -88,14 +86,9 @@ class MyWindow(QtWidgets.QMainWindow):
             QtGui.QColor(0, 0, 255),  # blue
             QtGui.QColor(255, 0, 255) # magenta
             )
-        # Take the palette and make a copy with transparancy (alpha=64 seems
-        # good?)
-        self.palette_Alpha = [
-            QtGui.QColor(*col.getRgb()[:3], 64) for col in self.palette]
-
+        
         # Define hardware info members, then init them (and the hardware)
         self.my_Pharp = None
-        self.base_Resolution = None
         self.allowed_Resolutions = None
         self.this_Data = np.zeros(65536)
         self.last_Histogram = np.zeros(65536)
@@ -106,10 +99,6 @@ class MyWindow(QtWidgets.QMainWindow):
         self.Init_Hardware()
 
         # Members involved with UI, then init them (and the UI)
-        self.integral_Coords = np.zeros((4, 2), dtype=int)
-        self.integral_Means = np.zeros(4)
-        self.integral_Maxes = np.zeros(4)
-        self.integral_SDs = np.zeros(4)
         self.mean_TextBoxes = ()
         self.max_TextBoxes = ()
         self.fwhm_TextBoxes = ()
@@ -179,9 +168,8 @@ class MyWindow(QtWidgets.QMainWindow):
         # The resolutions are all 2**n multiples of the base resolution so
         # get the base resolution from the device and work out all of the
         # resolutions to display in the dropdown box.
-        self.base_Resolution = self.my_Pharp.base_Resolution
         self.allowed_Resolutions = [
-            self.base_Resolution * (2**n) for n in range(8)
+            self.my_Pharp.base_Resolution * (2**n) for n in range(8)
             ]
 
         # Make the worker thread.
@@ -199,7 +187,7 @@ class MyWindow(QtWidgets.QMainWindow):
         # Picoharp time resolution is a specific set of values.
         for res in self.allowed_Resolutions:
             self.ui.resolution.addItem(f"{res}")
-        self.ui.resolution.setCurrentText("self.base_Resolution")
+        self.ui.resolution.setCurrentText("self.my_Pharp.base_Resolution")
 
         self.ui.data_Filename.setText("save_filename.csv")
         self.ui.status.setText("Counting")
@@ -353,7 +341,7 @@ class MyWindow(QtWidgets.QMainWindow):
             # Translate desired resolution to a "binning" number. Binning
             # combines histogram bins to reduce the histogram resolution.
             resolution_Req = self.ui.resolution.currentText()
-            binning = np.log2(float(resolution_Req) / self.base_Resolution)
+            binning = np.log2(float(resolution_Req) / self.my_Pharp.base_Resolution)
 
             hw_Settings = self.pharppy_Config.hw_Settings
             hw_Settings.binning = int(binning)
@@ -406,7 +394,7 @@ class MyWindow(QtWidgets.QMainWindow):
         sw_Settings = self.pharppy_Config.sw_Settings
 
         binning = hw_Settings.binning
-        resolution = self.base_Resolution * (2 ** binning)
+        resolution = self.my_Pharp.base_Resolution * (2 ** binning)
 
         self.logger.info("Update GUI elements")
         self.ui.resolution.setCurrentText(f"{resolution}")
@@ -709,7 +697,7 @@ class MyWindow(QtWidgets.QMainWindow):
         """
         Send the histogram data to the cursors objects, which know where to
         look for the data between their markers.
-        Integral cursor objects calculate and return the mean, max and fwhm 
+        Integral cursor objects calculate and return the mean, max and fwhm
         of the data between the markers.
         Then Update the GUI as well (including optional normalizing)
         """
@@ -920,9 +908,10 @@ class MyWindow(QtWidgets.QMainWindow):
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication([])
-    
+    app.setStyleSheet(qdarkstyle.load_stylesheet(qt_api='pyqt5'))
+
     application = MyWindow()
-    
+
     application.show()
-    
+
     sys.exit(app.exec())
