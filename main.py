@@ -39,6 +39,8 @@ TODO list:
 # Quiet f strings in log messages
 # pylint: disable=W1203
 
+import collections
+import itertools
 import logging
 import os
 import sys
@@ -108,6 +110,9 @@ class MyWindow(QtWidgets.QMainWindow):
         self.deltas_On = None
         self.integrals_On = None
         self.bars_On = None
+        self.count_Mode = False
+        self.n_Counts = 0
+        self.count_History = collections.deque(maxlen=100000)
         self.detected_inis = []
         self.Init_UI()
         # Init_UI has set up the normalize buttons, the last one is checked by
@@ -203,6 +208,9 @@ class MyWindow(QtWidgets.QMainWindow):
         self.detected_inis = [x for x in os.listdir() if x.endswith(".ini")]
         for ini in self.detected_inis:
             self.ui.existing_inis.addItem(ini)
+            
+        self.ui.counts_Ch0_Big.setStyleSheet("color: red")
+        self.ui.counts_Ch1_Big.setStyleSheet("color: green")
 
         # Connect UI elements to functions
         self.ui.button_ApplySettings.clicked.connect(self.Push_Settings_To_HW)
@@ -500,9 +508,65 @@ class MyWindow(QtWidgets.QMainWindow):
         Handle the counts when the hardware thread emits them
         """
 
+        # Write to the small text boxes on the GUI whatever the settings are
         self.ui.counts_Ch0.setText(f"{ch0:.{self.count_Precision}E}")
         self.ui.counts_Ch1.setText(f"{ch1:.{self.count_Precision}E}")
-
+        
+        # Remember the counts in case they want to be plotted later.
+        self.count_History.append([ch0, ch1])
+        self.n_Counts += 1
+        
+        if self.count_Mode:
+            """
+            Count mode is a dedicated display tab that shows the counts in 
+            much bigger font (for visibility for example when aligning optics),
+            a line graph is also shown on the graph pane (instead of the TCSPC
+            histogram) colour coded to the colours of the displayed counts.
+            """
+            
+            # Set the format of the values put in the UI, either integers with
+            # thousands separated by commas, or as scientific numbers with 
+            # adjustable precision.
+            fmt = ","
+            if self.ui.option_SciCounts.isChecked():
+                fmt = f".{self.ui.value_CountPrecision.value()}E"
+            self.ui.counts_Ch0_Big.setText(f"{ch0:{fmt}}")
+            self.ui.counts_Ch1_Big.setText(f"{ch1:{fmt}}")
+            
+            # How many counts to show on the graph before the oldest ones start
+            # to be dropped. The counts are stored in a massive deque so
+            # extending the display after shrinking it brings back the old 
+            # values.
+            n_Counts_Display = self.ui.value_NumGraphCounts.value()
+            # If the deque contains less than n_Counts_Display counts, set the
+            # first value to the 0th element, otherwise it's the 
+            # n_Counts_Display'th to last element.
+            start_i = max(0, len(self.count_History) - n_Counts_Display) # 0 or +ve value
+            # Get just the data for plotting from the deque.
+            display_Counts = itertools.islice(self.count_History,
+                                              start_i,
+                                              None)
+            # Split into channels to plot separately
+            ch0, ch1 = zip(*display_Counts)
+            
+            # Make the x labels correspond to the number of count signals
+            # received. (because why not)
+            x_Data = range(self.n_Counts - len(ch0), self.n_Counts)
+            # Plot the data
+            self.ui.graph_Widget.plot(x_Data,
+                                      ch0,
+                                      pen=QtGui.QColor(255, 0, 0))
+            self.ui.graph_Widget.plot(x_Data,
+                                      ch1,
+                                      pen=QtGui.QColor(0, 255, 0))  
+            # Auto scale to the visible values.
+            self.ui.graph_Widget.plotItem.vb.setLimits(
+                xMin=x_Data[0]-0.1,
+                yMin=0,
+                xMax=x_Data[-1]+0.1,
+                yMax=max(max(ch0), max(ch1))
+                )
+        
     def on_Histo_Signal(self, histogram_Data):
         """
         Handle the hsitogram when the hardware thread emits one.
@@ -582,12 +646,22 @@ class MyWindow(QtWidgets.QMainWindow):
         if tab_Number == 0:
             self.deltas_On = self.pharppy_Config.sw_Settings.show_Deltas
             self.integrals_On = False
-
+            self.count_Mode = False
+            # enable xy cursor if the GUI element wants them
+            self.on_Cursor_Button()
         # Tab 1 is integrals mode
         elif tab_Number == 1:
             self.deltas_On = False
             self.integrals_On = True
-        # Something's gone very awry. There are only tabs 0 and 1...
+            self.count_Mode = False
+            # enable xy cursor if the GUI element wants them
+            self.on_Cursor_Button()
+        elif tab_Number == 2:
+            self.deltas_On = False
+            self.integrals_On = False
+            self.count_Mode = True
+            self.cursors_On = False
+        # Something's gone very awry.
         else:
             pass
 
@@ -909,6 +983,7 @@ class MyWindow(QtWidgets.QMainWindow):
 if __name__ == "__main__":
     app = QtWidgets.QApplication([])
     app.setStyleSheet(qdarkstyle.load_stylesheet(qt_api='pyqt5'))
+    #app.setFont(QtGui.QFont("MS Shell Dlg", 12))
 
     application = MyWindow()
 
