@@ -564,7 +564,7 @@ class MyWindow(QtWidgets.QMainWindow):
                 xMin=x_Data[0]-0.1,
                 yMin=0,
                 xMax=x_Data[-1]+0.1,
-                yMax=max(max(ch0), max(ch1))
+                yMax=1.1*max(max(ch0), max(ch1))
                 )
         
     def on_Histo_Signal(self, histogram_Data):
