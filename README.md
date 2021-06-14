@@ -5,7 +5,8 @@ Basically this was born from from a confluence of necessity and an adventure int
 
 Comments/questions/etc welcome, email me at david@lownd.es
 
-# Setup
+# Setup (Linux)
+
 ## udev
 Add a udev rule for the Picoharp: ACTION=="add", SUBSYSTEM=="usb", ATTRS{idVendor}=="0e0d", ATTRS{idProduct}=="0003", MODE="0666"
 ## Libraries
@@ -18,20 +19,10 @@ Using your favourite technique (pip, anaconda etc), install:
 - numpy
 
 # Running
-- (Linux) Run ./run_Pharpy and after a bit of setup, the gui will appear.
-- (Windows) todo. For now run "python3 main.py".
+- (Linux) Run ./run_Pharppy and after a bit of setup, the gui will appear.
+- (Windows) Click/run "run_Pharppy.bat"
 - Initially the histogramming is off and the count rates of the two channels is displayed.
 - Set the input parameters etc and press start/stop to start the histogramming
 - Histogram will appear, the plot can be dragged around and variously controlled in the right click menu.
 - Last histogram acquired will persist in the graph when start/stop is pressed.
 - Last histogram can be saved to file for offline analysis.
-
-# TODOs
-- Batch file to launch in Windows for those uncomfortable with the terminal.
-- Estimate FWHM
-- Optional curve fitting to the histogram
-- General QOL upgrades to the GUI, proper scaling of the window etc (at the moment I think it only works on 1920x1080 screens)
-- Add support for cumulative histograms (disable ClearHistMem on Picoharp or do it in software?)
-- Disable right click functionality in plot and replicate desired features in the GUI. (repurpose right click for the deltas?)
-- Grey out boxes when they shouldn't be clicked.
-- Detect multiple Picoharps and prompt for choice of which one to connect to. Will this allow for multiple instances of this program to run?
