@@ -16,15 +16,16 @@ TODO list:
     - use the X data to limit the plot axis when there's no data (otherwise
     cursor clicks with no data cause an exception)
     - Make a MINIMAL conda yml or requirements.txt file
-    - Counts mode tab showing counts in BIG.
-    - Counts mode line graph of channel counts (two y axes)
-    - Auto stop and restart hardware to send settings during running
-  Med:
+    - Add a new state, "histo_Paused" for when histo should be stopped for some
+    reason that isn't that the user pressed stop. Usually this means that when
+    whatever caused the pause has stopped, the histoing will start again.
+    Med:
     - Curve fitting (choose function - not just gaussian).
     - BUG: Integral bars only show when x=0 is visible on axis! (what.)
   Hard
     - Add dynamic number of delta/integration cursors instead of 2/4
     respectively
+    - Two y axes for counts mode (hard in pyqtplot)
     - Investigate getting this to work with other hardware...
     - py2exe or something for distribution
 """
@@ -340,42 +341,45 @@ class MyWindow(QtWidgets.QMainWindow):
         Get the settings from the UI and tell the picoharp to update them.
         """
 
-        # Hardware complains if you push settings while histogram is running,
-        # it might lead to it ending up in an undefined state so just forbid
-        # sending settings while the histogram is running
-        if self.acq_Thread.histogram_Active:
-            self.logger.warning("Histogram running, settings not pushed")
-        else:
-            # Translate desired resolution to a "binning" number. Binning
-            # combines histogram bins to reduce the histogram resolution.
-            resolution_Req = self.ui.resolution.currentText()
-            binning = np.log2(float(resolution_Req) / self.my_Pharp.base_Resolution)
+        # To ensure avoiding trying to send settings while the hardware is
+        # sending data, ask the hardware to pause briefly (not stop) then
+        # un pause when settings send is finished. Pause/unpause insted of
+        # start/stop preserves the started/stopped state when settings are
+        # sent.
+        self.acq_Thread.histogram_Paused = True
+        
+        # Translate desired resolution to a "binning" number. Binning
+        # combines histogram bins to reduce the histogram resolution.
+        resolution_Req = self.ui.resolution.currentText()
+        binning = np.log2(float(resolution_Req) / self.my_Pharp.base_Resolution)
 
-            hw_Settings = self.pharppy_Config.hw_Settings
-            hw_Settings.binning = int(binning)
-            hw_Settings.sync_Offset = int(self.ui.sync_Offset.value())
-            hw_Settings.sync_Divider = int(self.ui.sync_Divider.currentText())
-            hw_Settings.CFD0_ZeroCrossing = int(self.ui.CFD0_Zerocross.value())
-            hw_Settings.CFD0_Level = int(self.ui.CFD0_Level.value())
-            hw_Settings.CFD1_ZeroCrossing = int(self.ui.CFD1_Zerocross.value())
-            hw_Settings.CFD1_Level = int(self.ui.CFD1_Level.value())
-            hw_Settings.acq_Time = int(self.ui.acq_Time.value())
+        hw_Settings = self.pharppy_Config.hw_Settings
+        hw_Settings.binning = int(binning)
+        hw_Settings.sync_Offset = int(self.ui.sync_Offset.value())
+        hw_Settings.sync_Divider = int(self.ui.sync_Divider.currentText())
+        hw_Settings.CFD0_ZeroCrossing = int(self.ui.CFD0_Zerocross.value())
+        hw_Settings.CFD0_Level = int(self.ui.CFD0_Level.value())
+        hw_Settings.CFD1_ZeroCrossing = int(self.ui.CFD1_Zerocross.value())
+        hw_Settings.CFD1_Level = int(self.ui.CFD1_Level.value())
+        hw_Settings.acq_Time = int(self.ui.acq_Time.value())
 
-            self.logger.info(f"Push settings\n {hw_Settings}")
-            self.my_Pharp.Update_Settings(hw_Settings)
+        self.logger.info(f"Push settings\n {hw_Settings}")
+        self.my_Pharp.Update_Settings(hw_Settings)
 
-            # If binning (resolution) changes, the histogram x axis labels
-            # change. Update this. The max number of bins is 65536, this will
-            # be trimmed in the plotting function.
-            self.x_Data = np.arange(0,
-                                    65536 * self.my_Pharp.resolution,
-                                    self.my_Pharp.resolution
-                                    ) * 1e-12
+        # If binning (resolution) changes, the histogram x axis labels
+        # change. Update this. The max number of bins is 65536, this will
+        # be trimmed in the plotting function.
+        self.x_Data = np.arange(0,
+                                65536 * self.my_Pharp.resolution,
+                                self.my_Pharp.resolution
+                                ) * 1e-12
 
-            # Let the cursors know the resolution has been updated (since the
-            # data->bin mapping depends on resolution)
-            for cursor in self.integral_Cursors:
-                cursor.resolution = self.my_Pharp.resolution * 1e-12
+        # Let the cursors know the resolution has been updated (since the
+        # data->bin mapping depends on resolution)
+        for cursor in self.integral_Cursors:
+            cursor.resolution = self.my_Pharp.resolution * 1e-12
+
+        self.acq_Thread.histogram_Paused = False
 
     def Apply_Default_Settings(self):
         """
@@ -486,23 +490,29 @@ class MyWindow(QtWidgets.QMainWindow):
             self.no_Data = False
 
         if self.acq_Thread.histogram_Active:
-            self.logger.info("Stop histogramming")
-            self.ui.status.setText("Counting")
-            self.acq_Thread.histogram_Active = False
-            self.ui.button_ApplySettings.setEnabled(True)
-            self.ui.button_Defaults.setEnabled(True)
-            self.ui.button_LoadSettings.setEnabled(True)
-            self.ui.button_SaveSettings.setEnabled(True)
+            self.start_Hist_Mode()
         else:
-            self.logger.info("Start histogramming")
-            self.on_Clear_Histogram()
-            self.ui.status.setText("Histogramming")
-            self.acq_Thread.histogram_Active = True
-            self.ui.button_ApplySettings.setEnabled(False)
-            self.ui.button_Defaults.setEnabled(False)
-            self.ui.button_LoadSettings.setEnabled(False)
-            self.ui.button_SaveSettings.setEnabled(False)
+            self.stop_Hist_Mode()
 
+    def start_Hist_Mode(self):
+        self.logger.info("Stop histogramming")
+        self.ui.status.setText("Counting")
+        self.acq_Thread.histogram_Active = False
+        # self.ui.button_ApplySettings.setEnabled(True)
+        # self.ui.button_Defaults.setEnabled(True)
+        # self.ui.button_LoadSettings.setEnabled(True)
+        # self.ui.button_SaveSettings.setEnabled(True)
+        
+    def stop_Hist_Mode(self):
+        self.logger.info("Start histogramming")
+        self.on_Clear_Histogram()
+        self.ui.status.setText("Histogramming")
+        self.acq_Thread.histogram_Active = True
+        # self.ui.button_ApplySettings.setEnabled(False)
+        # self.ui.button_Defaults.setEnabled(False)
+        # self.ui.button_LoadSettings.setEnabled(False)
+        # self.ui.button_SaveSettings.setEnabled(False)
+        
     def on_Count_Signal(self, ch0, ch1):
         """
         Handle the counts when the hardware thread emits them
@@ -548,17 +558,25 @@ class MyWindow(QtWidgets.QMainWindow):
                                               None)
             # Split into channels to plot separately
             ch0, ch1 = zip(*display_Counts)
+            ch0 = np.array(ch0, dtype=np.int32)
+            ch1 = np.array(ch1, dtype=np.int32)
             
             # Make the x labels correspond to the number of count signals
             # received. (because why not)
             x_Data = range(self.n_Counts - len(ch0), self.n_Counts)
             # Plot the data
-            self.ui.graph_Widget.plot(x_Data,
-                                      ch0,
-                                      pen=QtGui.QColor(255, 0, 0))
-            self.ui.graph_Widget.plot(x_Data,
-                                      ch1,
-                                      pen=QtGui.QColor(0, 255, 0))  
+            red = QtGui.QColor(255, 0, 0)
+            green = QtGui.QColor(0, 255, 0)
+            
+            if self.ui.option_LogY.isChecked():
+                ch0 = np.log10(ch0, where=ch0>0)
+                ch1 = np.log10(ch1, where=ch1>0)
+            
+            if self.ui.option_Ch0_Counts.isChecked():
+                self.ui.graph_Widget.plot(x_Data, ch0, pen=red)
+            if self.ui.option_Ch1_Counts.isChecked():
+                self.ui.graph_Widget.plot(x_Data, ch1, pen=green)
+                
             # Auto scale to the visible values.
             self.ui.graph_Widget.plotItem.vb.setLimits(
                 xMin=x_Data[0]-0.1,
@@ -576,6 +594,9 @@ class MyWindow(QtWidgets.QMainWindow):
             self.this_Data += histogram_Data
         else:
             self.this_Data = histogram_Data
+            
+        if self.count_Mode:
+            return
 
         # There are 65536 bins, but if (1/sync) is less than (65536*resolution)
         # then there will just be empty bins at the end of the histogram array.
@@ -585,8 +606,15 @@ class MyWindow(QtWidgets.QMainWindow):
 
         # Trim the histogram and labels so the empty bins (that will never
         # fill) are not plotted. Then plot them.
-        self.ui.graph_Widget.plot(self.x_Data[:last_Full_Bin],
-                                  self.this_Data[:last_Full_Bin],
+        plot_X = self.x_Data[:last_Full_Bin]
+        plot_Y = self.this_Data[:last_Full_Bin]
+        # pyqtgraph log mode seems weird, just log the bin values instead if
+        # log scale is what's required...
+        if self.ui.option_LogY.isChecked():
+            plot_Y = np.log10(plot_Y, where=plot_Y>0)
+            
+        self.ui.graph_Widget.plot(plot_X,
+                                  plot_Y,
                                   clear=True)
         # Change the plot limits so that the auto scale doesn't go crazy with
         # the cursors (if they're on) (plus a little margin so the labels show)
@@ -647,6 +675,7 @@ class MyWindow(QtWidgets.QMainWindow):
             self.deltas_On = self.pharppy_Config.sw_Settings.show_Deltas
             self.integrals_On = False
             self.count_Mode = False
+            self.acq_Thread.histogram_Paused = False
             # enable xy cursor if the GUI element wants them
             self.on_Cursor_Button()
         # Tab 1 is integrals mode
@@ -654,12 +683,14 @@ class MyWindow(QtWidgets.QMainWindow):
             self.deltas_On = False
             self.integrals_On = True
             self.count_Mode = False
+            self.acq_Thread.histogram_Paused = False
             # enable xy cursor if the GUI element wants them
             self.on_Cursor_Button()
         elif tab_Number == 2:
             self.deltas_On = False
             self.integrals_On = False
             self.count_Mode = True
+            self.acq_Thread.histogram_Paused = True
             self.cursors_On = False
         # Something's gone very awry.
         else:

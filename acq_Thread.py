@@ -25,6 +25,7 @@ class Acq_Thread(QtCore.QThread):
         # Histogramming starts switched off so that the settings can be
         # changed.
         self.histogram_Active = False
+        self.histogram_Paused = False # temporarily stopped for some reason
         # The actual object
         self.my_Pharp = my_Pharp
 
@@ -35,7 +36,7 @@ class Acq_Thread(QtCore.QThread):
             ch0, ch1 = self.my_Pharp.Get_CountRate()
             self.count_Signal.emit(ch0, ch1)
 
-            if self.histogram_Active:
+            if self.histogram_Active and not self.histogram_Paused:
                 # If desired, get the histogram data from the device as well.
                 histo = self.my_Pharp.Get_A_Histogram()
                 self.plot_Signal.emit(np.array(histo, dtype=np.int))
