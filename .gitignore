@@ -16,3 +16,7 @@ data/*
 dir(*
 
 .pylint.d*
+
+build/*
+dist/*
+*.spec
