@@ -1,2 +1,2 @@
-conda activate quantum
+CALL conda activate quantum
 python main.py

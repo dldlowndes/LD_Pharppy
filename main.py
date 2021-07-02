@@ -16,10 +16,7 @@ TODO list:
     - use the X data to limit the plot axis when there's no data (otherwise
     cursor clicks with no data cause an exception)
     - Make a MINIMAL conda yml or requirements.txt file
-    - Add a new state, "histo_Paused" for when histo should be stopped for some
-    reason that isn't that the user pressed stop. Usually this means that when
-    whatever caused the pause has stopped, the histoing will start again.
-    Med:
+  Med:
     - Curve fitting (choose function - not just gaussian).
     - BUG: Integral bars only show when x=0 is visible on axis! (what.)
   Hard
@@ -572,11 +569,16 @@ class MyWindow(QtWidgets.QMainWindow):
                 ch0 = np.log10(ch0, where=ch0>0)
                 ch1 = np.log10(ch1, where=ch1>0)
             
+            # Clear the plot before replotting otherwise if the options are
+            # unchecked it just doesn't show new data (but still shows data
+            # from before the option was unchecked).
+            self.ui.graph_Widget.clear()
+            
             if self.ui.option_Ch0_Counts.isChecked():
                 self.ui.graph_Widget.plot(x_Data, ch0, pen=red)
             if self.ui.option_Ch1_Counts.isChecked():
                 self.ui.graph_Widget.plot(x_Data, ch1, pen=green)
-                
+        
             # Auto scale to the visible values.
             self.ui.graph_Widget.plotItem.vb.setLimits(
                 xMin=x_Data[0]-0.1,
