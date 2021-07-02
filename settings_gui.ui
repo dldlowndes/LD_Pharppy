@@ -1094,6 +1094,61 @@
                 <string>Number Format</string>
                </property>
                <layout class="QGridLayout" name="gridLayout_14">
+                <item row="2" column="0">
+                 <widget class="QLabel" name="label_15">
+                  <property name="minimumSize">
+                   <size>
+                    <width>60</width>
+                    <height>0</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>60</width>
+                    <height>16777215</height>
+                   </size>
+                  </property>
+                  <property name="text">
+                   <string>Precision</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="3" column="1">
+                 <widget class="QSpinBox" name="value_NumGraphCounts">
+                  <property name="maximum">
+                   <number>100000</number>
+                  </property>
+                  <property name="value">
+                   <number>100</number>
+                  </property>
+                 </widget>
+                </item>
+                <item row="3" column="0">
+                 <widget class="QLabel" name="label_16">
+                  <property name="text">
+                   <string>Graph points</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="1" column="1">
+                 <widget class="QCheckBox" name="option_SciCounts">
+                  <property name="minimumSize">
+                   <size>
+                    <width>75</width>
+                    <height>0</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>75</width>
+                    <height>16777215</height>
+                   </size>
+                  </property>
+                  <property name="text">
+                   <string>scientific</string>
+                  </property>
+                 </widget>
+                </item>
                 <item row="2" column="1">
                  <widget class="QSpinBox" name="value_CountPrecision">
                   <property name="minimumSize">
@@ -1116,58 +1171,10 @@
                   </property>
                  </widget>
                 </item>
-                <item row="2" column="0">
-                 <widget class="QLabel" name="label_15">
-                  <property name="minimumSize">
-                   <size>
-                    <width>60</width>
-                    <height>0</height>
-                   </size>
-                  </property>
-                  <property name="maximumSize">
-                   <size>
-                    <width>60</width>
-                    <height>16777215</height>
-                   </size>
-                  </property>
+                <item row="4" column="0" colspan="2">
+                 <widget class="QPushButton" name="button_CountsReset">
                   <property name="text">
-                   <string>Precision</string>
-                  </property>
-                 </widget>
-                </item>
-                <item row="3" column="0">
-                 <widget class="QLabel" name="label_16">
-                  <property name="text">
-                   <string>Graph points</string>
-                  </property>
-                 </widget>
-                </item>
-                <item row="3" column="1">
-                 <widget class="QSpinBox" name="value_NumGraphCounts">
-                  <property name="maximum">
-                   <number>100000</number>
-                  </property>
-                  <property name="value">
-                   <number>100</number>
-                  </property>
-                 </widget>
-                </item>
-                <item row="1" column="1">
-                 <widget class="QCheckBox" name="option_SciCounts">
-                  <property name="minimumSize">
-                   <size>
-                    <width>75</width>
-                    <height>0</height>
-                   </size>
-                  </property>
-                  <property name="maximumSize">
-                   <size>
-                    <width>75</width>
-                    <height>16777215</height>
-                   </size>
-                  </property>
-                  <property name="text">
-                   <string>scientific</string>
+                   <string>Reset History</string>
                   </property>
                  </widget>
                 </item>
@@ -2092,6 +2099,35 @@
           </widget>
          </item>
         </layout>
+       </widget>
+      </item>
+      <item>
+       <spacer name="verticalSpacer">
+        <property name="orientation">
+         <enum>Qt::Vertical</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>20</width>
+          <height>40</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+      <item>
+       <widget class="QLabel" name="label_17">
+        <property name="text">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;right&quot;&gt;Source code and some docs available at: &lt;br/&gt;&lt;a href=&quot;github.com/dldlowndes/LD_Pharppy&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#007af4;&quot;&gt;github.com/dldlowndes/LD_Pharppy&lt;/span&gt;&lt;/a&gt;&lt;br/&gt;Version 1.0&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
+        <property name="textFormat">
+         <enum>Qt::RichText</enum>
+        </property>
+        <property name="scaledContents">
+         <bool>false</bool>
+        </property>
+        <property name="wordWrap">
+         <bool>false</bool>
+        </property>
        </widget>
       </item>
      </layout>

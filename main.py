@@ -232,6 +232,7 @@ class MyWindow(QtWidgets.QMainWindow):
         self.ui.normalize_Blue.toggled.connect(self.on_Normalize_Click)
         self.ui.normalize_Magenta.toggled.connect(self.on_Normalize_Click)
         self.ui.normalize_Off.toggled.connect(self.on_Normalize_Click)
+        self.ui.button_CountsReset.clicked.connect(self.on_Counts_Reset)
 
         self.mean_TextBoxes = (
             self.ui.integral_Red,
@@ -285,13 +286,17 @@ class MyWindow(QtWidgets.QMainWindow):
         self.ui.graph_Widget.plotItem.showGrid(x=True, y=True)
         # self.ui.graph_Widget.plotItem.showButtons() #does this do anything?
 
+        # Dummy data that at least makes the axes look sensible...
+        self.ui.graph_Widget.plotItem.plot(self.x_Data,
+                                           np.ones_like(self.x_Data)
+                                           )
+
         # Fix the plot area before anything else starts, otherwise the auto
         # scaler goes crazy with the cursors.
         self.ui.graph_Widget.plotItem.vb.setLimits(xMin=0,
                                                    yMin=0,
-                                                   xMax=1,
-                                                   yMax=1)
-        self.ui.graph_Widget.plotItem.plot([0.5, 0.5])
+                                                   xMax=len(self.x_Data),
+                                                   yMax=10)
 
         # Connect mouse events to functions
         self.proxy = pyqtgraph.SignalProxy(
@@ -645,6 +650,10 @@ class MyWindow(QtWidgets.QMainWindow):
 ##############################################################################
 # GUI METHODS (NON GRAPHING)
 ##############################################################################
+
+    def on_Counts_Reset(self):
+        self.count_History.clear()
+        self.n_Counts = 0
 
     def on_Cursor_Button(self):
         """
