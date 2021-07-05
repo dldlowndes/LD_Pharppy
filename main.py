@@ -11,7 +11,6 @@ TODO list:
   Easy:
     - Give option to specify DLL path on FileNotFoundError when starting
     - Read and print DLL warnings (counts too high etc)
-    - Actually load defaults.ini by default (if it exists)
     - Type checking in config setters so they take either str or relevant type
     - use the X data to limit the plot axis when there's no data (otherwise
     cursor clicks with no data cause an exception)
