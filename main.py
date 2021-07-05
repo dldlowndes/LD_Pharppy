@@ -11,7 +11,7 @@ TODO list:
   Easy:
     - Give option to specify DLL path on FileNotFoundError when starting
     - Read and print DLL warnings (counts too high etc)
-    - Add default mode and cumulative mode to ini config.
+    - Actually load defaults.ini by default (if it exists)
     - Type checking in config setters so they take either str or relevant type
     - use the X data to limit the plot axis when there's no data (otherwise
     cursor clicks with no data cause an exception)
@@ -93,9 +93,19 @@ class MyWindow(QtWidgets.QMainWindow):
         self.this_Data = np.zeros(65536)
         self.last_Histogram = np.zeros(65536)
         self.x_Data = np.zeros(65536)
-        # default settings
+        
+        # LD_Pharp_Config inits with some sensible defaults
         self.pharppy_Config = LD_Pharp_Config.LD_Pharp_Config()
+        # Save those defaults to a defaults file
         self.pharppy_Config.Save_To_File("defaults.ini")
+        # See if there is an init.ini file to init the program with.
+        try:
+            # Remember this is initted with default values so if this fails
+            # it's not a super big deal, the values are still good.
+            self.pharppy_Config.Load_From_File("init.ini")
+        except KeyError:
+            # If there isn't one, make one.
+            self.pharppy_Config.Save_To_File("init.ini")
         self.Init_Hardware()
 
         # Members involved with UI, then init them (and the UI)
@@ -424,6 +434,8 @@ class MyWindow(QtWidgets.QMainWindow):
         self.ui.option_Deltas.setChecked(sw_Settings.show_Deltas)
         self.ui.option_ShowBars.setChecked(sw_Settings.show_Bars)
         self.ui.integral_Width.setText(f"{sw_Settings.integral_Width}")
+        self.ui.option_Cumulative.setChecked(sw_Settings.cumulative_Mode)
+        self.ui.option_LogY.setChecked(sw_Settings.log_Y)
 
     def on_Load_Settings(self):
         """
@@ -594,7 +606,7 @@ class MyWindow(QtWidgets.QMainWindow):
         
     def on_Histo_Signal(self, histogram_Data):
         """
-        Handle the hsitogram when the hardware thread emits one.
+        Handle the histogram when the hardware thread emits one.
         """
 
         if self.ui.option_Cumulative.isChecked():
@@ -625,12 +637,10 @@ class MyWindow(QtWidgets.QMainWindow):
                                   clear=True)
         # Change the plot limits so that the auto scale doesn't go crazy with
         # the cursors (if they're on) (plus a little margin so the labels show)
-        x_Limit = self.x_Data[last_Full_Bin] * 1.05
-        y_Limit = self.this_Data.max() * 1.05
         self.ui.graph_Widget.plotItem.vb.setLimits(xMin=0,
                                                    yMin=0,
-                                                   xMax=x_Limit,
-                                                   yMax=y_Limit)
+                                                   xMax=plot_X[-1] * 1.05,
+                                                   yMax=plot_Y.max() * 1.05)
 
         if self.no_Data:
             pass

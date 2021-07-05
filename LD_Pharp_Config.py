@@ -146,6 +146,8 @@ class Software_Settings():
         self._show_Deltas = True
         self._show_Bars = True
         self._integral_Width = 5e-9
+        self._cumulative_Mode = False
+        self._log_Y = False
 
     def to_Dict(self):
         """
@@ -154,7 +156,9 @@ class Software_Settings():
         config = {"Show Cursor": str(self.show_Cursor),
                   "Show Deltas": str(self.show_Deltas),
                   "Show Bars": str(self.show_Bars),
-                  "Integral Width": str(self.integral_Width)
+                  "Integral Width": str(self.integral_Width),
+                  "Cumulative Mode": str(self._cumulative_Mode),
+                  "Log Y": str(self._log_Y)
                   }
         return config
     
@@ -196,6 +200,23 @@ class Software_Settings():
     @integral_Width.setter
     def integral_Width(self, value):
         self._integral_Width = float(value)
+        
+    @property
+    def cumulative_Mode(self):
+        return self._cumulative_Mode
+    
+    @cumulative_Mode.setter
+    def cumulative_Mode(self, value):
+        self._cumulative_Mode = bool(distutils.util.strtobool(value))
+
+    @property
+    def log_Y(self):
+        return self._log_Y
+    
+    @log_Y.setter
+    def log_Y(self, value):
+        self._log_Y = bool(distutils.util.strtobool(value))
+
 
 class LD_Pharp_Config():
     """
@@ -271,6 +292,9 @@ class LD_Pharp_Config():
         self.sw_Settings.show_Deltas = sw_Settings["Show Deltas"]
         self.sw_Settings.show_Bars = sw_Settings["Show Bars"]
         self.sw_Settings.integral_Width = sw_Settings["Integral Width"]
+        self.sw_Settings.cumulative_Mode = sw_Settings["Cumulative Mode"]
+        self.sw_Settings.log_Y = sw_Settings["Log Y"]
+
 
     def Save_To_File(self, path):
         if not path.endswith(".ini"):
