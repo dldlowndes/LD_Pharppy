@@ -246,11 +246,13 @@ class Integral_Cursor(Generic_Cursor):
         if len(integral_Data) == 0:
             mean_Value = 0
             max_Value = 0
+            max_Pos = 0
             fwhm_Value = 0
         else:    
             # Calculate the values
             mean_Value = integral_Data.mean()
             max_Value = integral_Data.max()
+            max_Pos = self._left_Position + integral_Data.argmax() * self._resolution
             fwhm_Value = sum(integral_Data > (max_Value / 2)) * self._resolution
                         
             if display_Bars:
@@ -277,7 +279,7 @@ class Integral_Cursor(Generic_Cursor):
                 # the widget right now.
                 self.Remove_Bars()
         
-        return mean_Value, max_Value, fwhm_Value
+        return mean_Value, max_Value, max_Pos, fwhm_Value
     
     def Add_Bars(self):
         """

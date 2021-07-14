@@ -14,7 +14,9 @@ TODO list:
     - Type checking in config setters so they take either str or relevant type
     - use the X data to limit the plot axis when there's no data (otherwise
     cursor clicks with no data cause an exception)
-    - Make a MINIMAL conda yml or requirements.txt file
+    - When integral cursor is normalized, display the max positions relative
+    to that cursor.
+    - Cursors mode and log histograms don't play nicely together
   Med:
     - Curve fitting (choose function - not just gaussian).
     - BUG: Integral bars only show when x=0 is visible on axis! (what.)
@@ -255,6 +257,13 @@ class MyWindow(QtWidgets.QMainWindow):
             self.ui.max_Green,
             self.ui.max_Blue,
             self.ui.max_Magenta
+            )
+        
+        self.max_Pos_TestBoxes = (
+            self.ui.max_Pos_Red,
+            self.ui.max_Pos_Green,
+            self.ui.max_Pos_Blue,
+            self.ui.max_Pos_Magenta
             )
 
         self.click_TextBoxes = (
@@ -839,12 +848,13 @@ class MyWindow(QtWidgets.QMainWindow):
             integrals_Readings,
             self.mean_TextBoxes,
             self.max_TextBoxes,
+            self.max_Pos_TestBoxes,
             self.fwhm_TextBoxes
             )
 
         # Update the GUI
-        for ((this_Mean, this_Max, this_FWHM),
-             mean_Box, max_Box, fwhm_Box) in iterable:
+        for ((this_Mean, this_Max, this_Max_Pos, this_FWHM),
+             mean_Box, max_Box, max_Pos_Box, fwhm_Box) in iterable:
 
             # Check if normalization is turned on, and if so for which channel
             if self.normalize_This < len(self.normalize_Buttons) - 1:
@@ -864,6 +874,7 @@ class MyWindow(QtWidgets.QMainWindow):
             # Finally, update the GUI
             mean_Box.setText(f"{this_Mean:.3E}")
             max_Box.setText(f"{this_Max:.3E}")
+            max_Pos_Box.setText(f"{this_Max_Pos:.3E}")
             fwhm_Box.setText(f"{this_FWHM:.3E}")
 
     def on_Auto_Range(self):
