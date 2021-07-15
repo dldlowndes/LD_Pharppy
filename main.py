@@ -16,7 +16,6 @@ TODO list:
     cursor clicks with no data cause an exception)
     - When integral cursor is normalized, display the max positions relative
     to that cursor.
-    - Cursors mode and log histograms don't play nicely together
   Med:
     - Curve fitting (choose function - not just gaussian).
     - BUG: Integral bars only show when x=0 is visible on axis! (what.)
@@ -839,7 +838,7 @@ class MyWindow(QtWidgets.QMainWindow):
         # Send the histogram data to each cursor so it can extract the relevant
         # data, update the bars and returns the mean, max and fwhm values.
         integrals_Readings = [
-            cursor.Update_Stats(self.this_Data, self.bars_On)
+            cursor.Update_Stats(self.this_Data, self.bars_On, self.ui.option_LogY.isChecked())
             for cursor in self.integral_Cursors
             ]
 

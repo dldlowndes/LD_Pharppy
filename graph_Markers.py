@@ -1,5 +1,6 @@
 from PyQt5 import QtGui
 
+import numpy as np
 import pyqtgraph
 
 class Generic_Cursor():
@@ -229,7 +230,7 @@ class Integral_Cursor(Generic_Cursor):
             line.setPos(0)
         self.Remove_From_Plot()
         
-    def Update_Stats(self, data, display_Bars):
+    def Update_Stats(self, data, display_Bars, log_Y=False):
         """
         Calculate mean, max, fwhm of the data between the two markers.
         Optionally plot bars between the markers of the mean and max values.
@@ -252,9 +253,12 @@ class Integral_Cursor(Generic_Cursor):
             # Calculate the values
             mean_Value = integral_Data.mean()
             max_Value = integral_Data.max()
+            if log_Y:
+                mean_Value = np.log10(mean_Value)
+                max_Value = np.log10(max_Value)
             max_Pos = self._left_Position + integral_Data.argmax() * self._resolution
             fwhm_Value = sum(integral_Data > (max_Value / 2)) * self._resolution
-                        
+                  
             if display_Bars:
                 # Make some bars objects and add them to the plot widget.
                 self.mean_Bar = pyqtgraph.BarGraphItem(
