@@ -14,8 +14,6 @@ TODO list:
     - Type checking in config setters so they take either str or relevant type
     - use the X data to limit the plot axis when there's no data (otherwise
     cursor clicks with no data cause an exception)
-    - When integral cursor is normalized, display the max positions relative
-    to that cursor.
   Med:
     - Curve fitting (choose function - not just gaussian).
     - BUG: Integral bars only show when x=0 is visible on axis! (what.)
@@ -24,7 +22,6 @@ TODO list:
     respectively
     - Two y axes for counts mode (hard in pyqtplot)
     - Investigate getting this to work with other hardware...
-    - py2exe or something for distribution
 """
 
 # Quieten pylint recommendations
@@ -859,6 +856,7 @@ class MyWindow(QtWidgets.QMainWindow):
             if self.normalize_This < len(self.normalize_Buttons) - 1:
                 mean_Factor = integrals_Readings[self.normalize_This][0]
                 max_Factor = integrals_Readings[self.normalize_This][1]
+                zero_Time = integrals_Readings[self.normalize_This][2]
 
                 # Check for invalid normalization factors
                 if mean_Factor > 0:
@@ -869,6 +867,8 @@ class MyWindow(QtWidgets.QMainWindow):
                     this_Max /= max_Factor
                 else:
                     this_Max = np.inf
+                    
+                this_Max_Pos -= zero_Time
 
             # Finally, update the GUI
             mean_Box.setText(f"{this_Mean:.3E}")
