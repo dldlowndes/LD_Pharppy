@@ -87,6 +87,9 @@ class LD_Pharp:
 
         return final
 
+    def Get_Warnings(self):
+        return "No device detected, displaying dummy data"
+
 
 if __name__ == "__main__":
     my_LDPharp = LD_Pharp()

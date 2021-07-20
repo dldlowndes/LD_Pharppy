@@ -14,6 +14,7 @@ class Acq_Thread(QtCore.QThread):
     # be easily toggled on/off.
     count_Signal = QtCore.pyqtSignal(int, int)
     plot_Signal = QtCore.pyqtSignal(np.ndarray)
+    status_Signal = QtCore.pyqtSignal(str)
 
     def __init__(self, my_Pharp):
         QtCore.QThread.__init__(self)
@@ -35,6 +36,8 @@ class Acq_Thread(QtCore.QThread):
             # not.
             ch0, ch1 = self.my_Pharp.Get_CountRate()
             self.count_Signal.emit(ch0, ch1)
+            warnings = self.my_Pharp.Get_Warnings()
+            self.status_Signal.emit(warnings)
 
             if self.histogram_Active and not self.histogram_Paused:
                 # If desired, get the histogram data from the device as well.

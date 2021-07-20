@@ -119,6 +119,7 @@ class MyWindow(QtWidgets.QMainWindow):
         self.n_Counts = 0
         self.count_History = collections.deque(maxlen=100000)
         self.detected_inis = []
+        self.tick_Tock = True
         self.Init_UI()
         # Init_UI has set up the normalize buttons, the last one is checked by
         # default, so this should be the initial state.
@@ -186,6 +187,7 @@ class MyWindow(QtWidgets.QMainWindow):
         self.acq_Thread = acq_Thread.Acq_Thread(self.my_Pharp)
         self.acq_Thread.count_Signal.connect(self.on_Count_Signal)
         self.acq_Thread.plot_Signal.connect(self.on_Histo_Signal)
+        self.acq_Thread.status_Signal.connect(self.on_Status_Signal)
         self.acq_Thread.start()
 
     def Init_UI(self):
@@ -660,6 +662,10 @@ class MyWindow(QtWidgets.QMainWindow):
         # Remember the last histogram, so it can be saved.
         self.last_Histogram = self.this_Data
         self.last_X_Data = self.x_Data
+    
+    def on_Status_Signal(self, warning):
+        self.tick_Tock = not self.tick_Tock
+                
 
 ##############################################################################
 # GUI METHODS (NON GRAPHING)

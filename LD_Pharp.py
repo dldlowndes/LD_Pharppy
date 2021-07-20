@@ -231,6 +231,10 @@ class LD_Pharp:
         # print(f"Flags {flags}")
         return histogram
 
+    def Get_Warnings(self):
+        warn_Code = self.my_PharpDLL.GetWarnings()
+        warn_Text = self.my_PharpDLL.GetWarningsText(warn_Code)
+        return warn_Text
 
 if __name__ == "__main__":
     my_LDPharp = LD_Pharp()
