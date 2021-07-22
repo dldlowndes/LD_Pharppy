@@ -665,6 +665,7 @@ class MyWindow(QtWidgets.QMainWindow):
     
     def on_Status_Signal(self, warning):
         self.tick_Tock = not self.tick_Tock
+        print(warning)
                 
 
 ##############################################################################

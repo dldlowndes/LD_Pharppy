@@ -134,7 +134,7 @@ class LD_Pharp:
 
         if isinstance(hw_Config, type(None)):
             self.logger.debug("Making default HW settings")
-            self.hw_Settings = LD_Pharp_Config.LD_Pharp_Config()
+            self.hw_Settings = LD_Pharp_Config.LD_Pharp_Config().hw_Settings
         else:
             self.logger.debug("HW Settings passed in")
             self.hw_Settings = hw_Config
@@ -232,11 +232,17 @@ class LD_Pharp:
         return histogram
 
     def Get_Warnings(self):
-        warn_Code = self.my_PharpDLL.GetWarnings()
-        warn_Text = self.my_PharpDLL.GetWarningsText(warn_Code)
-        return warn_Text
+        print("get warnings code")
+        warn_Code = self.my_PharpDLL.Get_Warnings()
+        print("translate warnings code")
+        warn_Text = self.my_PharpDLL.Get_WarningsText(warn_Code)
+        return warn_Code, warn_Text
 
-if __name__ == "__main__":
+if __name__ == "__main__":    
     my_LDPharp = LD_Pharp()
 
     print(f"Count rate: {my_LDPharp.Get_CountRate()}")
+    
+    w = my_LDPharp.Get_Warnings()
+    
+    del my_LDPharp
