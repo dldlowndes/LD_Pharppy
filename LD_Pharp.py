@@ -232,17 +232,15 @@ class LD_Pharp:
         return histogram
 
     def Get_Warnings(self):
-        print("get warnings code")
         warn_Code = self.my_PharpDLL.Get_Warnings()
-        print("translate warnings code")
         warn_Text = self.my_PharpDLL.Get_WarningsText(warn_Code)
-        return warn_Code, warn_Text
+        # Strip any multiple newlines, and also the trailing newline.
+        return warn_Text.replace("\n\n\n", "\n").replace("\n\n", "\n")[:-1]
 
 if __name__ == "__main__":    
     my_LDPharp = LD_Pharp()
 
     print(f"Count rate: {my_LDPharp.Get_CountRate()}")
-    
-    w = my_LDPharp.Get_Warnings()
-    
-    del my_LDPharp
+
+    warns = my_LDPharp.Get_Warnings()
+    print(warns)

@@ -337,11 +337,11 @@ class LD_PharpDLL:
         extern int _stdcall PH_GetWarningsText(int devidx, char* text,
         int warnings);
         """
-        warnings_Text = ctypes.create_string_buffer(8192)
+        warnings_Text = ctypes.create_string_buffer(32768)
         return_Code = self.phlib.PH_GetWarningsText(self.device_Number_ct,
                                                     ctypes.byref(warnings_Text),
                                                     warnings_Code)
-        return_String = warnings_Text.value
+        return_String = warnings_Text.value.decode("utf-8")
         return return_String
         
     def Set_Binning(self, binning):

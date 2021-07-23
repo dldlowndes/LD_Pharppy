@@ -10,10 +10,11 @@ Requires: Python 3.7+, Numpy, PyQt5, PyQtGraph.
 TODO list:
   Easy:
     - Give option to specify DLL path on FileNotFoundError when starting
-    - Read and print DLL warnings (counts too high etc)
     - Type checking in config setters so they take either str or relevant type
     - use the X data to limit the plot axis when there's no data (otherwise
     cursor clicks with no data cause an exception)
+    - Consider interpreting warning codes manually so unwanted warnings can
+    be masked out.
   Med:
     - Curve fitting (choose function - not just gaussian).
     - BUG: Integral bars only show when x=0 is visible on axis! (what.)
@@ -119,7 +120,7 @@ class MyWindow(QtWidgets.QMainWindow):
         self.n_Counts = 0
         self.count_History = collections.deque(maxlen=100000)
         self.detected_inis = []
-        self.tick_Tock = True
+        self.last_Warnings = ""
         self.Init_UI()
         # Init_UI has set up the normalize buttons, the last one is checked by
         # default, so this should be the initial state.
@@ -663,11 +664,31 @@ class MyWindow(QtWidgets.QMainWindow):
         self.last_Histogram = self.this_Data
         self.last_X_Data = self.x_Data
     
-    def on_Status_Signal(self, warning):
-        self.tick_Tock = not self.tick_Tock
-        print(warning)
+    def on_Status_Signal(self, warnings):
+        # Check if the warnings are any different to last time. If not, don't
+        # do anything. This saves an interaction with the GUI but also doesn't
+        # reset the scroll position of the text box back to the top which is
+        # annoying if you're trying to read the error.
+        if warnings == self.last_Warnings:
+            pass
+        else:
+            log_String = "\n".join(["New Warnings",
+                                    "-----------",
+                                    warnings[:-1],
+                                    "-----------"])
+            self.logger.warning(log_String)
+            self.last_Warnings = warnings
+            # I THINK the string "WARNING_" only occurs once per warning.
+            # There's nothing else there is consistently once in every warning
+            # (there's not even consistent newline characters), maybe colons
+            # would work too?
+            n_Warnings = warnings.count("WARNING_")
+            # Update the tab label to show the number of warnings in brackets
+            # Then update the actual text box with the warnings text reported
+            # by the phlib dll.
+            self.ui.control_Warning_Tabber.setTabText(1, f"Warnings ({n_Warnings})")
+            self.ui.warnings_Display.setText(warnings)
                 
-
 ##############################################################################
 # GUI METHODS (NON GRAPHING)
 ##############################################################################
