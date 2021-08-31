@@ -40,6 +40,7 @@ import itertools
 import logging
 import os
 import sys
+import time # for counting time
 
 import numpy as np
 from PyQt5 import QtWidgets, QtCore, QtGui
@@ -74,6 +75,11 @@ class MyWindow(QtWidgets.QMainWindow):
         # weird in the absence of data.
         self.no_Data = True
 
+        # Histogram time
+        self.start_Time = 0
+        self.end_Time = 0
+        self.histo_Time = 300 # in seconds
+
         # Number of DPs to round counts data to.
         self.count_Precision = 3
 
@@ -84,14 +90,14 @@ class MyWindow(QtWidgets.QMainWindow):
             QtGui.QColor(0, 0, 255),  # blue
             QtGui.QColor(255, 0, 255) # magenta
             )
-        
+
         # Define hardware info members, then init them (and the hardware)
         self.my_Pharp = None
         self.allowed_Resolutions = None
         self.this_Data = np.zeros(65536)
         self.last_Histogram = np.zeros(65536)
         self.x_Data = np.zeros(65536)
-        
+
         # LD_Pharp_Config inits with some sensible defaults
         self.pharppy_Config = LD_Pharp_Config.LD_Pharp_Config()
         # Save those defaults to a defaults file
@@ -121,6 +127,8 @@ class MyWindow(QtWidgets.QMainWindow):
         self.count_History = collections.deque(maxlen=100000)
         self.detected_inis = []
         self.last_Warnings = ""
+        self.set_Histo_Time = ()
+        self.current_Time = ()
         self.Init_UI()
         # Init_UI has set up the normalize buttons, the last one is checked by
         # default, so this should be the initial state.
@@ -162,13 +170,13 @@ class MyWindow(QtWidgets.QMainWindow):
             # If the dll can't get a device handle, the program falls over,
             # Alert the user and give the option to run the barebones simulator
             # which allows the UI to be explored with some representative data.
-            error_Response = QtGui.QMessageBox.question(
+            error_Response = QtWidgets.QMessageBox.question(
                 self,
                 "Error",
                 "No driver/hardware found! Run in simulation mode?",
-                QtGui.QMessageBox.Yes | QtGui.QMessageBox.No
+                QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No
                 )
-            if error_Response == QtGui.QMessageBox.Yes:
+            if error_Response == QtWidgets.QMessageBox.Yes:
                 # Go get the simulator and launch it.
                 self.my_Pharp = LD_Pharp_Dummy.LD_Pharp(
                     0,
@@ -206,6 +214,9 @@ class MyWindow(QtWidgets.QMainWindow):
         self.ui.status.setText("Counting")
         self.Update_Settings_GUI()
 
+#        self.ui.set_Histo_Time.setText(f"{self.histo_Time}")
+#        self.ui.current_Time.setText("0")
+
         self.cursors_On = self.ui.option_Cursor.isChecked()
         self.deltas_On = self.ui.option_Deltas.isChecked()
         self.bars_On = self.ui.option_ShowBars.isChecked()
@@ -216,7 +227,7 @@ class MyWindow(QtWidgets.QMainWindow):
         self.detected_inis = [x for x in os.listdir() if x.endswith(".ini")]
         for ini in self.detected_inis:
             self.ui.existing_inis.addItem(ini)
-            
+
         self.ui.counts_Ch0_Big.setStyleSheet("color: red")
         self.ui.counts_Ch1_Big.setStyleSheet("color: green")
 
@@ -257,7 +268,7 @@ class MyWindow(QtWidgets.QMainWindow):
             self.ui.max_Blue,
             self.ui.max_Magenta
             )
-        
+
         self.max_Pos_TestBoxes = (
             self.ui.max_Pos_Red,
             self.ui.max_Pos_Green,
@@ -366,7 +377,7 @@ class MyWindow(QtWidgets.QMainWindow):
         # start/stop preserves the started/stopped state when settings are
         # sent.
         self.acq_Thread.histogram_Paused = True
-        
+
         # Translate desired resolution to a "binning" number. Binning
         # combines histogram bins to reduce the histogram resolution.
         resolution_Req = self.ui.resolution.currentText()
@@ -523,17 +534,18 @@ class MyWindow(QtWidgets.QMainWindow):
         # self.ui.button_Defaults.setEnabled(True)
         # self.ui.button_LoadSettings.setEnabled(True)
         # self.ui.button_SaveSettings.setEnabled(True)
-        
+
     def stop_Hist_Mode(self):
         self.logger.info("Start histogramming")
         self.on_Clear_Histogram()
         self.ui.status.setText("Histogramming")
         self.acq_Thread.histogram_Active = True
+        self.start_Time = time.time()
         # self.ui.button_ApplySettings.setEnabled(False)
         # self.ui.button_Defaults.setEnabled(False)
         # self.ui.button_LoadSettings.setEnabled(False)
         # self.ui.button_SaveSettings.setEnabled(False)
-        
+
     def on_Count_Signal(self, ch0, ch1):
         """
         Handle the counts when the hardware thread emits them
@@ -542,35 +554,35 @@ class MyWindow(QtWidgets.QMainWindow):
         # Write to the small text boxes on the GUI whatever the settings are
         self.ui.counts_Ch0.setText(f"{ch0:.{self.count_Precision}E}")
         self.ui.counts_Ch1.setText(f"{ch1:.{self.count_Precision}E}")
-        
+
         # Remember the counts in case they want to be plotted later.
         self.count_History.append([ch0, ch1])
         self.n_Counts += 1
-        
+
         if self.count_Mode:
             """
-            Count mode is a dedicated display tab that shows the counts in 
+            Count mode is a dedicated display tab that shows the counts in
             much bigger font (for visibility for example when aligning optics),
             a line graph is also shown on the graph pane (instead of the TCSPC
             histogram) colour coded to the colours of the displayed counts.
             """
-            
+
             # Set the format of the values put in the UI, either integers with
-            # thousands separated by commas, or as scientific numbers with 
+            # thousands separated by commas, or as scientific numbers with
             # adjustable precision.
             fmt = ","
             if self.ui.option_SciCounts.isChecked():
                 fmt = f".{self.ui.value_CountPrecision.value()}E"
             self.ui.counts_Ch0_Big.setText(f"{ch0:{fmt}}")
             self.ui.counts_Ch1_Big.setText(f"{ch1:{fmt}}")
-            
+
             # How many counts to show on the graph before the oldest ones start
             # to be dropped. The counts are stored in a massive deque so
-            # extending the display after shrinking it brings back the old 
+            # extending the display after shrinking it brings back the old
             # values.
             n_Counts_Display = self.ui.value_NumGraphCounts.value()
             # If the deque contains less than n_Counts_Display counts, set the
-            # first value to the 0th element, otherwise it's the 
+            # first value to the 0th element, otherwise it's the
             # n_Counts_Display'th to last element.
             start_i = max(0, len(self.count_History) - n_Counts_Display) # 0 or +ve value
             # Get just the data for plotting from the deque.
@@ -581,28 +593,28 @@ class MyWindow(QtWidgets.QMainWindow):
             ch0, ch1 = zip(*display_Counts)
             ch0 = np.array(ch0, dtype=np.int32)
             ch1 = np.array(ch1, dtype=np.int32)
-            
+
             # Make the x labels correspond to the number of count signals
             # received. (because why not)
             x_Data = range(self.n_Counts - len(ch0), self.n_Counts)
             # Plot the data
             red = QtGui.QColor(255, 0, 0)
             green = QtGui.QColor(0, 255, 0)
-            
+
             if self.ui.option_LogY.isChecked():
                 ch0 = np.log10(ch0, where=ch0>0)
                 ch1 = np.log10(ch1, where=ch1>0)
-            
+
             # Clear the plot before replotting otherwise if the options are
             # unchecked it just doesn't show new data (but still shows data
             # from before the option was unchecked).
             self.ui.graph_Widget.clear()
-            
+
             if self.ui.option_Ch0_Counts.isChecked():
                 self.ui.graph_Widget.plot(x_Data, ch0, pen=red)
             if self.ui.option_Ch1_Counts.isChecked():
                 self.ui.graph_Widget.plot(x_Data, ch1, pen=green)
-        
+
             # Auto scale to the visible values.
             self.ui.graph_Widget.plotItem.vb.setLimits(
                 xMin=x_Data[0]-0.1,
@@ -610,7 +622,7 @@ class MyWindow(QtWidgets.QMainWindow):
                 xMax=x_Data[-1]+0.1,
                 yMax=1.1*max(max(ch0), max(ch1))
                 )
-        
+
     def on_Histo_Signal(self, histogram_Data):
         """
         Handle the histogram when the hardware thread emits one.
@@ -620,7 +632,7 @@ class MyWindow(QtWidgets.QMainWindow):
             self.this_Data += histogram_Data
         else:
             self.this_Data = histogram_Data
-            
+
         if self.count_Mode:
             return
 
@@ -638,7 +650,7 @@ class MyWindow(QtWidgets.QMainWindow):
         # log scale is what's required...
         if self.ui.option_LogY.isChecked():
             plot_Y = np.log10(plot_Y, where=plot_Y>0)
-            
+
         self.ui.graph_Widget.plot(plot_X,
                                   plot_Y,
                                   clear=True)
@@ -663,7 +675,7 @@ class MyWindow(QtWidgets.QMainWindow):
         # Remember the last histogram, so it can be saved.
         self.last_Histogram = self.this_Data
         self.last_X_Data = self.x_Data
-    
+
     def on_Status_Signal(self, warnings):
         # Check if the warnings are any different to last time. If not, don't
         # do anything. This saves an interaction with the GUI but also doesn't
@@ -688,7 +700,7 @@ class MyWindow(QtWidgets.QMainWindow):
             # by the phlib dll.
             self.ui.control_Warning_Tabber.setTabText(1, f"Warnings ({n_Warnings})")
             self.ui.warnings_Display.setText(warnings)
-                
+
 ##############################################################################
 # GUI METHODS (NON GRAPHING)
 ##############################################################################
@@ -895,7 +907,7 @@ class MyWindow(QtWidgets.QMainWindow):
                     this_Max /= max_Factor
                 else:
                     this_Max = np.inf
-                    
+
                 this_Max_Pos -= zero_Time
 
             # Finally, update the GUI
