@@ -22,6 +22,10 @@ class Ui_MainWindow(object):
         self.gridLayout_2.setObjectName("gridLayout_2")
         self.verticalLayout_7 = QtWidgets.QVBoxLayout()
         self.verticalLayout_7.setObjectName("verticalLayout_7")
+
+####################################################################################
+# graph area
+####################################################################################
         self.graph_Widget = PlotWidget(self.centralwidget)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         sizePolicy.setHorizontalStretch(0)
@@ -33,9 +37,14 @@ class Ui_MainWindow(object):
         self.graph_Widget.setAutoFillBackground(True)
         self.graph_Widget.setObjectName("graph_Widget")
         self.verticalLayout_7.addWidget(self.graph_Widget)
+
+
+####################################################################################
+# left-lower area where we set mode
+####################################################################################
         self.frame_3 = QtWidgets.QFrame(self.centralwidget)
-        self.frame_3.setMinimumSize(QtCore.QSize(0, 200))
-        self.frame_3.setMaximumSize(QtCore.QSize(16777215, 200))
+        self.frame_3.setMinimumSize(QtCore.QSize(0, 230))
+        self.frame_3.setMaximumSize(QtCore.QSize(16777215, 230))
         font = QtGui.QFont()
         font.setPointSize(12)
         self.frame_3.setFont(font)
@@ -50,14 +59,19 @@ class Ui_MainWindow(object):
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.cursors_Tabber.sizePolicy().hasHeightForWidth())
         self.cursors_Tabber.setSizePolicy(sizePolicy)
-        self.cursors_Tabber.setMinimumSize(QtCore.QSize(800, 180))
-        self.cursors_Tabber.setMaximumSize(QtCore.QSize(800, 180))
+        self.cursors_Tabber.setMinimumSize(QtCore.QSize(900, 210))
+        self.cursors_Tabber.setMaximumSize(QtCore.QSize(900, 210))
         font = QtGui.QFont()
         font.setPointSize(10)
         self.cursors_Tabber.setFont(font)
-        self.cursors_Tabber.setTabPosition(QtWidgets.QTabWidget.West)
+        self.cursors_Tabber.setTabPosition(QtWidgets.QTabWidget.North)
         self.cursors_Tabber.setTabShape(QtWidgets.QTabWidget.Rounded)
         self.cursors_Tabber.setObjectName("cursors_Tabber")
+
+
+####################################################################################
+# left-lower area tab1 : deltas
+####################################################################################
         self.tab_Deltas = QtWidgets.QWidget()
         self.tab_Deltas.setObjectName("tab_Deltas")
         self.gridLayout_4 = QtWidgets.QGridLayout(self.tab_Deltas)
@@ -77,6 +91,7 @@ class Ui_MainWindow(object):
         self.current_Y.setFont(font)
         self.current_Y.setObjectName("current_Y")
         self.gridLayout_3.addWidget(self.current_Y, 4, 1, 1, 1)
+
         self.deltas_Label = QtWidgets.QLabel(self.tab_Deltas)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
@@ -87,6 +102,7 @@ class Ui_MainWindow(object):
         self.deltas_Label.setMaximumSize(QtCore.QSize(120, 20))
         self.deltas_Label.setObjectName("deltas_Label")
         self.gridLayout_3.addWidget(self.deltas_Label, 2, 4, 1, 1)
+
         self.click_1_X = QtWidgets.QLineEdit(self.tab_Deltas)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
@@ -100,6 +116,7 @@ class Ui_MainWindow(object):
         self.click_1_X.setFont(font)
         self.click_1_X.setObjectName("click_1_X")
         self.gridLayout_3.addWidget(self.click_1_X, 3, 2, 1, 1)
+
         self.current_Label = QtWidgets.QLabel(self.tab_Deltas)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
@@ -110,6 +127,7 @@ class Ui_MainWindow(object):
         self.current_Label.setMaximumSize(QtCore.QSize(120, 20))
         self.current_Label.setObjectName("current_Label")
         self.gridLayout_3.addWidget(self.current_Label, 2, 1, 1, 1)
+
         self.click_2_Y = QtWidgets.QLineEdit(self.tab_Deltas)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
@@ -123,6 +141,7 @@ class Ui_MainWindow(object):
         self.click_2_Y.setFont(font)
         self.click_2_Y.setObjectName("click_2_Y")
         self.gridLayout_3.addWidget(self.click_2_Y, 4, 3, 1, 1)
+
         self.delta_Y = QtWidgets.QLineEdit(self.tab_Deltas)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
@@ -136,6 +155,7 @@ class Ui_MainWindow(object):
         self.delta_Y.setFont(font)
         self.delta_Y.setObjectName("delta_Y")
         self.gridLayout_3.addWidget(self.delta_Y, 4, 4, 1, 1)
+
         self.click1_Label = QtWidgets.QLabel(self.tab_Deltas)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
@@ -146,6 +166,7 @@ class Ui_MainWindow(object):
         self.click1_Label.setMaximumSize(QtCore.QSize(120, 20))
         self.click1_Label.setObjectName("click1_Label")
         self.gridLayout_3.addWidget(self.click1_Label, 2, 2, 1, 1)
+
         self.delta_X = QtWidgets.QLineEdit(self.tab_Deltas)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
@@ -159,6 +180,7 @@ class Ui_MainWindow(object):
         self.delta_X.setFont(font)
         self.delta_X.setObjectName("delta_X")
         self.gridLayout_3.addWidget(self.delta_X, 3, 4, 1, 1)
+
         self.y_Label = QtWidgets.QLabel(self.tab_Deltas)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
@@ -169,6 +191,7 @@ class Ui_MainWindow(object):
         self.y_Label.setMaximumSize(QtCore.QSize(25, 25))
         self.y_Label.setObjectName("y_Label")
         self.gridLayout_3.addWidget(self.y_Label, 4, 0, 1, 1)
+
         self.x_Label = QtWidgets.QLabel(self.tab_Deltas)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
@@ -179,6 +202,7 @@ class Ui_MainWindow(object):
         self.x_Label.setMaximumSize(QtCore.QSize(25, 25))
         self.x_Label.setObjectName("x_Label")
         self.gridLayout_3.addWidget(self.x_Label, 3, 0, 1, 1)
+
         self.click_1_Y = QtWidgets.QLineEdit(self.tab_Deltas)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
@@ -192,6 +216,7 @@ class Ui_MainWindow(object):
         self.click_1_Y.setFont(font)
         self.click_1_Y.setObjectName("click_1_Y")
         self.gridLayout_3.addWidget(self.click_1_Y, 4, 2, 1, 1)
+
         self.current_X = QtWidgets.QLineEdit(self.tab_Deltas)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
@@ -205,6 +230,7 @@ class Ui_MainWindow(object):
         self.current_X.setFont(font)
         self.current_X.setObjectName("current_X")
         self.gridLayout_3.addWidget(self.current_X, 3, 1, 1, 1)
+
         self.click2_Label = QtWidgets.QLabel(self.tab_Deltas)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
@@ -215,6 +241,7 @@ class Ui_MainWindow(object):
         self.click2_Label.setMaximumSize(QtCore.QSize(120, 20))
         self.click2_Label.setObjectName("click2_Label")
         self.gridLayout_3.addWidget(self.click2_Label, 2, 3, 1, 1)
+
         self.click_2_X = QtWidgets.QLineEdit(self.tab_Deltas)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
@@ -228,18 +255,27 @@ class Ui_MainWindow(object):
         self.click_2_X.setFont(font)
         self.click_2_X.setObjectName("click_2_X")
         self.gridLayout_3.addWidget(self.click_2_X, 3, 3, 1, 1)
+
         self.button_ClearDeltas = QtWidgets.QPushButton(self.tab_Deltas)
         self.button_ClearDeltas.setObjectName("button_ClearDeltas")
         self.gridLayout_3.addWidget(self.button_ClearDeltas, 1, 3, 1, 1)
+
         self.option_Deltas = QtWidgets.QCheckBox(self.tab_Deltas)
         self.option_Deltas.setObjectName("option_Deltas")
         self.gridLayout_3.addWidget(self.option_Deltas, 1, 2, 1, 1)
+
         self.option_Cursor = QtWidgets.QCheckBox(self.tab_Deltas)
         self.option_Cursor.setMaximumSize(QtCore.QSize(16777215, 20))
         self.option_Cursor.setObjectName("option_Cursor")
         self.gridLayout_3.addWidget(self.option_Cursor, 1, 1, 1, 1)
         self.gridLayout_4.addLayout(self.gridLayout_3, 0, 1, 1, 1)
+
         self.cursors_Tabber.addTab(self.tab_Deltas, "")
+
+
+####################################################################################
+# left-lower area tab2 : integrate
+####################################################################################
         self.tab_Integrals = QtWidgets.QWidget()
         self.tab_Integrals.setObjectName("tab_Integrals")
         self.horizontalLayout_4 = QtWidgets.QHBoxLayout(self.tab_Integrals)
@@ -252,14 +288,17 @@ class Ui_MainWindow(object):
         self.label_6.setMaximumSize(QtCore.QSize(16777215, 14))
         self.label_6.setObjectName("label_6")
         self.gridLayout_15.addWidget(self.label_6, 0, 0, 1, 1)
+
         self.integral_Width = QtWidgets.QLineEdit(self.tab_Integrals)
         self.integral_Width.setObjectName("integral_Width")
         self.gridLayout_15.addWidget(self.integral_Width, 0, 1, 1, 1)
+
         self.button_IntegralWidth = QtWidgets.QPushButton(self.tab_Integrals)
         self.button_IntegralWidth.setMinimumSize(QtCore.QSize(0, 20))
         self.button_IntegralWidth.setMaximumSize(QtCore.QSize(16777215, 20))
         self.button_IntegralWidth.setObjectName("button_IntegralWidth")
         self.gridLayout_15.addWidget(self.button_IntegralWidth, 1, 1, 1, 1)
+
         self.verticalLayout_2.addLayout(self.gridLayout_15)
         self.gridLayout_16 = QtWidgets.QGridLayout()
         self.gridLayout_16.setObjectName("gridLayout_16")
@@ -267,11 +306,13 @@ class Ui_MainWindow(object):
         self.option_ShowBars.setChecked(True)
         self.option_ShowBars.setObjectName("option_ShowBars")
         self.gridLayout_16.addWidget(self.option_ShowBars, 0, 0, 1, 1)
+
         self.button_ClearIntegrals = QtWidgets.QPushButton(self.tab_Integrals)
         self.button_ClearIntegrals.setMinimumSize(QtCore.QSize(0, 20))
         self.button_ClearIntegrals.setMaximumSize(QtCore.QSize(16777215, 20))
         self.button_ClearIntegrals.setObjectName("button_ClearIntegrals")
         self.gridLayout_16.addWidget(self.button_ClearIntegrals, 0, 1, 1, 1)
+
         self.verticalLayout_2.addLayout(self.gridLayout_16)
         self.horizontalLayout_4.addLayout(self.verticalLayout_2)
         spacerItem = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
@@ -283,6 +324,7 @@ class Ui_MainWindow(object):
         self.normalize_Magenta.setText("")
         self.normalize_Magenta.setObjectName("normalize_Magenta")
         self.gridLayout_13.addWidget(self.normalize_Magenta, 5, 8, 1, 1)
+
         self.integral_Green = QtWidgets.QLineEdit(self.tab_Integrals)
         self.integral_Green.setMinimumSize(QtCore.QSize(100, 0))
         self.integral_Green.setMaximumSize(QtCore.QSize(100, 20))
@@ -291,15 +333,18 @@ class Ui_MainWindow(object):
         self.integral_Green.setFont(font)
         self.integral_Green.setObjectName("integral_Green")
         self.gridLayout_13.addWidget(self.integral_Green, 1, 3, 1, 2)
+
         self.label_4 = QtWidgets.QLabel(self.tab_Integrals)
         self.label_4.setMaximumSize(QtCore.QSize(16777215, 14))
         self.label_4.setObjectName("label_4")
         self.gridLayout_13.addWidget(self.label_4, 0, 5, 1, 1)
+
         self.normalize_Blue = QtWidgets.QRadioButton(self.tab_Integrals)
         self.normalize_Blue.setMaximumSize(QtCore.QSize(16777215, 14))
         self.normalize_Blue.setText("")
         self.normalize_Blue.setObjectName("normalize_Blue")
         self.gridLayout_13.addWidget(self.normalize_Blue, 5, 6, 1, 1)
+
         self.max_Blue = QtWidgets.QLineEdit(self.tab_Integrals)
         self.max_Blue.setMinimumSize(QtCore.QSize(100, 0))
         self.max_Blue.setMaximumSize(QtCore.QSize(100, 20))
@@ -308,14 +353,17 @@ class Ui_MainWindow(object):
         self.max_Blue.setFont(font)
         self.max_Blue.setObjectName("max_Blue")
         self.gridLayout_13.addWidget(self.max_Blue, 2, 5, 1, 2)
+
         self.label_3 = QtWidgets.QLabel(self.tab_Integrals)
         self.label_3.setMaximumSize(QtCore.QSize(16777215, 14))
         self.label_3.setObjectName("label_3")
         self.gridLayout_13.addWidget(self.label_3, 0, 3, 1, 1)
+
         self.label_9 = QtWidgets.QLabel(self.tab_Integrals)
         self.label_9.setMaximumSize(QtCore.QSize(16777215, 14))
         self.label_9.setObjectName("label_9")
         self.gridLayout_13.addWidget(self.label_9, 5, 0, 1, 1)
+
         self.max_Red = QtWidgets.QLineEdit(self.tab_Integrals)
         self.max_Red.setMinimumSize(QtCore.QSize(100, 0))
         self.max_Red.setMaximumSize(QtCore.QSize(100, 20))
@@ -324,6 +372,7 @@ class Ui_MainWindow(object):
         self.max_Red.setFont(font)
         self.max_Red.setObjectName("max_Red")
         self.gridLayout_13.addWidget(self.max_Red, 2, 1, 1, 2)
+
         self.fwhm_Green = QtWidgets.QLineEdit(self.tab_Integrals)
         self.fwhm_Green.setMinimumSize(QtCore.QSize(100, 0))
         self.fwhm_Green.setMaximumSize(QtCore.QSize(100, 20))
@@ -332,6 +381,7 @@ class Ui_MainWindow(object):
         self.fwhm_Green.setFont(font)
         self.fwhm_Green.setObjectName("fwhm_Green")
         self.gridLayout_13.addWidget(self.fwhm_Green, 4, 3, 1, 2)
+
         self.fwhm_Blue = QtWidgets.QLineEdit(self.tab_Integrals)
         self.fwhm_Blue.setMinimumSize(QtCore.QSize(100, 0))
         self.fwhm_Blue.setMaximumSize(QtCore.QSize(100, 20))
@@ -340,11 +390,13 @@ class Ui_MainWindow(object):
         self.fwhm_Blue.setFont(font)
         self.fwhm_Blue.setObjectName("fwhm_Blue")
         self.gridLayout_13.addWidget(self.fwhm_Blue, 4, 5, 1, 2)
+
         self.normalize_Red = QtWidgets.QRadioButton(self.tab_Integrals)
         self.normalize_Red.setMaximumSize(QtCore.QSize(16777215, 14))
         self.normalize_Red.setText("")
         self.normalize_Red.setObjectName("normalize_Red")
         self.gridLayout_13.addWidget(self.normalize_Red, 5, 2, 1, 1)
+
         self.integral_Blue = QtWidgets.QLineEdit(self.tab_Integrals)
         self.integral_Blue.setMinimumSize(QtCore.QSize(100, 0))
         self.integral_Blue.setMaximumSize(QtCore.QSize(100, 20))
@@ -353,10 +405,12 @@ class Ui_MainWindow(object):
         self.integral_Blue.setFont(font)
         self.integral_Blue.setObjectName("integral_Blue")
         self.gridLayout_13.addWidget(self.integral_Blue, 1, 5, 1, 2)
+
         self.label_11 = QtWidgets.QLabel(self.tab_Integrals)
         self.label_11.setMaximumSize(QtCore.QSize(16777215, 14))
         self.label_11.setObjectName("label_11")
         self.gridLayout_13.addWidget(self.label_11, 4, 0, 1, 1)
+
         self.max_Pos_Red = QtWidgets.QLineEdit(self.tab_Integrals)
         self.max_Pos_Red.setMinimumSize(QtCore.QSize(100, 20))
         self.max_Pos_Red.setMaximumSize(QtCore.QSize(100, 20))
@@ -365,14 +419,17 @@ class Ui_MainWindow(object):
         self.max_Pos_Red.setFont(font)
         self.max_Pos_Red.setObjectName("max_Pos_Red")
         self.gridLayout_13.addWidget(self.max_Pos_Red, 3, 1, 1, 2)
+
         self.label_8 = QtWidgets.QLabel(self.tab_Integrals)
         self.label_8.setMaximumSize(QtCore.QSize(16777215, 14))
         self.label_8.setObjectName("label_8")
         self.gridLayout_13.addWidget(self.label_8, 2, 0, 1, 1)
+
         self.label_7 = QtWidgets.QLabel(self.tab_Integrals)
         self.label_7.setMaximumSize(QtCore.QSize(16777215, 14))
         self.label_7.setObjectName("label_7")
         self.gridLayout_13.addWidget(self.label_7, 1, 0, 1, 1)
+
         self.integral_Red = QtWidgets.QLineEdit(self.tab_Integrals)
         self.integral_Red.setMinimumSize(QtCore.QSize(100, 0))
         self.integral_Red.setMaximumSize(QtCore.QSize(100, 20))
@@ -381,14 +438,17 @@ class Ui_MainWindow(object):
         self.integral_Red.setFont(font)
         self.integral_Red.setObjectName("integral_Red")
         self.gridLayout_13.addWidget(self.integral_Red, 1, 1, 1, 2)
+
         self.normalize_Green = QtWidgets.QRadioButton(self.tab_Integrals)
         self.normalize_Green.setMaximumSize(QtCore.QSize(16777215, 14))
         self.normalize_Green.setText("")
         self.normalize_Green.setObjectName("normalize_Green")
         self.gridLayout_13.addWidget(self.normalize_Green, 5, 4, 1, 1)
+
         self.label_17 = QtWidgets.QLabel(self.tab_Integrals)
         self.label_17.setObjectName("label_17")
         self.gridLayout_13.addWidget(self.label_17, 3, 0, 1, 1)
+
         self.max_Magenta = QtWidgets.QLineEdit(self.tab_Integrals)
         self.max_Magenta.setMinimumSize(QtCore.QSize(100, 0))
         self.max_Magenta.setMaximumSize(QtCore.QSize(100, 20))
@@ -397,6 +457,7 @@ class Ui_MainWindow(object):
         self.max_Magenta.setFont(font)
         self.max_Magenta.setObjectName("max_Magenta")
         self.gridLayout_13.addWidget(self.max_Magenta, 2, 7, 1, 2)
+
         self.fwhm_Magenta = QtWidgets.QLineEdit(self.tab_Integrals)
         self.fwhm_Magenta.setMinimumSize(QtCore.QSize(100, 0))
         self.fwhm_Magenta.setMaximumSize(QtCore.QSize(100, 20))
@@ -405,10 +466,12 @@ class Ui_MainWindow(object):
         self.fwhm_Magenta.setFont(font)
         self.fwhm_Magenta.setObjectName("fwhm_Magenta")
         self.gridLayout_13.addWidget(self.fwhm_Magenta, 4, 7, 1, 2)
+
         self.label = QtWidgets.QLabel(self.tab_Integrals)
         self.label.setMaximumSize(QtCore.QSize(16777215, 14))
         self.label.setObjectName("label")
         self.gridLayout_13.addWidget(self.label, 0, 1, 1, 1)
+
         self.max_Pos_Green = QtWidgets.QLineEdit(self.tab_Integrals)
         self.max_Pos_Green.setMinimumSize(QtCore.QSize(100, 20))
         self.max_Pos_Green.setMaximumSize(QtCore.QSize(100, 20))
@@ -417,10 +480,12 @@ class Ui_MainWindow(object):
         self.max_Pos_Green.setFont(font)
         self.max_Pos_Green.setObjectName("max_Pos_Green")
         self.gridLayout_13.addWidget(self.max_Pos_Green, 3, 3, 1, 2)
+
         self.label_5 = QtWidgets.QLabel(self.tab_Integrals)
         self.label_5.setMaximumSize(QtCore.QSize(16777215, 14))
         self.label_5.setObjectName("label_5")
         self.gridLayout_13.addWidget(self.label_5, 0, 7, 1, 1)
+
         self.fwhm_Red = QtWidgets.QLineEdit(self.tab_Integrals)
         self.fwhm_Red.setMinimumSize(QtCore.QSize(100, 0))
         self.fwhm_Red.setMaximumSize(QtCore.QSize(100, 20))
@@ -429,6 +494,7 @@ class Ui_MainWindow(object):
         self.fwhm_Red.setFont(font)
         self.fwhm_Red.setObjectName("fwhm_Red")
         self.gridLayout_13.addWidget(self.fwhm_Red, 4, 1, 1, 2)
+
         self.max_Pos_Magenta = QtWidgets.QLineEdit(self.tab_Integrals)
         self.max_Pos_Magenta.setMinimumSize(QtCore.QSize(100, 20))
         self.max_Pos_Magenta.setMaximumSize(QtCore.QSize(100, 20))
@@ -437,11 +503,13 @@ class Ui_MainWindow(object):
         self.max_Pos_Magenta.setFont(font)
         self.max_Pos_Magenta.setObjectName("max_Pos_Magenta")
         self.gridLayout_13.addWidget(self.max_Pos_Magenta, 3, 7, 1, 2)
+
         self.normalize_Off = QtWidgets.QRadioButton(self.tab_Integrals)
-        self.normalize_Off.setMaximumSize(QtCore.QSize(16777215, 14))
+        self.normalize_Off.setMaximumSize(QtCore.QSize(16777215, 20))
         self.normalize_Off.setChecked(True)
         self.normalize_Off.setObjectName("normalize_Off")
         self.gridLayout_13.addWidget(self.normalize_Off, 5, 9, 1, 1)
+
         self.max_Green = QtWidgets.QLineEdit(self.tab_Integrals)
         self.max_Green.setMinimumSize(QtCore.QSize(100, 0))
         self.max_Green.setMaximumSize(QtCore.QSize(100, 20))
@@ -450,6 +518,7 @@ class Ui_MainWindow(object):
         self.max_Green.setFont(font)
         self.max_Green.setObjectName("max_Green")
         self.gridLayout_13.addWidget(self.max_Green, 2, 3, 1, 2)
+
         self.max_Pos_Blue = QtWidgets.QLineEdit(self.tab_Integrals)
         self.max_Pos_Blue.setMinimumSize(QtCore.QSize(100, 20))
         self.max_Pos_Blue.setMaximumSize(QtCore.QSize(100, 20))
@@ -458,6 +527,7 @@ class Ui_MainWindow(object):
         self.max_Pos_Blue.setFont(font)
         self.max_Pos_Blue.setObjectName("max_Pos_Blue")
         self.gridLayout_13.addWidget(self.max_Pos_Blue, 3, 5, 1, 2)
+
         self.integral_Magenta = QtWidgets.QLineEdit(self.tab_Integrals)
         self.integral_Magenta.setMinimumSize(QtCore.QSize(100, 0))
         self.integral_Magenta.setMaximumSize(QtCore.QSize(100, 20))
@@ -466,8 +536,13 @@ class Ui_MainWindow(object):
         self.integral_Magenta.setFont(font)
         self.integral_Magenta.setObjectName("integral_Magenta")
         self.gridLayout_13.addWidget(self.integral_Magenta, 1, 7, 1, 2)
+
         self.horizontalLayout_4.addLayout(self.gridLayout_13)
         self.cursors_Tabber.addTab(self.tab_Integrals, "")
+
+####################################################################################
+# left-lower area tab3 : counts
+####################################################################################
         self.tab_Counts = QtWidgets.QWidget()
         self.tab_Counts.setObjectName("tab_Counts")
         self.gridLayout_12 = QtWidgets.QGridLayout(self.tab_Counts)
@@ -480,6 +555,7 @@ class Ui_MainWindow(object):
         self.label_14.setFont(font)
         self.label_14.setObjectName("label_14")
         self.gridLayout_9.addWidget(self.label_14, 1, 0, 1, 1)
+
         self.counts_Ch1_Big = QtWidgets.QLineEdit(self.tab_Counts)
         self.counts_Ch1_Big.setMinimumSize(QtCore.QSize(300, 0))
         self.counts_Ch1_Big.setMaximumSize(QtCore.QSize(300, 16777215))
@@ -489,6 +565,7 @@ class Ui_MainWindow(object):
         self.counts_Ch1_Big.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.counts_Ch1_Big.setObjectName("counts_Ch1_Big")
         self.gridLayout_9.addWidget(self.counts_Ch1_Big, 1, 1, 1, 1)
+
         self.counts_Ch0_Big = QtWidgets.QLineEdit(self.tab_Counts)
         self.counts_Ch0_Big.setMinimumSize(QtCore.QSize(240, 0))
         self.counts_Ch0_Big.setMaximumSize(QtCore.QSize(300, 16777215))
@@ -500,6 +577,7 @@ class Ui_MainWindow(object):
         self.counts_Ch0_Big.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.counts_Ch0_Big.setObjectName("counts_Ch0_Big")
         self.gridLayout_9.addWidget(self.counts_Ch0_Big, 0, 1, 1, 1)
+
         self.label_13 = QtWidgets.QLabel(self.tab_Counts)
         font = QtGui.QFont()
         font.setPointSize(20)
@@ -509,13 +587,17 @@ class Ui_MainWindow(object):
         self.option_Ch0_Counts = QtWidgets.QCheckBox(self.tab_Counts)
         self.option_Ch0_Counts.setObjectName("option_Ch0_Counts")
         self.gridLayout_9.addWidget(self.option_Ch0_Counts, 0, 2, 1, 1)
+
         self.option_Ch1_Counts = QtWidgets.QCheckBox(self.tab_Counts)
         self.option_Ch1_Counts.setChecked(True)
         self.option_Ch1_Counts.setObjectName("option_Ch1_Counts")
         self.gridLayout_9.addWidget(self.option_Ch1_Counts, 1, 2, 1, 1)
+
         self.gridLayout_12.addLayout(self.gridLayout_9, 0, 0, 1, 1)
+
         spacerItem1 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
         self.gridLayout_12.addItem(spacerItem1, 0, 1, 1, 1)
+
         self.groupBox_2 = QtWidgets.QGroupBox(self.tab_Counts)
         self.groupBox_2.setMinimumSize(QtCore.QSize(170, 0))
         self.groupBox_2.setMaximumSize(QtCore.QSize(170, 16777215))
@@ -527,19 +609,23 @@ class Ui_MainWindow(object):
         self.label_15.setMaximumSize(QtCore.QSize(60, 16777215))
         self.label_15.setObjectName("label_15")
         self.gridLayout_14.addWidget(self.label_15, 2, 0, 1, 1)
+
         self.value_NumGraphCounts = QtWidgets.QSpinBox(self.groupBox_2)
         self.value_NumGraphCounts.setMaximum(100000)
         self.value_NumGraphCounts.setProperty("value", 100)
         self.value_NumGraphCounts.setObjectName("value_NumGraphCounts")
         self.gridLayout_14.addWidget(self.value_NumGraphCounts, 3, 1, 1, 1)
+
         self.label_16 = QtWidgets.QLabel(self.groupBox_2)
         self.label_16.setObjectName("label_16")
         self.gridLayout_14.addWidget(self.label_16, 3, 0, 1, 1)
+
         self.option_SciCounts = QtWidgets.QCheckBox(self.groupBox_2)
         self.option_SciCounts.setMinimumSize(QtCore.QSize(75, 0))
         self.option_SciCounts.setMaximumSize(QtCore.QSize(75, 16777215))
         self.option_SciCounts.setObjectName("option_SciCounts")
         self.gridLayout_14.addWidget(self.option_SciCounts, 1, 1, 1, 1)
+
         self.value_CountPrecision = QtWidgets.QSpinBox(self.groupBox_2)
         self.value_CountPrecision.setMinimumSize(QtCore.QSize(55, 0))
         self.value_CountPrecision.setMaximumSize(QtCore.QSize(55, 16777215))
@@ -547,16 +633,115 @@ class Ui_MainWindow(object):
         self.value_CountPrecision.setProperty("value", 3)
         self.value_CountPrecision.setObjectName("value_CountPrecision")
         self.gridLayout_14.addWidget(self.value_CountPrecision, 2, 1, 1, 1)
+
         self.button_CountsReset = QtWidgets.QPushButton(self.groupBox_2)
         self.button_CountsReset.setObjectName("button_CountsReset")
         self.gridLayout_14.addWidget(self.button_CountsReset, 4, 0, 1, 2)
+
         self.gridLayout_12.addWidget(self.groupBox_2, 0, 2, 1, 1)
+
         self.cursors_Tabber.addTab(self.tab_Counts, "")
+
         self.horizontalLayout_5.addWidget(self.cursors_Tabber)
+
+####################################################################################
+# left-lower area tab4 : Autosave
+####################################################################################
+        self.tab_Auto = QtWidgets.QWidget()
+        self.tab_Auto.setObjectName("tab_Auto")
+        self.gridLayout_20 = QtWidgets.QGridLayout(self.tab_Auto)
+        self.gridLayout_20.setObjectName("gridLayout_20")
+        self.gridLayout_21 = QtWidgets.QGridLayout()
+        self.gridLayout_21.setObjectName("gridLayout_21")
+
+        self.histo_Label = QtWidgets.QLabel(self.tab_Auto)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.histo_Label.sizePolicy().hasHeightForWidth())
+        self.histo_Label.setSizePolicy(sizePolicy)
+        self.histo_Label.setMinimumSize(QtCore.QSize(120, 20))
+        self.histo_Label.setMaximumSize(QtCore.QSize(120, 20))
+        self.histo_Label.setObjectName("histo_Label")
+        self.gridLayout_21.addWidget(self.histo_Label, 1, 1, 1, 1)
+
+        self.histo_Time = QtWidgets.QLineEdit(self.tab_Auto)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.histo_Time.sizePolicy().hasHeightForWidth())
+        self.histo_Time.setSizePolicy(sizePolicy)
+        self.histo_Time.setMinimumSize(QtCore.QSize(200, 20))
+        self.histo_Time.setMaximumSize(QtCore.QSize(200, 20))
+        font = QtGui.QFont()
+        font.setPointSize(12)
+        self.histo_Time.setFont(font)
+        self.histo_Time.setObjectName("histo_Time")
+        self.gridLayout_21.addWidget(self.histo_Time, 1, 2, 1, 1)
+
+        self.elapsed_Label = QtWidgets.QLabel(self.tab_Auto)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.elapsed_Label.sizePolicy().hasHeightForWidth())
+        self.elapsed_Label.setSizePolicy(sizePolicy)
+        self.elapsed_Label.setMinimumSize(QtCore.QSize(120, 20))
+        self.elapsed_Label.setMaximumSize(QtCore.QSize(120, 20))
+        self.elapsed_Label.setObjectName("elapsed_Label")
+        self.gridLayout_21.addWidget(self.elapsed_Label, 2, 1, 1, 1)
+
+        self.elapsed_Time = QtWidgets.QLineEdit(self.tab_Auto)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.elapsed_Time.sizePolicy().hasHeightForWidth())
+        self.elapsed_Time.setSizePolicy(sizePolicy)
+        self.elapsed_Time.setMinimumSize(QtCore.QSize(200, 20))
+        self.elapsed_Time.setMaximumSize(QtCore.QSize(200, 20))
+        font = QtGui.QFont()
+        font.setPointSize(12)
+        self.elapsed_Time.setFont(font)
+        self.elapsed_Time.setObjectName("elapsed_Time")
+        self.gridLayout_21.addWidget(self.elapsed_Time, 2, 2, 1, 1)
+
+        self.output_Label = QtWidgets.QLabel(self.tab_Auto)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.output_Label.sizePolicy().hasHeightForWidth())
+        self.output_Label.setSizePolicy(sizePolicy)
+        self.output_Label.setMinimumSize(QtCore.QSize(120, 20))
+        self.output_Label.setMaximumSize(QtCore.QSize(120, 20))
+        self.output_Label.setObjectName("output_Label")
+        self.gridLayout_21.addWidget(self.output_Label, 3, 1, 1, 1)
+
+        self.output_File = QtWidgets.QLineEdit(self.tab_Auto)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.output_File.sizePolicy().hasHeightForWidth())
+        self.output_File.setSizePolicy(sizePolicy)
+        self.output_File.setMinimumSize(QtCore.QSize(200, 20))
+        self.output_File.setMaximumSize(QtCore.QSize(200, 20))
+#        font = QtGui.QFont()
+#        font.setPointSize(12)
+#        self.output_File.setFont(font)
+        self.output_File.setObjectName("output_File")
+        self.gridLayout_21.addWidget(self.output_File, 3, 2, 1, 1)
+
+        self.gridLayout_20.addLayout(self.gridLayout_21, 0, 1, 1, 1)
+        self.cursors_Tabber.addTab(self.tab_Auto, "")
+
+
         spacerItem2 = QtWidgets.QSpacerItem(243, 88, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
         self.horizontalLayout_5.addItem(spacerItem2)
         self.verticalLayout_7.addWidget(self.frame_3)
         self.gridLayout_2.addLayout(self.verticalLayout_7, 0, 0, 1, 1)
+
+
+####################################################################################
+# Right Column
+####################################################################################
         self.verticalLayout_6 = QtWidgets.QVBoxLayout()
         self.verticalLayout_6.setObjectName("verticalLayout_6")
         self.frame = QtWidgets.QFrame(self.centralwidget)
@@ -1012,6 +1197,12 @@ class Ui_MainWindow(object):
         self.option_SciCounts.setText(_translate("MainWindow", "scientific"))
         self.button_CountsReset.setText(_translate("MainWindow", "Reset History"))
         self.cursors_Tabber.setTabText(self.cursors_Tabber.indexOf(self.tab_Counts), _translate("MainWindow", "Counts"))
+        self.histo_Label.setText(_translate("MainWindow", "Histo. Time (s)"))
+        self.histo_Time.setText(_translate("MainWindow", "300"))
+        self.elapsed_Label.setText(_translate("MainWindow", "Elapsed Time (s)"))
+        self.elapsed_Time.setText(_translate("MainWindow", "0"))
+        self.output_Label.setText(_translate("MainWindow", "Output File"))
+        self.cursors_Tabber.setTabText(self.cursors_Tabber.indexOf(self.tab_Auto), _translate("MainWindow", "Autosave"))
         self.CFD0_Zerocross_Label.setText(_translate("MainWindow", "Zero Crossing (mV)"))
         self.CFD0_Level_Label.setText(_translate("MainWindow", "Discriminator (mV)"))
         self.sync_Divider_Label.setText(_translate("MainWindow", "Clock Divider"))

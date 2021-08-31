@@ -127,8 +127,8 @@ class MyWindow(QtWidgets.QMainWindow):
         self.count_History = collections.deque(maxlen=100000)
         self.detected_inis = []
         self.last_Warnings = ""
-        self.set_Histo_Time = ()
-        self.current_Time = ()
+#        self.set_Histo_Time = ()
+#        self.current_Time = ()
         self.Init_UI()
         # Init_UI has set up the normalize buttons, the last one is checked by
         # default, so this should be the initial state.
@@ -212,7 +212,9 @@ class MyWindow(QtWidgets.QMainWindow):
 
         self.ui.data_Filename.setText("save_filename.csv")
         self.ui.status.setText("Counting")
+        self.ui.output_File.setText(time.strftime("%Y-%m-%d-%H-%M-%S.csv", time.localtime()))
         self.Update_Settings_GUI()
+
 
 #        self.ui.set_Histo_Time.setText(f"{self.histo_Time}")
 #        self.ui.current_Time.setText("0")
@@ -757,6 +759,11 @@ class MyWindow(QtWidgets.QMainWindow):
             self.count_Mode = True
             self.acq_Thread.histogram_Paused = True
             self.cursors_On = False
+        elif tab_Number == 3:
+            self.deltas_On = self.pharppy_Config.sw_Setting.show_Deltas
+            self.integrals_On = False
+            self.count_Mode = False
+            self.acq_thread.histogram_Paused = False
         # Something's gone very awry.
         else:
             pass
