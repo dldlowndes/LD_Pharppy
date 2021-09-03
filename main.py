@@ -805,6 +805,9 @@ class MyWindow(QtWidgets.QMainWindow):
         if filename is None:
             filename = self.ui.data_Filename.text()
 
+        directory = os.path.dirname(filename)
+        if not os.path.exists(directory):
+            os.makedirs(directory)
 
         # Zip the bins and counts together into a structured array so the
         # bins get output as floats and the counts as ints.
