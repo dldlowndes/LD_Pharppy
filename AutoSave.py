@@ -21,9 +21,8 @@ class AutoSave(QtCore.QObject):
         self.histo_Time = 0
         self.elapsed_Time = 0
         self.s1 = None
-        self.s2 = None
-        self.s1_Event = None
-        self.s2_Event = None
+        self.event1 = None
+        self.event2 = None
         self.s1 = sched.scheduler(time.time, time.sleep)
         self.s2 = sched.scheduler(time.time, time.sleep)
 
@@ -44,10 +43,8 @@ class AutoSave(QtCore.QObject):
         self.event2 = self.s1.enter(1, 1, self.update_Seconds)
 
         self.s1.run()
-#        self.s2.run()
 
     def update_Seconds(self):
-#        print(f"update_Seconds - elapsed_Time : {self.elapsed_Time}")
         self.elapsed_Time += 1
         self.mainWindow.ui.elapsed_Time.setText(f"{self.elapsed_Time}")
         self.event2 = self.s1.enter(1, 1, self.update_Seconds)
@@ -55,8 +52,6 @@ class AutoSave(QtCore.QObject):
     def auto_Save(self):
         # Set the file name as current time in folder named by current date
         filename = time.strftime("%Y-%m-%d/%H-%M-%S.csv", time.localtime())
-        # self.ui.output_File.text()
-        print(f"auto_save excuted, histo_Time is {self.histo_Time}")
         self.mainWindow.ui.output_File.setText(filename)
         self.mainWindow.on_Save_Histo(filename)
         self.elapsed_Time = 0

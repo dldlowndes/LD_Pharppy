@@ -15,6 +15,7 @@ TODO list:
     cursor clicks with no data cause an exception)
     - Consider interpreting warning codes manually so unwanted warnings can
     be masked out.
+    - (Ahreum) Check on_Clear_Histogram function if it correctly initialize everything.
   Med:
     - Curve fitting (choose function - not just gaussian).
     - BUG: Integral bars only show when x=0 is visible on axis! (what.)
@@ -207,7 +208,7 @@ class MyWindow(QtWidgets.QMainWindow):
 
         self.ui.data_Filename.setText("save_filename.csv")
         self.ui.status.setText("Counting")
-        self.ui.histo_Time.setText("10")
+        self.ui.histo_Time.setText("300") # Here we hard-coded the default histo_Time. This can be changed in gui.
         self.Update_Settings_GUI()
 
 
@@ -800,11 +801,11 @@ class MyWindow(QtWidgets.QMainWindow):
         This actually still works when histogramming is running but obviously
         there won't be certainty as to exactly what the histogram looks like.
         """
-#        # Read the filename box from the UI.
-#        filename = self.ui.data_Filename.text()
         if filename is None:
+            # Read the filename box from the UI.
             filename = self.ui.data_Filename.text()
 
+        # If there's no such file with the filename, make it.
         directory = os.path.dirname(filename)
         if not os.path.exists(directory):
             os.makedirs(directory)
@@ -984,8 +985,6 @@ class MyWindow(QtWidgets.QMainWindow):
         self.n_Counts = 0
         self.no_Data = True
 
-
-
     def on_Clear_Intervals(self):
         """
         Clear the interval cursors from the plot.
@@ -1108,14 +1107,18 @@ class MyWindow(QtWidgets.QMainWindow):
         self.autoSaveWorker = AutoSave.AutoSave(self)
         self.autoSaveThread = QtCore.QThread()
         self.autoSaveWorker.moveToThread(self.autoSaveThread)
-        # Connect auto-save thread events to functions
+
+        # Connect autosave thread events to functions
         self.autoSaveThread.started.connect(self.autoSaveWorker.run)
         self.autoSaveWorker.finished.connect(self.autoSaveThread.quit)
         self.autoSaveWorker.finished.connect(self.autoSaveWorker.deleteLater)
         self.autoSaveThread.finished.connect(self.autoSaveThread.deleteLater)
 
+        # Start autosave thread
         self.autoSaveThread.start()
 
+        # Disable the autostart button while this thread is running,
+        # and Enable it again upon finishing the thread.
         self.ui.button_AutoStart.setEnabled(False)
         self.autoSaveThread.finished.connect(
             lambda: self.ui.button_AutoStart.setEnabled(True)
@@ -1123,9 +1126,7 @@ class MyWindow(QtWidgets.QMainWindow):
 
     def autoStop(self):
         if self.autoSaveWorker:
-            self.logger.debug("autoStop excuted 1")
             self.autoSaveWorker.stop()
-            self.logger.debug("autoStop excuted 2")
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication([])
