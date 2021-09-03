@@ -40,13 +40,15 @@ import itertools
 import logging
 import os
 import sys
-import time # for counting time
+#import time # for counting time
+#import sched
 
 import numpy as np
 from PyQt5 import QtWidgets, QtCore, QtGui
 import pyqtgraph
 import qdarkstyle
 
+import AutoSave
 import acq_Thread
 import graph_Markers
 import settings_gui
@@ -74,11 +76,6 @@ class MyWindow(QtWidgets.QMainWindow):
         # undefined state) - used to plot the cursors so the plot doesn't go
         # weird in the absence of data.
         self.no_Data = True
-
-        # Histogram time
-        self.start_Time = 0
-        self.end_Time = 0
-        self.histo_Time = 300 # in seconds
 
         # Number of DPs to round counts data to.
         self.count_Precision = 3
@@ -127,8 +124,6 @@ class MyWindow(QtWidgets.QMainWindow):
         self.count_History = collections.deque(maxlen=100000)
         self.detected_inis = []
         self.last_Warnings = ""
-#        self.set_Histo_Time = ()
-#        self.current_Time = ()
         self.Init_UI()
         # Init_UI has set up the normalize buttons, the last one is checked by
         # default, so this should be the initial state.
@@ -212,12 +207,10 @@ class MyWindow(QtWidgets.QMainWindow):
 
         self.ui.data_Filename.setText("save_filename.csv")
         self.ui.status.setText("Counting")
-        self.ui.output_File.setText(time.strftime("%Y-%m-%d-%H-%M-%S.csv", time.localtime()))
+        self.ui.histo_Time.setText("10")
         self.Update_Settings_GUI()
 
 
-#        self.ui.set_Histo_Time.setText(f"{self.histo_Time}")
-#        self.ui.current_Time.setText("0")
 
         self.cursors_On = self.ui.option_Cursor.isChecked()
         self.deltas_On = self.ui.option_Deltas.isChecked()
@@ -234,6 +227,8 @@ class MyWindow(QtWidgets.QMainWindow):
         self.ui.counts_Ch1_Big.setStyleSheet("color: green")
 
         # Connect UI elements to functions
+        self.ui.button_AutoStart.clicked.connect(self.autoStart)
+        self.ui.button_AutoStop.clicked.connect(self.autoStop)
         self.ui.button_ApplySettings.clicked.connect(self.Push_Settings_To_HW)
         self.ui.button_Defaults.clicked.connect(self.Apply_Default_Settings)
         self.ui.button_StartStop.clicked.connect(self.start_Stop)
@@ -743,6 +738,7 @@ class MyWindow(QtWidgets.QMainWindow):
             self.integrals_On = False
             self.count_Mode = False
             self.acq_Thread.histogram_Paused = False
+            self.autoStop()
             # enable xy cursor if the GUI element wants them
             self.on_Cursor_Button()
         # Tab 1 is integrals mode
@@ -751,19 +747,21 @@ class MyWindow(QtWidgets.QMainWindow):
             self.integrals_On = True
             self.count_Mode = False
             self.acq_Thread.histogram_Paused = False
+            self.autoStop()
             # enable xy cursor if the GUI element wants them
-            self.on_Cursor_Button()
         elif tab_Number == 2:
             self.deltas_On = False
             self.integrals_On = False
             self.count_Mode = True
             self.acq_Thread.histogram_Paused = True
             self.cursors_On = False
+            self.autoStop()
         elif tab_Number == 3:
-            self.deltas_On = self.pharppy_Config.sw_Setting.show_Deltas
+            self.deltas_On = self.pharppy_Config.sw_Settings.show_Deltas
             self.integrals_On = False
             self.count_Mode = False
-            self.acq_thread.histogram_Paused = False
+            self.acq_Thread.histogram_Paused = False
+            self.cursors_On = False
         # Something's gone very awry.
         else:
             pass
@@ -797,17 +795,20 @@ class MyWindow(QtWidgets.QMainWindow):
                     # Remember which button it was that was checked.
                     self.normalize_This = i
 
-    def on_Save_Histo(self):
+    def on_Save_Histo(self, filename):
         """
         This actually still works when histogramming is running but obviously
         there won't be certainty as to exactly what the histogram looks like.
         """
-        # Read the filename box from the UI.
-        filename = self.ui.data_Filename.text()
+#        # Read the filename box from the UI.
+#        filename = self.ui.data_Filename.text()
+        if filename is None:
+            filename = self.ui.data_Filename.text()
+
 
         # Zip the bins and counts together into a structured array so the
         # bins get output as floats and the counts as ints.
-        my_Type = [("Bin", np.float), ("Count", np.int)]
+        my_Type = [("Bin", float), ("Count", int)]
         out_Histo = np.empty(self.last_Histogram.shape, dtype=my_Type)
         out_Histo["Bin"] = self.last_X_Data
         out_Histo["Count"] = self.last_Histogram
@@ -971,6 +972,17 @@ class MyWindow(QtWidgets.QMainWindow):
         self.logger.debug("Clear histogram")
         self.ui.graph_Widget.plotItem.clear()
 
+        """
+        Delete the data as well!
+        """
+        self.this_Data = np.zeros(65536)
+        self.last_Histogram = np.zeros(65536)
+        self.x_Data = np.zeros(65536)
+        self.n_Counts = 0
+        self.no_Data = True
+
+
+
     def on_Clear_Intervals(self):
         """
         Clear the interval cursors from the plot.
@@ -1087,6 +1099,30 @@ class MyWindow(QtWidgets.QMainWindow):
             for cursor in self.integral_Cursors:
                 cursor.Remove_Bars()
                 cursor.Add_Bars()
+
+    def autoStart(self):
+        # Make the autosave worker and put it in a separate thread.
+        self.autoSaveWorker = AutoSave.AutoSave(self)
+        self.autoSaveThread = QtCore.QThread()
+        self.autoSaveWorker.moveToThread(self.autoSaveThread)
+        # Connect auto-save thread events to functions
+        self.autoSaveThread.started.connect(self.autoSaveWorker.run)
+        self.autoSaveWorker.finished.connect(self.autoSaveThread.quit)
+        self.autoSaveWorker.finished.connect(self.autoSaveWorker.deleteLater)
+        self.autoSaveThread.finished.connect(self.autoSaveThread.deleteLater)
+
+        self.autoSaveThread.start()
+
+        self.ui.button_AutoStart.setEnabled(False)
+        self.autoSaveThread.finished.connect(
+            lambda: self.ui.button_AutoStart.setEnabled(True)
+        )
+
+    def autoStop(self):
+        if self.autoSaveWorker:
+            self.logger.debug("autoStop excuted 1")
+            self.autoSaveWorker.stop()
+            self.logger.debug("autoStop excuted 2")
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication([])
