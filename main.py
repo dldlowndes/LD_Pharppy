@@ -24,6 +24,7 @@ TODO list:
     respectively
     - Two y axes for counts mode (hard in pyqtplot)
     - Investigate getting this to work with other hardware...
+    - (Ahreum) Bug: the program stops when several autoSave cycle is done. Probably it's running out of resource?
 """
 
 # Quieten pylint recommendations
@@ -125,6 +126,8 @@ class MyWindow(QtWidgets.QMainWindow):
         self.count_History = collections.deque(maxlen=100000)
         self.detected_inis = []
         self.last_Warnings = ""
+        self.autoSaveWorker = None
+        self.autoSaveThread = None
         self.Init_UI()
         # Init_UI has set up the normalize buttons, the last one is checked by
         # default, so this should be the initial state.
@@ -206,9 +209,9 @@ class MyWindow(QtWidgets.QMainWindow):
             self.ui.resolution.addItem(f"{res}")
         self.ui.resolution.setCurrentText("self.my_Pharp.base_Resolution")
 
-        self.ui.data_Filename.setText("save_filename.csv")
+        self.ui.data_Filename.setText("data/picoharp300.csv")
         self.ui.status.setText("Counting")
-        self.ui.histo_Time.setText("300") # Here we hard-coded the default histo_Time. This can be changed in gui.
+        self.ui.histoTime.setText("300") # Here we hard-coded the default histoTime. This can be changed in gui.
         self.Update_Settings_GUI()
 
 
@@ -305,6 +308,7 @@ class MyWindow(QtWidgets.QMainWindow):
                         65536 * self.my_Pharp.resolution,
                         self.my_Pharp.resolution
                         ) / 1e12
+        print(f"Init_Plot: {self.x_Data[-1]}")
 
         # Modify the plot window
         self.ui.graph_Widget.plotItem.setLabel("left", "Counts")
@@ -401,6 +405,7 @@ class MyWindow(QtWidgets.QMainWindow):
                                 65536 * self.my_Pharp.resolution,
                                 self.my_Pharp.resolution
                                 ) * 1e-12
+        print(f"Push_Settings_To_HW: {self.x_Data[-1]}")
 
         # Let the cursors know the resolution has been updated (since the
         # data->bin mapping depends on resolution)
@@ -538,7 +543,7 @@ class MyWindow(QtWidgets.QMainWindow):
         self.on_Clear_Histogram()
         self.ui.status.setText("Histogramming")
         self.acq_Thread.histogram_Active = True
-        self.start_Time = time.time()
+        # self.start_Time = time.time()
         # self.ui.button_ApplySettings.setEnabled(False)
         # self.ui.button_Defaults.setEnabled(False)
         # self.ui.button_LoadSettings.setEnabled(False)
@@ -638,7 +643,13 @@ class MyWindow(QtWidgets.QMainWindow):
         # then there will just be empty bins at the end of the histogram array.
         # Look from the END of the array and find the index of the first non
         # empty bin you find.
-        last_Full_Bin = histogram_Data.nonzero()[0][-1]
+        #last_Full_Bin = histogram_Data.nonzero()[0][-1]
+        #print(f"last_Full_Bin: {last_Full_Bin}")
+        last_Full_Bin = 1953
+        self.x_Data = np.arange(0,
+                        65536 * self.my_Pharp.resolution,
+                        self.my_Pharp.resolution
+                        ) / 1e12
 
         # Trim the histogram and labels so the empty bins (that will never
         # fill) are not plotted. Then plot them.
@@ -801,13 +812,13 @@ class MyWindow(QtWidgets.QMainWindow):
         This actually still works when histogramming is running but obviously
         there won't be certainty as to exactly what the histogram looks like.
         """
-        if filename is None:
+        if filename is False or filename is None:
             # Read the filename box from the UI.
             filename = self.ui.data_Filename.text()
 
         # If there's no such file with the filename, make it.
         directory = os.path.dirname(filename)
-        if not os.path.exists(directory):
+        if not os.path.exists(directory) and directory:
             os.makedirs(directory)
 
         # Zip the bins and counts together into a structured array so the
@@ -981,9 +992,11 @@ class MyWindow(QtWidgets.QMainWindow):
         """
         self.this_Data = np.zeros(65536)
         self.last_Histogram = np.zeros(65536)
+        self.last_X_Data = None
         self.x_Data = np.zeros(65536)
+        self.count_History.clear()
         self.n_Counts = 0
-        self.no_Data = True
+#        self.no_Data = True
 
     def on_Clear_Intervals(self):
         """
