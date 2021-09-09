@@ -64,8 +64,14 @@ class AutoSave(QtCore.QObject):
         self.mainWindow.ui.elapsedTime.setText(f"{self.elapsedTime}")
 
     def autoSave(self):
+        # Enter next autosave event
         self.event1 = self.s1.enter(self.histoTime, 2, self.autoSave)
 
+        # Make directory named by current date
+        filename = time.strftime("%Y-%m-%d/", time.localtime())
+        # Communicate with exp-control program and get the filename according to the previous parameters
+        filename += self.toggleMOT()
+        """
         # Set the file name as current time in folder named by current date
         filename = time.strftime("%Y-%m-%d/", time.localtime())
         filename += str(self.currentFreq) + "_MHz_"
@@ -73,14 +79,12 @@ class AutoSave(QtCore.QObject):
             filename += "MOT_on.csv"
         elif self.MOTCount == 1:
             filename += "MOT_off.csv"
+        """
         self.mainWindow.ui.output_File.setText(filename)
         self.mainWindow.on_Save_Histo(filename)
-
-
         self.mainWindow.on_Clear_Histogram()
         self.elapsedTime = 0
 
-        self.toggleMOT()
         if self.MOTCount == 2:
             if self.currentFreq < self.freqEnd:
                 self.MOTCount = 0
@@ -122,8 +126,10 @@ class AutoSave(QtCore.QObject):
             self.socket.send_string("MOT_on.csv")
 
         #  Get the reply.
-        message = socket.recv()
+        message = socket.recv().decode('utf-8')
         print(f"Received reply {request} [ {message} ]")
+
+        return message
 
     def writeCommunication(self, filename = 'communication.csv'):
         with open(filename, 'w') as f:
