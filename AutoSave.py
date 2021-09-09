@@ -4,12 +4,12 @@ import driver
 from PyQt5 import QtCore
 import numpy as np
 import csv
-
+import zmq
 
 
 class AutoSave(QtCore.QObject):
     """
-    Thread to update time and automatically save the data.
+    Worker to update time and automatically save the data.
     """
 
     # Signals to carry the collected data out of the thread.
@@ -39,6 +39,11 @@ class AutoSave(QtCore.QObject):
 
         self.mainWindow = mainWindow
         self.histoTime = self.mainWindow.ui.histoTime.text()
+        self.context = zmq.Context()
+        #  Socket to talk to server
+        print("Connecting to hello world server...")
+        self.socket = self.context.socket(zmq.REQ)
+        self.socket.connect("tcp://localhost:5555")
 
 
     def run(self):
@@ -96,6 +101,7 @@ class AutoSave(QtCore.QObject):
         self.finished.emit()
 
     def toggleMOT(self):
+        """
         self.MOTCount += 1
         if self.MOTCount == 1:
             # Now MOT should be turned off.
@@ -104,6 +110,20 @@ class AutoSave(QtCore.QObject):
             # Now MOT should be turned on.
             self.communication.update({'sequenceName': 'MOT_on.csv'})
         self.writeCommunication()
+        """
+
+        self.MOTCount += 1
+        print(f"Sending request {request} ...")
+        if self.MOTCount == 1:
+            # Now MOT should be turned off.
+            self.socket.send_string("MOT_off.csv")
+        elif self.MOTCount == 2:
+            # Now MOT should be turned on.
+            self.socket.send_string("MOT_on.csv")
+
+        #  Get the reply.
+        message = socket.recv()
+        print(f"Received reply {request} [ {message} ]")
 
     def writeCommunication(self, filename = 'communication.csv'):
         with open(filename, 'w') as f:
