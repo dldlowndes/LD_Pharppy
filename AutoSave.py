@@ -117,7 +117,6 @@ class AutoSave(QtCore.QObject):
         """
 
         self.MOTCount += 1
-        print(f"Sending request {request} ...")
         if self.MOTCount == 1:
             # Now MOT should be turned off.
             self.socket.send_string("MOT_off.csv")
@@ -126,8 +125,8 @@ class AutoSave(QtCore.QObject):
             self.socket.send_string("MOT_on.csv")
 
         #  Get the reply.
-        message = socket.recv().decode('utf-8')
-        print(f"Received reply {request} [ {message} ]")
+        message = self.socket.recv().decode('utf-8')
+        print(f"Received reply [ {message} ]")
 
         return message
 
