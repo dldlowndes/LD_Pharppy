@@ -1,6 +1,5 @@
 import time
 import sched
-import driver
 from PyQt5 import QtCore
 import numpy as np
 import csv
@@ -24,30 +23,20 @@ class AutoSave(QtCore.QObject):
         self.event1 = None
         self.event2 = None
 
-        self.communication = {}
-        self.MOTCount = 0 # MOT is on when MOTCount is even, and MOT is off when MOTCount is odd.
-        self.port = 'COM4'
-        self.ch = 0
-        self.freqStart = 86.0
-        self.freqEnd = 96
-        self.freqStep = 0.5
-        self.freq = np.arange(self.freqStart, self.freqEnd, self.freqStep).tolist()
-        self.currentFreq = self.freqStart
-
-        self.dev = driver.Novatech409B(self.port)
-        self.dev.set_freq(self.ch, self.currentFreq)
 
         self.mainWindow = mainWindow
         self.histoTime = self.mainWindow.ui.histoTime.text()
         self.context = zmq.Context()
         #  Socket to talk to server
-        print("Connecting to hello world server...")
+        print("Connecting to exp-control server...")
         self.socket = self.context.socket(zmq.REQ)
         self.socket.connect("tcp://localhost:5555")
 
+        self.isLast = False
 
     def run(self):
         # Clear the data and reset the time to zero
+        self.isLast = False
         self.mainWindow.on_Clear_Histogram()
         self.elapsedTime = 0
         self.histoTime = int(self.mainWindow.ui.histoTime.text())
@@ -64,74 +53,44 @@ class AutoSave(QtCore.QObject):
         self.mainWindow.ui.elapsedTime.setText(f"{self.elapsedTime}")
 
     def autoSave(self):
-        # Enter next autosave event
-        self.event1 = self.s1.enter(self.histoTime, 2, self.autoSave)
 
         # Make directory named by current date
-        filename = time.strftime("%Y-%m-%d/", time.localtime())
+        # filename = time.strftime("%Y-%m-%d/", time.localtime())
         # Communicate with exp-control program and get the filename according to the previous parameters
-        filename += self.toggleMOT()
-        """
-        # Set the file name as current time in folder named by current date
-        filename = time.strftime("%Y-%m-%d/", time.localtime())
-        filename += str(self.currentFreq) + "_MHz_"
-        if self.MOTCount == 0:
-            filename += "MOT_on.csv"
-        elif self.MOTCount == 1:
-            filename += "MOT_off.csv"
-        """
+        filename = self.send_and_receive()
         self.mainWindow.ui.output_File.setText(filename)
         self.mainWindow.on_Save_Histo(filename)
-        self.mainWindow.on_Clear_Histogram()
-        self.elapsedTime = 0
 
-        if self.MOTCount == 2:
-            if self.currentFreq < self.freqEnd:
-                self.MOTCount = 0
-                self.currentFreq += self.freqStep
-                self.dev.set_freq(self.ch, self.currentFreq)
-            elif self.currentFreq == self.freqEnd:
-                self.stop()
+        if self.isLast:
+            self.stop()
+            return
+            
+        time.sleep(2) # Wait for two seconds to give some time to exp-control for pausing, updating, and restarting.
+        self.mainWindow.on_Clear_Histogram() # clear and restart histogramming
+        self.event1 = self.s1.enter(self.histoTime, 2, self.autoSave) # Enter next autosave event
+        self.elapsedTime = 0
 
 
     def stop(self):
         if self.s1 and not self.s1.empty():
-            if self.event1:
+            if self.event1 and self.event1 in self.s1.queue:
                 self.s1.cancel(self.event1)
                 self.event1 = None
-            if self.event2:
+            if self.event2 and self.event2 in self.s1.queue:
                 self.s1.cancel(self.event2)
                 self.event2 = None
         self.finished.emit()
 
-    def toggleMOT(self):
-        """
-        self.MOTCount += 1
-        if self.MOTCount == 1:
-            # Now MOT should be turned off.
-            self.communication.update({'sequenceName': 'MOT_off.csv'})
-        elif self.MOTCount == 2:
-            # Now MOT should be turned on.
-            self.communication.update({'sequenceName': 'MOT_on.csv'})
-        self.writeCommunication()
-        """
+    def send_and_receive(self):
 
-        self.MOTCount += 1
-        if self.MOTCount == 1:
-            # Now MOT should be turned off.
-            self.socket.send_string("MOT_off.csv")
-        elif self.MOTCount == 2:
-            # Now MOT should be turned on.
-            self.socket.send_string("MOT_on.csv")
-
-        #  Get the reply.
+        # Send dummy message
+        self.socket.send_string("pico-control: dummy message...")
+        # Get the reply.
         message = self.socket.recv().decode('utf-8')
+        pair = message.split(',')
+        if len(pair) > 1:
+            if pair[1] == 'end':
+                self.isLast = True
         print(f"Received reply [ {message} ]")
 
-        return message
-
-    def writeCommunication(self, filename = 'communication.csv'):
-        with open(filename, 'w') as f:
-            w = csv.writer(f)
-            for k,v in self.communication.items():
-                w.writerow([k,v])
+        return pair[0]

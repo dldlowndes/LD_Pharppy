@@ -233,6 +233,7 @@ class MyWindow(QtWidgets.QMainWindow):
         # Connect UI elements to functions
         self.ui.button_AutoStart.clicked.connect(self.autoStart)
         self.ui.button_AutoStop.clicked.connect(self.autoStop)
+        self.ui.button_AutoStop.setEnabled(False)
         self.ui.button_ApplySettings.clicked.connect(self.Push_Settings_To_HW)
         self.ui.button_Defaults.clicked.connect(self.Apply_Default_Settings)
         self.ui.button_StartStop.clicked.connect(self.start_Stop)
@@ -821,6 +822,14 @@ class MyWindow(QtWidgets.QMainWindow):
         if not os.path.exists(directory) and directory:
             os.makedirs(directory)
 
+        # rescan the folder for existing files before enforcing that the
+        # filename can't clash with an existing one.
+        self.detected_files = [x for x in os.listdir(directory) if x.endswith(".csv")]
+        # prevent accidental overwriting of previous ini files
+        if filename in self.detected_files:
+            self.logger.error("Data file name exists")
+            raise ValueError
+
         # Zip the bins and counts together into a structured array so the
         # bins get output as floats and the counts as ints.
         my_Type = [("Bin", float), ("Count", int)]
@@ -1133,6 +1142,7 @@ class MyWindow(QtWidgets.QMainWindow):
         # Disable the autostart button while this thread is running,
         # and Enable it again upon finishing the thread.
         self.ui.button_AutoStart.setEnabled(False)
+        self.ui.button_AutoStop.setEnabled(True)
         self.autoSaveThread.finished.connect(
             lambda: self.ui.button_AutoStart.setEnabled(True)
         )
