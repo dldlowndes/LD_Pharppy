@@ -20,6 +20,11 @@ class Ui_MainWindow(object):
         self.centralwidget.setObjectName("centralwidget")
         self.gridLayout_2 = QtWidgets.QGridLayout(self.centralwidget)
         self.gridLayout_2.setObjectName("gridLayout_2")
+
+####################################################################################
+# left column
+####################################################################################
+
         self.verticalLayout_7 = QtWidgets.QVBoxLayout()
         self.verticalLayout_7.setObjectName("verticalLayout_7")
 
@@ -756,6 +761,7 @@ class Ui_MainWindow(object):
 ####################################################################################
         self.verticalLayout_6 = QtWidgets.QVBoxLayout()
         self.verticalLayout_6.setObjectName("verticalLayout_6")
+
         self.frame = QtWidgets.QFrame(self.centralwidget)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
@@ -772,6 +778,7 @@ class Ui_MainWindow(object):
         self.frame.setObjectName("frame")
         self.verticalLayout_4 = QtWidgets.QVBoxLayout(self.frame)
         self.verticalLayout_4.setObjectName("verticalLayout_4")
+
         self.tabWidget = QtWidgets.QTabWidget(self.frame)
         self.tabWidget.setMinimumSize(QtCore.QSize(260, 160))
         self.tabWidget.setMaximumSize(QtCore.QSize(260, 140))
@@ -907,6 +914,7 @@ class Ui_MainWindow(object):
         self.gridLayout_7.addWidget(self.CFD1_Level, 1, 1, 1, 1)
         self.tabWidget.addTab(self.tab_2, "")
         self.verticalLayout_4.addWidget(self.tabWidget)
+
         self.general_Box = QtWidgets.QGroupBox(self.frame)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
@@ -919,6 +927,7 @@ class Ui_MainWindow(object):
         font.setPointSize(10)
         self.general_Box.setFont(font)
         self.general_Box.setObjectName("general_Box")
+
         self.verticalLayout = QtWidgets.QVBoxLayout(self.general_Box)
         self.verticalLayout.setObjectName("verticalLayout")
         self.general_Layout = QtWidgets.QGridLayout()
@@ -939,6 +948,7 @@ class Ui_MainWindow(object):
         self.general_Layout.addWidget(self.resolution, 0, 1, 1, 1)
         self.verticalLayout.addLayout(self.general_Layout)
         self.verticalLayout_4.addWidget(self.general_Box)
+
         self.histogram_Box = QtWidgets.QGroupBox(self.frame)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
@@ -955,32 +965,40 @@ class Ui_MainWindow(object):
         self.gridLayout.setObjectName("gridLayout")
         self.gridLayout_5 = QtWidgets.QGridLayout()
         self.gridLayout_5.setObjectName("gridLayout_5")
+
         self.button_SaveHisto = QtWidgets.QPushButton(self.histogram_Box)
         self.button_SaveHisto.setMaximumSize(QtCore.QSize(16777215, 25))
         self.button_SaveHisto.setObjectName("button_SaveHisto")
         self.gridLayout_5.addWidget(self.button_SaveHisto, 3, 1, 1, 1)
+
         self.data_Filename = QtWidgets.QLineEdit(self.histogram_Box)
         self.data_Filename.setObjectName("data_Filename")
         self.gridLayout_5.addWidget(self.data_Filename, 2, 1, 1, 1)
+
         self.filename_Label = QtWidgets.QLabel(self.histogram_Box)
         self.filename_Label.setObjectName("filename_Label")
         self.gridLayout_5.addWidget(self.filename_Label, 2, 0, 1, 1)
+
         self.button_ClearHistogram = QtWidgets.QPushButton(self.histogram_Box)
         self.button_ClearHistogram.setMaximumSize(QtCore.QSize(16777215, 30))
         self.button_ClearHistogram.setObjectName("button_ClearHistogram")
         self.gridLayout_5.addWidget(self.button_ClearHistogram, 3, 0, 1, 1)
+
         self.option_Cumulative = QtWidgets.QCheckBox(self.histogram_Box)
         self.option_Cumulative.setObjectName("option_Cumulative")
         self.gridLayout_5.addWidget(self.option_Cumulative, 0, 0, 1, 1)
+
         self.button_AutoRange = QtWidgets.QPushButton(self.histogram_Box)
         self.button_AutoRange.setMaximumSize(QtCore.QSize(16777215, 25))
         self.button_AutoRange.setObjectName("button_AutoRange")
         self.gridLayout_5.addWidget(self.button_AutoRange, 0, 1, 1, 1)
+
         self.option_LogY = QtWidgets.QCheckBox(self.histogram_Box)
         self.option_LogY.setObjectName("option_LogY")
         self.gridLayout_5.addWidget(self.option_LogY, 1, 0, 1, 1)
         self.gridLayout.addLayout(self.gridLayout_5, 0, 0, 1, 1)
         self.verticalLayout_4.addWidget(self.histogram_Box)
+
         self.groupBox = QtWidgets.QGroupBox(self.frame)
         self.groupBox.setMinimumSize(QtCore.QSize(260, 120))
         self.groupBox.setMaximumSize(QtCore.QSize(260, 120))
@@ -1162,7 +1180,9 @@ class Ui_MainWindow(object):
         self.label_171.setWordWrap(False)
         self.label_171.setObjectName("label_171")
         self.verticalLayout_6.addWidget(self.label_171)
+
         self.gridLayout_2.addLayout(self.verticalLayout_6, 0, 1, 1, 1)
+
         MainWindow.setCentralWidget(self.centralwidget)
 
         self.retranslateUi(MainWindow)
