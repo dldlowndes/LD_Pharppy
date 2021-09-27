@@ -16,14 +16,14 @@ class Hardware_Settings():
     in to the functions defined in phlib. (although the binning, and acq_Time
     effect the GUI functionality indirectly)
     """
-    
+
     def __init__(self):
         """
         Set some super safe factory defaults, defining them in the code means
         that they can be used as a complete fallback if no ini files can be
         found anywhere.
         """
-        
+
         # Defaults
         self._binning = 0
         self._sync_Offset = 0
@@ -133,14 +133,14 @@ class Software_Settings():
     Settings that influence the GUI, the hardware is totally unaware of these
     values.
     """
-    
+
     def __init__(self):
         """
         Set some super safe factory defaults, defining them in the code means
         that they can be used as a complete fallback if no ini files can be
         found anywhere.
         """
-        
+
         # Defaults
         self._show_Cursor = True
         self._show_Deltas = True
@@ -148,6 +148,7 @@ class Software_Settings():
         self._integral_Width = 5e-9
         self._cumulative_Mode = False
         self._log_Y = False
+        self._max_t = 1000
 
     def to_Dict(self):
         """
@@ -158,10 +159,11 @@ class Software_Settings():
                   "Show Bars": str(self.show_Bars),
                   "Integral Width": str(self.integral_Width),
                   "Cumulative Mode": str(self._cumulative_Mode),
-                  "Log Y": str(self._log_Y)
+                  "Log Y": str(self._log_Y),
+                  "Max Time": str(self._max_t)
                   }
         return config
-    
+
     def __repr__(self):
         """
         Dictionary converted to a string is probably the laziest way of doing
@@ -196,15 +198,15 @@ class Software_Settings():
     @property
     def integral_Width(self):
         return self._integral_Width
-    
+
     @integral_Width.setter
     def integral_Width(self, value):
         self._integral_Width = float(value)
-        
+
     @property
     def cumulative_Mode(self):
         return self._cumulative_Mode
-    
+
     @cumulative_Mode.setter
     def cumulative_Mode(self, value):
         self._cumulative_Mode = bool(distutils.util.strtobool(value))
@@ -212,10 +214,18 @@ class Software_Settings():
     @property
     def log_Y(self):
         return self._log_Y
-    
+
     @log_Y.setter
     def log_Y(self, value):
         self._log_Y = bool(distutils.util.strtobool(value))
+
+    @property
+    def max_t(self):
+        return self._max_t
+
+    @max_t.setter
+    def max_t(self, value):
+        self._max_t = float(value)
 
 
 class LD_Pharp_Config():
@@ -224,14 +234,14 @@ class LD_Pharp_Config():
     handled as a single object (since, to an end user, all the settings
     equally effect the experience of using this program)
     """
-    
+
     def __init__(self, config_File=None):
         """
         Hardware_Settings and Software_Settings are initted with default
         values in their initializers. If config_File is supplied, the ini is
         read and the values are updated in this initializer.
         """
-        
+
         self.hw_Settings = Hardware_Settings()
         self.sw_Settings = Software_Settings()
 
@@ -244,16 +254,16 @@ class LD_Pharp_Config():
         dicts, this can be used to get the settings back into a format that
         configparser understands.
         """
-        
+
         # Separate dicts of the component parts
         hw = self.hw_Settings.to_Dict()
         sw = self.sw_Settings.to_Dict()
-        
+
         # Dict of both together. Keys here mirror the section titles in the
         # ini files.
         my_Dict = {
             "Hardware Settings": hw,
-            "Software Settings": sw            
+            "Software Settings": sw
             }
         return my_Dict
 
@@ -263,14 +273,14 @@ class LD_Pharp_Config():
         this but it's effective and clear.
         """
         return str(self.to_Dict())
-    
+
     def Load_From_File(self, path):
         """
         Load an ini from file and populate the values in Hardware_Settings and
         Software_Settings, they are read as strings which is why the properties
         in the settings classes all have setters.
         """
-        
+
         config = configparser.ConfigParser()
         config.read(path)
         #print(f"Read config file from {path}")
@@ -294,6 +304,7 @@ class LD_Pharp_Config():
         self.sw_Settings.integral_Width = sw_Settings["Integral Width"]
         self.sw_Settings.cumulative_Mode = sw_Settings["Cumulative Mode"]
         self.sw_Settings.log_Y = sw_Settings["Log Y"]
+        self.sw_Settings.max_t = sw_Settings["max time"]
 
 
     def Save_To_File(self, path):

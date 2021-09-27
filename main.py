@@ -91,11 +91,14 @@ class MyWindow(QtWidgets.QMainWindow):
             )
 
         # Define hardware info members, then init them (and the hardware)
+        self.last_Full_Bin = 65536
         self.my_Pharp = None
         self.allowed_Resolutions = None
-        self.this_Data = np.zeros(65536)
-        self.last_Histogram = np.zeros(65536)
-        self.x_Data = np.zeros(65536)
+        self.this_Data = np.zeros(self.last_Full_Bin)
+        self.last_Histogram = np.zeros(self.last_Full_Bin)
+        self.x_Data = np.zeros(self.last_Full_Bin)
+        """self.binning = 0
+        self.resolution = 4"""
 
         # LD_Pharp_Config inits with some sensible defaults
         self.pharppy_Config = LD_Pharp_Config.LD_Pharp_Config()
@@ -204,15 +207,15 @@ class MyWindow(QtWidgets.QMainWindow):
         to functions.
         """
 
-        # Picoharp time resolution is a specific set of values.
         for res in self.allowed_Resolutions:
             self.ui.resolution.addItem(f"{res}")
-        self.ui.resolution.setCurrentText("self.my_Pharp.base_Resolution")
+        #self.ui.resolution.setCurrentText(self.my_Pharp.resolution)
+        self.Update_Settings_GUI()
+        # Picoharp time resolution is a specific set of values.
 
         self.ui.data_Filename.setText("data/picoharp300.csv")
         self.ui.status.setText("Counting")
         self.ui.histoTime.setText("300") # Here we hard-coded the default histoTime. This can be changed in gui.
-        self.Update_Settings_GUI()
 
 
 
@@ -235,7 +238,7 @@ class MyWindow(QtWidgets.QMainWindow):
         self.ui.button_AutoStop.clicked.connect(self.autoStop)
         self.ui.button_AutoStop.setEnabled(False)
         self.ui.button_ApplySettings.clicked.connect(self.Push_Settings_To_HW)
-        self.ui.button_Defaults.clicked.connect(self.Apply_Default_Settings)
+        #self.ui.button_Defaults.clicked.connect(self.Apply_Default_Settings)
         self.ui.button_StartStop.clicked.connect(self.start_Stop)
         self.ui.button_SaveHisto.clicked.connect(self.on_Save_Histo)
         self.ui.button_AutoRange.clicked.connect(self.on_Auto_Range)
@@ -243,7 +246,7 @@ class MyWindow(QtWidgets.QMainWindow):
         self.ui.option_Deltas.stateChanged.connect(self.on_Deltas_Button)
         self.ui.option_ShowBars.stateChanged.connect(self.on_Bars_Button)
         self.ui.button_ClearDeltas.clicked.connect(self.on_Clear_Deltas)
-        self.ui.button_ClearHistogram.clicked.connect(self.on_Clear_Histogram)
+        #self.ui.button_ClearHistogram.clicked.connect(self.on_Clear_Histogram)
         self.ui.button_ClearIntegrals.clicked.connect(self.on_Clear_Intervals)
         self.ui.button_IntegralWidth.clicked.connect(self.on_Integral_Width_Button)
         self.ui.cursors_Tabber.currentChanged.connect(self.on_Cursor_Tab)
@@ -306,7 +309,7 @@ class MyWindow(QtWidgets.QMainWindow):
         # X labels for the plot. The hardware only sends Y values so the
         # x values need to be inferred from the resolution.
         self.x_Data = np.arange(0,
-                        65536 * self.my_Pharp.resolution,
+                        self.last_Full_Bin * self.my_Pharp.resolution,
                         self.my_Pharp.resolution
                         ) / 1e12
         print(f"Init_Plot: {self.x_Data[-1]}")
@@ -383,11 +386,11 @@ class MyWindow(QtWidgets.QMainWindow):
 
         # Translate desired resolution to a "binning" number. Binning
         # combines histogram bins to reduce the histogram resolution.
-        resolution_Req = self.ui.resolution.currentText()
-        binning = np.log2(float(resolution_Req) / self.my_Pharp.base_Resolution)
+        self.my_Pharp.resolution = float(self.ui.resolution.currentText())
+        self.last_Full_Bin = int(float(self.ui.max_t.text())/self.my_Pharp.resolution*1e3)
 
         hw_Settings = self.pharppy_Config.hw_Settings
-        hw_Settings.binning = int(binning)
+        hw_Settings.binning = int(np.log2(self.my_Pharp.resolution / self.my_Pharp.base_Resolution))
         hw_Settings.sync_Offset = int(self.ui.sync_Offset.value())
         hw_Settings.sync_Divider = int(self.ui.sync_Divider.currentText())
         hw_Settings.CFD0_ZeroCrossing = int(self.ui.CFD0_Zerocross.value())
@@ -440,10 +443,10 @@ class MyWindow(QtWidgets.QMainWindow):
         sw_Settings = self.pharppy_Config.sw_Settings
 
         binning = hw_Settings.binning
-        resolution = self.my_Pharp.base_Resolution * (2 ** binning)
+        self.my_Pharp.resolution = self.my_Pharp.base_Resolution * (2 ** binning)
 
         self.logger.info("Update GUI elements")
-        self.ui.resolution.setCurrentText(f"{resolution}")
+        self.ui.resolution.setCurrentText(f"{self.my_Pharp.resolution}")
         self.ui.sync_Offset.setValue(hw_Settings.sync_Offset)
         self.ui.sync_Divider.setCurrentText(str(hw_Settings.sync_Divider))
         self.ui.CFD0_Level.setValue(hw_Settings.CFD0_Level)
@@ -458,6 +461,7 @@ class MyWindow(QtWidgets.QMainWindow):
         self.ui.integral_Width.setText(f"{sw_Settings.integral_Width}")
         self.ui.option_Cumulative.setChecked(sw_Settings.cumulative_Mode)
         self.ui.option_LogY.setChecked(sw_Settings.log_Y)
+        self.ui.max_t.setText(f"{sw_Settings.max_t}")
 
     def on_Load_Settings(self):
         """
@@ -632,10 +636,12 @@ class MyWindow(QtWidgets.QMainWindow):
         Handle the histogram when the hardware thread emits one.
         """
 
+        # Trim the histogram data
+        trimed_data = histogram_Data[:self.last_Full_Bin]
         if self.ui.option_Cumulative.isChecked():
-            self.this_Data += histogram_Data
+            self.this_Data += trimed_data
         else:
-            self.this_Data = histogram_Data
+            self.this_Data = trimed_data
 
         if self.count_Mode:
             return
@@ -644,18 +650,25 @@ class MyWindow(QtWidgets.QMainWindow):
         # then there will just be empty bins at the end of the histogram array.
         # Look from the END of the array and find the index of the first non
         # empty bin you find.
-        #last_Full_Bin = histogram_Data.nonzero()[0][-1]
-        #print(f"last_Full_Bin: {last_Full_Bin}")
-        last_Full_Bin = 1953
+        #self.last_Full_Bin = histogram_Data.nonzero()[0][-1]
+        #print(f"self.last_Full_Bin: {self.last_Full_Bin}")
+
+        """self.binning = hw_Settings.binning
+        self.resolution = self.my_Pharp.base_Resolution * (2 ** self.binning)"""
+        self.last_Full_Bin = int(float(self.ui.max_t.text())/self.my_Pharp.resolution*1e3)
+        #print(f"last_Full_Bin: {self.last_Full_Bin}")
+        #last_Full_Bin = 1953
         self.x_Data = np.arange(0,
-                        65536 * self.my_Pharp.resolution,
+                        self.last_Full_Bin * self.my_Pharp.resolution,
                         self.my_Pharp.resolution
                         ) / 1e12
+        # Trim the data
+        # self.this_Data = self.this_Data[:self.last_Full_Bin]
 
         # Trim the histogram and labels so the empty bins (that will never
         # fill) are not plotted. Then plot them.
-        plot_X = self.x_Data[:last_Full_Bin]
-        plot_Y = self.this_Data[:last_Full_Bin]
+        plot_X = self.x_Data
+        plot_Y = self.this_Data
         # pyqtgraph log mode seems weird, just log the bin values instead if
         # log scale is what's required...
         if self.ui.option_LogY.isChecked():
@@ -999,10 +1012,10 @@ class MyWindow(QtWidgets.QMainWindow):
         """
         Delete the data as well!
         """
-        self.this_Data = np.zeros(65536)
-        self.last_Histogram = np.zeros(65536)
+        self.this_Data = np.zeros(self.last_Full_Bin)
+        self.last_Histogram = np.zeros(self.last_Full_Bin)
         self.last_X_Data = None
-        self.x_Data = np.zeros(65536)
+        self.x_Data = np.zeros(self.last_Full_Bin)
         self.count_History.clear()
         self.n_Counts = 0
 #        self.no_Data = True
@@ -1123,6 +1136,10 @@ class MyWindow(QtWidgets.QMainWindow):
             for cursor in self.integral_Cursors:
                 cursor.Remove_Bars()
                 cursor.Add_Bars()
+
+##############################################################################
+# AUTOMATIC SAVE OF HISTOGRAM DATA
+##############################################################################
 
     def autoStart(self):
         # Make the autosave worker and put it in a separate thread.

@@ -64,7 +64,7 @@ class AutoSave(QtCore.QObject):
         if self.isLast:
             self.stop()
             return
-            
+
         time.sleep(2) # Wait for two seconds to give some time to exp-control for pausing, updating, and restarting.
         self.mainWindow.on_Clear_Histogram() # clear and restart histogramming
         self.event1 = self.s1.enter(self.histoTime, 2, self.autoSave) # Enter next autosave event
