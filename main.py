@@ -91,15 +91,8 @@ class MyWindow(QtWidgets.QMainWindow):
             )
 
         # Define hardware info members, then init them (and the hardware)
-        self.last_Full_Bin = 65536
         self.my_Pharp = None
         self.allowed_Resolutions = None
-        self.this_Data = np.zeros(self.last_Full_Bin)
-        self.last_Histogram = np.zeros(self.last_Full_Bin)
-        self.x_Data = np.zeros(self.last_Full_Bin)
-        """self.binning = 0
-        self.resolution = 4"""
-
         # LD_Pharp_Config inits with some sensible defaults
         self.pharppy_Config = LD_Pharp_Config.LD_Pharp_Config()
         # Save those defaults to a defaults file
@@ -126,6 +119,7 @@ class MyWindow(QtWidgets.QMainWindow):
         self.bars_On = None
         self.count_Mode = False
         self.n_Counts = 0
+        self.last_Full_Bin = 65536
         self.count_History = collections.deque(maxlen=100000)
         self.detected_inis = []
         self.last_Warnings = ""
@@ -135,6 +129,10 @@ class MyWindow(QtWidgets.QMainWindow):
         # Init_UI has set up the normalize buttons, the last one is checked by
         # default, so this should be the initial state.
         self.normalize_This = len(self.normalize_Buttons)
+        self.last_Full_Bin = int(float(self.ui.max_t.text())/self.my_Pharp.resolution*1e3)
+        self.this_Data = np.zeros(self.last_Full_Bin)
+        self.last_Histogram = np.zeros(self.last_Full_Bin)
+        self.x_Data = np.zeros(self.last_Full_Bin)
 
         # Members involved with plotting, then init them (and the plots)
         self.last_Histogram = None
