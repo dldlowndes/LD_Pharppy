@@ -2040,6 +2040,24 @@
       </item>
       <item>
        <widget class="QTabWidget" name="control_Warning_Tabber">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="minimumSize">
+         <size>
+          <width>280</width>
+          <height>170</height>
+         </size>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>280</width>
+          <height>170</height>
+         </size>
+        </property>
         <property name="currentIndex">
          <number>0</number>
         </property>

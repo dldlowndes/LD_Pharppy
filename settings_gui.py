@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'settings_gui.ui'
 #
-# Created by: PyQt5 UI code generator 5.12.3
+# Created by: PyQt5 UI code generator 5.14.1
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -836,6 +836,13 @@ class Ui_MainWindow(object):
         spacerItem3 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
         self.verticalLayout_6.addItem(spacerItem3)
         self.control_Warning_Tabber = QtWidgets.QTabWidget(self.centralwidget)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.control_Warning_Tabber.sizePolicy().hasHeightForWidth())
+        self.control_Warning_Tabber.setSizePolicy(sizePolicy)
+        self.control_Warning_Tabber.setMinimumSize(QtCore.QSize(280, 170))
+        self.control_Warning_Tabber.setMaximumSize(QtCore.QSize(280, 170))
         self.control_Warning_Tabber.setObjectName("control_Warning_Tabber")
         self.controls_Tab = QtWidgets.QWidget()
         self.controls_Tab.setObjectName("controls_Tab")

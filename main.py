@@ -162,13 +162,13 @@ class MyWindow(QtWidgets.QMainWindow):
             # If the dll can't get a device handle, the program falls over,
             # Alert the user and give the option to run the barebones simulator
             # which allows the UI to be explored with some representative data.
-            error_Response = QtGui.QMessageBox.question(
+            error_Response = QtWidgets.QMessageBox.question(
                 self,
                 "Error",
                 "No driver/hardware found! Run in simulation mode?",
-                QtGui.QMessageBox.Yes | QtGui.QMessageBox.No
+                QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No
                 )
-            if error_Response == QtGui.QMessageBox.Yes:
+            if error_Response == QtWidgets.QMessageBox.Yes:
                 # Go get the simulator and launch it.
                 self.my_Pharp = LD_Pharp_Dummy.LD_Pharp(
                     0,

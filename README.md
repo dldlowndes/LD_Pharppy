@@ -1,9 +1,14 @@
 # LD_Pharppy
-Cross platform thanks to Picoquant's phlib. It's developed and tested in Ubuntu 18.04 so caution is advised for Windows users.
+Cross platform thanks to Picoquant's phlib, even if their GUI is Windows only.
 
-Basically this was born from from a confluence of necessity and an adventure into writing GUIs. My lab is almost 100% Linux compatible so it was becoming frustrating every time I needed a TCSPC histogram to have to disconnect a load of hardware and switch PCs. 
+Basically this was born from from a confluence of necessity and an adventure into writing GUIs. My lab is almost 100% Linux compatible so it was becoming frustrating every time I needed a TCSPC histogram to have to disconnect a load of hardware and switch PCs. Meanwhile the Covid-19 pandemic lockdown meant I suddently had plenty of time to sit at home and do programming instead of lab work!
 
 Comments/questions/etc welcome, email me at david@lownd.es
+
+# Contributing
+Please feel free to fork and adapt for your specific lab's requirements. I'll consider PRs for any general improvements, or will consider feature requests by email (although I'm finding less and less free time to work on this). I might also read your PR and then reimplement your feature myself (I'll check if you mind first and am happy to credit you if you are!)
+
+Please see CONTRIBUTING.MD for some notes on the project structure and what some of the different files do.
 
 # Setup (Linux)
 
