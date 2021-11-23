@@ -15,6 +15,7 @@ TODO list:
     cursor clicks with no data cause an exception)
     - Consider interpreting warning codes manually so unwanted warnings can
     be masked out.
+    - (Ahreum) Check on_Clear_Histogram function if it correctly initialize everything.
   Med:
     - Curve fitting (choose function - not just gaussian).
     - BUG: Integral bars only show when x=0 is visible on axis! (what.)
@@ -23,6 +24,7 @@ TODO list:
     respectively
     - Two y axes for counts mode (hard in pyqtplot)
     - Investigate getting this to work with other hardware...
+    - (Ahreum) Bug: the program stops when several autoSave cycle is done. Probably it's running out of resource?
 """
 
 # Quieten pylint recommendations
@@ -40,12 +42,15 @@ import itertools
 import logging
 import os
 import sys
+#import time # for counting time
+#import sched
 
 import numpy as np
 from PyQt5 import QtWidgets, QtCore, QtGui
 import pyqtgraph
 import qdarkstyle
 
+import AutoSave
 import acq_Thread
 import graph_Markers
 import settings_gui
@@ -84,14 +89,10 @@ class MyWindow(QtWidgets.QMainWindow):
             QtGui.QColor(0, 0, 255),  # blue
             QtGui.QColor(255, 0, 255) # magenta
             )
-        
+
         # Define hardware info members, then init them (and the hardware)
         self.my_Pharp = None
         self.allowed_Resolutions = None
-        self.this_Data = np.zeros(65536)
-        self.last_Histogram = np.zeros(65536)
-        self.x_Data = np.zeros(65536)
-        
         # LD_Pharp_Config inits with some sensible defaults
         self.pharppy_Config = LD_Pharp_Config.LD_Pharp_Config()
         # Save those defaults to a defaults file
@@ -118,13 +119,20 @@ class MyWindow(QtWidgets.QMainWindow):
         self.bars_On = None
         self.count_Mode = False
         self.n_Counts = 0
+        self.last_Full_Bin = 65536
         self.count_History = collections.deque(maxlen=100000)
         self.detected_inis = []
         self.last_Warnings = ""
+        self.autoSaveWorker = None
+        self.autoSaveThread = None
         self.Init_UI()
         # Init_UI has set up the normalize buttons, the last one is checked by
         # default, so this should be the initial state.
         self.normalize_This = len(self.normalize_Buttons)
+        self.last_Full_Bin = int(float(self.ui.max_t.text())/self.my_Pharp.resolution*1e3)
+        self.this_Data = np.zeros(self.last_Full_Bin)
+        self.last_Histogram = np.zeros(self.last_Full_Bin)
+        self.x_Data = np.zeros(self.last_Full_Bin)
 
         # Members involved with plotting, then init them (and the plots)
         self.last_Histogram = None
@@ -197,14 +205,17 @@ class MyWindow(QtWidgets.QMainWindow):
         to functions.
         """
 
-        # Picoharp time resolution is a specific set of values.
         for res in self.allowed_Resolutions:
             self.ui.resolution.addItem(f"{res}")
-        self.ui.resolution.setCurrentText("self.my_Pharp.base_Resolution")
-
-        self.ui.data_Filename.setText("save_filename.csv")
-        self.ui.status.setText("Counting")
+        #self.ui.resolution.setCurrentText(self.my_Pharp.resolution)
         self.Update_Settings_GUI()
+        # Picoharp time resolution is a specific set of values.
+
+        self.ui.data_Filename.setText("data/picoharp300.csv")
+        self.ui.status.setText("Counting")
+        self.ui.histoTime.setText("300") # Here we hard-coded the default histoTime. This can be changed in gui.
+
+
 
         self.cursors_On = self.ui.option_Cursor.isChecked()
         self.deltas_On = self.ui.option_Deltas.isChecked()
@@ -216,13 +227,16 @@ class MyWindow(QtWidgets.QMainWindow):
         self.detected_inis = [x for x in os.listdir() if x.endswith(".ini")]
         for ini in self.detected_inis:
             self.ui.existing_inis.addItem(ini)
-            
+
         self.ui.counts_Ch0_Big.setStyleSheet("color: red")
         self.ui.counts_Ch1_Big.setStyleSheet("color: green")
 
         # Connect UI elements to functions
+        self.ui.button_AutoStart.clicked.connect(self.autoStart)
+        self.ui.button_AutoStop.clicked.connect(self.autoStop)
+        self.ui.button_AutoStop.setEnabled(False)
         self.ui.button_ApplySettings.clicked.connect(self.Push_Settings_To_HW)
-        self.ui.button_Defaults.clicked.connect(self.Apply_Default_Settings)
+        #self.ui.button_Defaults.clicked.connect(self.Apply_Default_Settings)
         self.ui.button_StartStop.clicked.connect(self.start_Stop)
         self.ui.button_SaveHisto.clicked.connect(self.on_Save_Histo)
         self.ui.button_AutoRange.clicked.connect(self.on_Auto_Range)
@@ -230,7 +244,7 @@ class MyWindow(QtWidgets.QMainWindow):
         self.ui.option_Deltas.stateChanged.connect(self.on_Deltas_Button)
         self.ui.option_ShowBars.stateChanged.connect(self.on_Bars_Button)
         self.ui.button_ClearDeltas.clicked.connect(self.on_Clear_Deltas)
-        self.ui.button_ClearHistogram.clicked.connect(self.on_Clear_Histogram)
+        #self.ui.button_ClearHistogram.clicked.connect(self.on_Clear_Histogram)
         self.ui.button_ClearIntegrals.clicked.connect(self.on_Clear_Intervals)
         self.ui.button_IntegralWidth.clicked.connect(self.on_Integral_Width_Button)
         self.ui.cursors_Tabber.currentChanged.connect(self.on_Cursor_Tab)
@@ -257,7 +271,7 @@ class MyWindow(QtWidgets.QMainWindow):
             self.ui.max_Blue,
             self.ui.max_Magenta
             )
-        
+
         self.max_Pos_TestBoxes = (
             self.ui.max_Pos_Red,
             self.ui.max_Pos_Green,
@@ -293,9 +307,10 @@ class MyWindow(QtWidgets.QMainWindow):
         # X labels for the plot. The hardware only sends Y values so the
         # x values need to be inferred from the resolution.
         self.x_Data = np.arange(0,
-                        65536 * self.my_Pharp.resolution,
+                        self.last_Full_Bin * self.my_Pharp.resolution,
                         self.my_Pharp.resolution
                         ) / 1e12
+        print(f"Init_Plot: {self.x_Data[-1]}")
 
         # Modify the plot window
         self.ui.graph_Widget.plotItem.setLabel("left", "Counts")
@@ -366,14 +381,14 @@ class MyWindow(QtWidgets.QMainWindow):
         # start/stop preserves the started/stopped state when settings are
         # sent.
         self.acq_Thread.histogram_Paused = True
-        
+
         # Translate desired resolution to a "binning" number. Binning
         # combines histogram bins to reduce the histogram resolution.
-        resolution_Req = self.ui.resolution.currentText()
-        binning = np.log2(float(resolution_Req) / self.my_Pharp.base_Resolution)
+        self.my_Pharp.resolution = float(self.ui.resolution.currentText())
+        self.last_Full_Bin = int(float(self.ui.max_t.text())/self.my_Pharp.resolution*1e3)
 
         hw_Settings = self.pharppy_Config.hw_Settings
-        hw_Settings.binning = int(binning)
+        hw_Settings.binning = int(np.log2(self.my_Pharp.resolution / self.my_Pharp.base_Resolution))
         hw_Settings.sync_Offset = int(self.ui.sync_Offset.value())
         hw_Settings.sync_Divider = int(self.ui.sync_Divider.currentText())
         hw_Settings.CFD0_ZeroCrossing = int(self.ui.CFD0_Zerocross.value())
@@ -392,6 +407,7 @@ class MyWindow(QtWidgets.QMainWindow):
                                 65536 * self.my_Pharp.resolution,
                                 self.my_Pharp.resolution
                                 ) * 1e-12
+        print(f"Push_Settings_To_HW: {self.x_Data[-1]}")
 
         # Let the cursors know the resolution has been updated (since the
         # data->bin mapping depends on resolution)
@@ -425,10 +441,10 @@ class MyWindow(QtWidgets.QMainWindow):
         sw_Settings = self.pharppy_Config.sw_Settings
 
         binning = hw_Settings.binning
-        resolution = self.my_Pharp.base_Resolution * (2 ** binning)
+        self.my_Pharp.resolution = self.my_Pharp.base_Resolution * (2 ** binning)
 
         self.logger.info("Update GUI elements")
-        self.ui.resolution.setCurrentText(f"{resolution}")
+        self.ui.resolution.setCurrentText(f"{self.my_Pharp.resolution}")
         self.ui.sync_Offset.setValue(hw_Settings.sync_Offset)
         self.ui.sync_Divider.setCurrentText(str(hw_Settings.sync_Divider))
         self.ui.CFD0_Level.setValue(hw_Settings.CFD0_Level)
@@ -443,6 +459,7 @@ class MyWindow(QtWidgets.QMainWindow):
         self.ui.integral_Width.setText(f"{sw_Settings.integral_Width}")
         self.ui.option_Cumulative.setChecked(sw_Settings.cumulative_Mode)
         self.ui.option_LogY.setChecked(sw_Settings.log_Y)
+        self.ui.max_t.setText(f"{sw_Settings.max_t}")
 
     def on_Load_Settings(self):
         """
@@ -523,17 +540,18 @@ class MyWindow(QtWidgets.QMainWindow):
         # self.ui.button_Defaults.setEnabled(True)
         # self.ui.button_LoadSettings.setEnabled(True)
         # self.ui.button_SaveSettings.setEnabled(True)
-        
+
     def stop_Hist_Mode(self):
         self.logger.info("Start histogramming")
         self.on_Clear_Histogram()
         self.ui.status.setText("Histogramming")
         self.acq_Thread.histogram_Active = True
+        # self.start_Time = time.time()
         # self.ui.button_ApplySettings.setEnabled(False)
         # self.ui.button_Defaults.setEnabled(False)
         # self.ui.button_LoadSettings.setEnabled(False)
         # self.ui.button_SaveSettings.setEnabled(False)
-        
+
     def on_Count_Signal(self, ch0, ch1):
         """
         Handle the counts when the hardware thread emits them
@@ -542,35 +560,35 @@ class MyWindow(QtWidgets.QMainWindow):
         # Write to the small text boxes on the GUI whatever the settings are
         self.ui.counts_Ch0.setText(f"{ch0:.{self.count_Precision}E}")
         self.ui.counts_Ch1.setText(f"{ch1:.{self.count_Precision}E}")
-        
+
         # Remember the counts in case they want to be plotted later.
         self.count_History.append([ch0, ch1])
         self.n_Counts += 1
-        
+
         if self.count_Mode:
             """
-            Count mode is a dedicated display tab that shows the counts in 
+            Count mode is a dedicated display tab that shows the counts in
             much bigger font (for visibility for example when aligning optics),
             a line graph is also shown on the graph pane (instead of the TCSPC
             histogram) colour coded to the colours of the displayed counts.
             """
-            
+
             # Set the format of the values put in the UI, either integers with
-            # thousands separated by commas, or as scientific numbers with 
+            # thousands separated by commas, or as scientific numbers with
             # adjustable precision.
             fmt = ","
             if self.ui.option_SciCounts.isChecked():
                 fmt = f".{self.ui.value_CountPrecision.value()}E"
             self.ui.counts_Ch0_Big.setText(f"{ch0:{fmt}}")
             self.ui.counts_Ch1_Big.setText(f"{ch1:{fmt}}")
-            
+
             # How many counts to show on the graph before the oldest ones start
             # to be dropped. The counts are stored in a massive deque so
-            # extending the display after shrinking it brings back the old 
+            # extending the display after shrinking it brings back the old
             # values.
             n_Counts_Display = self.ui.value_NumGraphCounts.value()
             # If the deque contains less than n_Counts_Display counts, set the
-            # first value to the 0th element, otherwise it's the 
+            # first value to the 0th element, otherwise it's the
             # n_Counts_Display'th to last element.
             start_i = max(0, len(self.count_History) - n_Counts_Display) # 0 or +ve value
             # Get just the data for plotting from the deque.
@@ -581,28 +599,28 @@ class MyWindow(QtWidgets.QMainWindow):
             ch0, ch1 = zip(*display_Counts)
             ch0 = np.array(ch0, dtype=np.int32)
             ch1 = np.array(ch1, dtype=np.int32)
-            
+
             # Make the x labels correspond to the number of count signals
             # received. (because why not)
             x_Data = range(self.n_Counts - len(ch0), self.n_Counts)
             # Plot the data
             red = QtGui.QColor(255, 0, 0)
             green = QtGui.QColor(0, 255, 0)
-            
+
             if self.ui.option_LogY.isChecked():
                 ch0 = np.log10(ch0, where=ch0>0)
                 ch1 = np.log10(ch1, where=ch1>0)
-            
+
             # Clear the plot before replotting otherwise if the options are
             # unchecked it just doesn't show new data (but still shows data
             # from before the option was unchecked).
             self.ui.graph_Widget.clear()
-            
+
             if self.ui.option_Ch0_Counts.isChecked():
                 self.ui.graph_Widget.plot(x_Data, ch0, pen=red)
             if self.ui.option_Ch1_Counts.isChecked():
                 self.ui.graph_Widget.plot(x_Data, ch1, pen=green)
-        
+
             # Auto scale to the visible values.
             self.ui.graph_Widget.plotItem.vb.setLimits(
                 xMin=x_Data[0]-0.1,
@@ -610,17 +628,19 @@ class MyWindow(QtWidgets.QMainWindow):
                 xMax=x_Data[-1]+0.1,
                 yMax=1.1*max(max(ch0), max(ch1))
                 )
-        
+
     def on_Histo_Signal(self, histogram_Data):
         """
         Handle the histogram when the hardware thread emits one.
         """
 
+        # Trim the histogram data
+        trimed_data = histogram_Data[:self.last_Full_Bin]
         if self.ui.option_Cumulative.isChecked():
-            self.this_Data += histogram_Data
+            self.this_Data += trimed_data
         else:
-            self.this_Data = histogram_Data
-            
+            self.this_Data = trimed_data
+
         if self.count_Mode:
             return
 
@@ -628,17 +648,30 @@ class MyWindow(QtWidgets.QMainWindow):
         # then there will just be empty bins at the end of the histogram array.
         # Look from the END of the array and find the index of the first non
         # empty bin you find.
-        last_Full_Bin = histogram_Data.nonzero()[0][-1]
+        #self.last_Full_Bin = histogram_Data.nonzero()[0][-1]
+        #print(f"self.last_Full_Bin: {self.last_Full_Bin}")
+
+        """self.binning = hw_Settings.binning
+        self.resolution = self.my_Pharp.base_Resolution * (2 ** self.binning)"""
+        self.last_Full_Bin = int(float(self.ui.max_t.text())/self.my_Pharp.resolution*1e3)
+        #print(f"last_Full_Bin: {self.last_Full_Bin}")
+        #last_Full_Bin = 1953
+        self.x_Data = np.arange(0,
+                        self.last_Full_Bin * self.my_Pharp.resolution,
+                        self.my_Pharp.resolution
+                        ) / 1e12
+        # Trim the data
+        # self.this_Data = self.this_Data[:self.last_Full_Bin]
 
         # Trim the histogram and labels so the empty bins (that will never
         # fill) are not plotted. Then plot them.
-        plot_X = self.x_Data[:last_Full_Bin]
-        plot_Y = self.this_Data[:last_Full_Bin]
+        plot_X = self.x_Data
+        plot_Y = self.this_Data
         # pyqtgraph log mode seems weird, just log the bin values instead if
         # log scale is what's required...
         if self.ui.option_LogY.isChecked():
             plot_Y = np.log10(plot_Y, where=plot_Y>0)
-            
+
         self.ui.graph_Widget.plot(plot_X,
                                   plot_Y,
                                   clear=True)
@@ -663,7 +696,7 @@ class MyWindow(QtWidgets.QMainWindow):
         # Remember the last histogram, so it can be saved.
         self.last_Histogram = self.this_Data
         self.last_X_Data = self.x_Data
-    
+
     def on_Status_Signal(self, warnings):
         # Check if the warnings are any different to last time. If not, don't
         # do anything. This saves an interaction with the GUI but also doesn't
@@ -688,7 +721,7 @@ class MyWindow(QtWidgets.QMainWindow):
             # by the phlib dll.
             self.ui.control_Warning_Tabber.setTabText(1, f"Warnings ({n_Warnings})")
             self.ui.warnings_Display.setText(warnings)
-                
+
 ##############################################################################
 # GUI METHODS (NON GRAPHING)
 ##############################################################################
@@ -729,6 +762,7 @@ class MyWindow(QtWidgets.QMainWindow):
             self.integrals_On = False
             self.count_Mode = False
             self.acq_Thread.histogram_Paused = False
+            self.autoStop()
             # enable xy cursor if the GUI element wants them
             self.on_Cursor_Button()
         # Tab 1 is integrals mode
@@ -737,13 +771,20 @@ class MyWindow(QtWidgets.QMainWindow):
             self.integrals_On = True
             self.count_Mode = False
             self.acq_Thread.histogram_Paused = False
+            self.autoStop()
             # enable xy cursor if the GUI element wants them
-            self.on_Cursor_Button()
         elif tab_Number == 2:
             self.deltas_On = False
             self.integrals_On = False
             self.count_Mode = True
             self.acq_Thread.histogram_Paused = True
+            self.cursors_On = False
+            self.autoStop()
+        elif tab_Number == 3:
+            self.deltas_On = self.pharppy_Config.sw_Settings.show_Deltas
+            self.integrals_On = False
+            self.count_Mode = False
+            self.acq_Thread.histogram_Paused = False
             self.cursors_On = False
         # Something's gone very awry.
         else:
@@ -778,17 +819,31 @@ class MyWindow(QtWidgets.QMainWindow):
                     # Remember which button it was that was checked.
                     self.normalize_This = i
 
-    def on_Save_Histo(self):
+    def on_Save_Histo(self, filename):
         """
         This actually still works when histogramming is running but obviously
         there won't be certainty as to exactly what the histogram looks like.
         """
-        # Read the filename box from the UI.
-        filename = self.ui.data_Filename.text()
+        if filename is False or filename is None:
+            # Read the filename box from the UI.
+            filename = self.ui.data_Filename.text()
+
+        # If there's no such file with the filename, make it.
+        directory = os.path.dirname(filename)
+        if not os.path.exists(directory) and directory:
+            os.makedirs(directory)
+
+        # rescan the folder for existing files before enforcing that the
+        # filename can't clash with an existing one.
+        self.detected_files = [x for x in os.listdir(directory) if x.endswith(".csv")]
+        # prevent accidental overwriting of previous ini files
+        if filename in self.detected_files:
+            self.logger.error("Data file name exists")
+            raise ValueError
 
         # Zip the bins and counts together into a structured array so the
         # bins get output as floats and the counts as ints.
-        my_Type = [("Bin", np.float), ("Count", np.int)]
+        my_Type = [("Bin", float), ("Count", int)]
         out_Histo = np.empty(self.last_Histogram.shape, dtype=my_Type)
         out_Histo["Bin"] = self.last_X_Data
         out_Histo["Count"] = self.last_Histogram
@@ -895,7 +950,7 @@ class MyWindow(QtWidgets.QMainWindow):
                     this_Max /= max_Factor
                 else:
                     this_Max = np.inf
-                    
+
                 this_Max_Pos -= zero_Time
 
             # Finally, update the GUI
@@ -951,6 +1006,17 @@ class MyWindow(QtWidgets.QMainWindow):
         # pyqtgraph has our back on this one too.
         self.logger.debug("Clear histogram")
         self.ui.graph_Widget.plotItem.clear()
+
+        """
+        Delete the data as well!
+        """
+        self.this_Data = np.zeros(self.last_Full_Bin)
+        self.last_Histogram = np.zeros(self.last_Full_Bin)
+        self.last_X_Data = None
+        self.x_Data = np.zeros(self.last_Full_Bin)
+        self.count_History.clear()
+        self.n_Counts = 0
+#        self.no_Data = True
 
     def on_Clear_Intervals(self):
         """
@@ -1068,6 +1134,37 @@ class MyWindow(QtWidgets.QMainWindow):
             for cursor in self.integral_Cursors:
                 cursor.Remove_Bars()
                 cursor.Add_Bars()
+
+##############################################################################
+# AUTOMATIC SAVE OF HISTOGRAM DATA
+##############################################################################
+
+    def autoStart(self):
+        # Make the autosave worker and put it in a separate thread.
+        self.autoSaveWorker = AutoSave.AutoSave(self)
+        self.autoSaveThread = QtCore.QThread()
+        self.autoSaveWorker.moveToThread(self.autoSaveThread)
+
+        # Connect autosave thread events to functions
+        self.autoSaveThread.started.connect(self.autoSaveWorker.run)
+        self.autoSaveWorker.finished.connect(self.autoSaveThread.quit)
+        self.autoSaveWorker.finished.connect(self.autoSaveWorker.deleteLater)
+        self.autoSaveThread.finished.connect(self.autoSaveThread.deleteLater)
+
+        # Start autosave thread
+        self.autoSaveThread.start()
+
+        # Disable the autostart button while this thread is running,
+        # and Enable it again upon finishing the thread.
+        self.ui.button_AutoStart.setEnabled(False)
+        self.ui.button_AutoStop.setEnabled(True)
+        self.autoSaveThread.finished.connect(
+            lambda: self.ui.button_AutoStart.setEnabled(True)
+        )
+
+    def autoStop(self):
+        if self.autoSaveWorker:
+            self.autoSaveWorker.stop()
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication([])
