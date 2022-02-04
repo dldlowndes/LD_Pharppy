@@ -57,6 +57,7 @@ class AutoSave(QtCore.QObject):
         # Make directory named by current date
         # filename = time.strftime("%Y-%m-%d/", time.localtime())
         # Communicate with exp-control program and get the filename according to the previous parameters
+        self.mainWindow.on_Save_Histo(self.mainWindow.ui.data_Filename.text())
         filename = self.send_and_receive()
         self.mainWindow.ui.output_File.setText(filename)
         self.mainWindow.on_Save_Histo(filename)

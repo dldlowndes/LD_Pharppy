@@ -119,7 +119,7 @@ class MyWindow(QtWidgets.QMainWindow):
         self.bars_On = None
         self.count_Mode = False
         self.n_Counts = 0
-        self.last_Full_Bin = 65536
+        # self.last_Full_Bin = 65536
         self.count_History = collections.deque(maxlen=100000)
         self.detected_inis = []
         self.last_Warnings = ""
@@ -1010,10 +1010,11 @@ class MyWindow(QtWidgets.QMainWindow):
         """
         Delete the data as well!
         """
+        self.last_Full_Bin = int(float(self.ui.max_t.text())/self.my_Pharp.resolution*1e3)
         self.this_Data = np.zeros(self.last_Full_Bin)
         self.last_Histogram = np.zeros(self.last_Full_Bin)
-        self.last_X_Data = None
         self.x_Data = np.zeros(self.last_Full_Bin)
+        self.last_X_Data = None
         self.count_History.clear()
         self.n_Counts = 0
 #        self.no_Data = True
