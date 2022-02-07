@@ -18,7 +18,7 @@ class LD_PharpDLL:
     phlib.h without the user having to worry about ctypes everywhere.
     """
 
-    def __init__(self, device_Number, dll_Path=None):
+    def __init__(self, device_Number, router_Number, dll_Path=None):
         """
         The examples seem to try and open all device numbers up to some limit
         (8?) and see what comes back. That seems weird so let's just have one
@@ -45,11 +45,46 @@ class LD_PharpDLL:
             pass
         else:
             dll_Path = default_DLL_Paths[os_Name][arch]
-        
+
         dll_Path = os.path.abspath(dll_Path)
 
         self.phlib = ctypes.CDLL(dll_Path)
         self.device_Number_ct = ctypes.c_int(device_Number)
+        self.router_Number_ct = ctypes.c_int(router_Number)
+
+    def ProcessReturnCode(self, return_Code):
+        """
+        Print an error if there is one, otherwise return 0
+        """
+        # TODO: Replace with logging. Or something
+        if return_Code == 0:
+            return return_Code
+        else:
+            return self.Get_ErrorString(return_Code)
+
+    def Get_LibraryVersion(self):
+        """
+        extern int _stdcall PH_GetLibraryVersion(char* version);
+        """
+
+        libVersion_ct = ctypes.create_string_buffer(b"", 8)
+        self.phlib.PH_GetLibraryVersion(libVersion_ct)
+        lib_Version = libVersion_ct.value.decode("utf-8")
+
+        self.logger.info(f"Library version is {lib_Version}")
+        return lib_Version
+
+    def Get_ErrorString(self, return_Code):
+        """
+        extern int _stdcall PH_GetErrorString(char* errstring, int errcode);
+        """
+
+        errorString_ct = ctypes.create_string_buffer(b"", 40)
+        self.phlib.PH_GetErrorString(errorString_ct, ctypes.c_int(return_Code))
+        error_String = errorString_ct.value.decode("utf-8")
+
+        self.logger.warning(f"Return code {return_Code} is {error_String}")
+        return error_String
 
     def Open(self):
         """
@@ -92,150 +127,6 @@ class LD_PharpDLL:
 
         return self.ProcessReturnCode(return_Code)
 
-    def Calibrate(self):
-        """
-        extern int _stdcall PH_Calibrate(int devidx);
-        """
-
-        self.logger.info("Calibrate")
-        return_Code = self.phlib.PH_Calibrate(self.device_Number_ct)
-        return self.ProcessReturnCode(return_Code)
-
-    def Start(self, tacq=1000):
-        """
-        extern int _stdcall PH_StartMeas(int devidx, int tacq);
-        """
-        return_Code = self.phlib.PH_StartMeas(self.device_Number_ct,
-                                              ctypes.c_int(tacq))
-        #self.logger.debug(f"Measuring for {tacq}ms")
-        return self.ProcessReturnCode(return_Code)
-
-    def Stop(self):
-        """
-        extern int _stdcall PH_StopMeas(int devidx);
-        """
-
-        return_Code = self.phlib.PH_StopMeas(self.device_Number_ct)
-        #self.logger.debug(f"Stopped")
-        return self.ProcessReturnCode(return_Code)
-
-#    def Read_FIFO(self):
-#        """
-#        extern int _stdcall PH_ReadFiFo(int devidx, unsigned int* buffer,
-#        int count, int* nactual);
-#        """
-#        raise NotImplementedError
-
-    def ClearHistMem(self):
-        """
-        extern int _stdcall PH_ClearHistMem(int devidx, int block);
-        """
-        return_Code = self.phlib.PH_ClearHistMem(self.device_Number_ct,
-                                                 ctypes.c_int(0))
-        return self.ProcessReturnCode(return_Code)
-
-    def ProcessReturnCode(self, return_Code):
-        """
-        Print an error if there is one, otherwise return 0
-        """
-        # TODO: Replace with logging. Or something
-        if return_Code == 0:
-            return return_Code
-        else:
-            return self.Get_ErrorString(return_Code)
-
-    def Get_BaseResolution(self):
-        """
-        extern int _stdcall PH_GetBaseResolution(int devidx,
-        double* resolution, int* binsteps);
-        """
-
-        base_Res_ct = ctypes.c_double()
-        return_Code = self.phlib.PH_GetBaseResolution(
-                                                    self.device_Number_ct,
-                                                    ctypes.byref(base_Res_ct))
-        self.ProcessReturnCode(return_Code)
-
-        return base_Res_ct.value
-
-    def Get_CountRate(self):
-        """
-        extern int _stdcall PH_GetCountRate(int devidx, int channel,
-        int* rate);
-        """
-
-        countRate0_ct = ctypes.c_int()
-        countRate1_ct = ctypes.c_int()
-
-        return_Code0 = self.phlib.PH_GetCountRate(self.device_Number_ct,
-                                                  ctypes.c_int(0),
-                                                  ctypes.byref(countRate0_ct))
-        self.ProcessReturnCode(return_Code0)
-        return_Code1 = self.phlib.PH_GetCountRate(self.device_Number_ct,
-                                                  ctypes.c_int(1),
-                                                  ctypes.byref(countRate1_ct))
-        self.ProcessReturnCode(return_Code1)
-
-        return countRate0_ct.value, countRate1_ct.value
-
-    def Get_CTCStatus(self):
-        """
-        extern int _stdcall PH_CTCStatus(int devidx, int* ctcstatus);
-        """
-        ctc_Status_ct = ctypes.c_int(0)
-        return_Code = self.phlib.PH_CTCStatus(self.device_Number_ct,
-                                              ctypes.byref(ctc_Status_ct))
-        self.ProcessReturnCode(return_Code)
-        return ctc_Status_ct.value
-
-    def Get_ElapsedMeasTime(self):
-        """
-        extern int _stdcall PH_GetElapsedMeasTime(int devidx, double* elapsed);
-        """
-        meas_Time_ct = ctypes.c_double()
-        return_Code = self.phlib.PH_GetElapsedMeasTime(
-                                                    self.device_Number_ct,
-                                                    ctypes.byref(meas_Time_ct))
-        self.ProcessReturnCode(return_Code)
-
-        return meas_Time_ct.value
-
-    def Get_ErrorString(self, return_Code):
-        """
-        extern int _stdcall PH_GetErrorString(char* errstring, int errcode);
-        """
-
-        errorString_ct = ctypes.create_string_buffer(b"", 40)
-        self.phlib.PH_GetErrorString(errorString_ct, ctypes.c_int(return_Code))
-        error_String = errorString_ct.value.decode("utf-8")
-
-        self.logger.warning(f"Return code {return_Code} is {error_String}")
-        return error_String
-
-    def Get_Features(self):
-        """
-        extern int _stdcall PH_GetFeatures(int devidx, int* features);
-        """
-        raise NotImplementedError
-
-    def Get_Flags(self):
-        """
-        extern int _stdcall PH_GetFlags(int devidx, int* flags);
-        """
-
-        flags_ct = ctypes.c_int()
-        return_Code = self.phlib.PH_GetFlags(self.device_Number_ct,
-                                             ctypes.byref(flags_ct))
-        self.ProcessReturnCode(return_Code)
-        return flags_ct.value
-
-    def Get_HarwareDebugInfo(self):
-        """
-        extern int _stdcall PH_GetHardwareDebugInfo(int devidx,
-        char *debuginfo);
-        """
-        raise NotImplementedError
-
     def Get_HardwareInfo(self):
         """
         extern int _stdcall PH_GetHardwareInfo(int devidx, char* model,
@@ -264,94 +155,46 @@ class LD_PharpDLL:
                 "part": hw_Part,
                 "version": hw_Vers}
 
-    def Get_Histogram(self, histogram_Channels):
-        """
-        extern int _stdcall PH_GetHistogram(int devidx, unsigned int* chcount,
-        int block);
-        """
-        # print(f"Get histogram")
-        counts_ct = (ctypes.c_uint * histogram_Channels)()
-        return_Code = self.phlib.PH_GetHistogram(self.device_Number_ct,
-                                                 ctypes.byref(counts_ct),
-                                                 ctypes.c_int(0))
-        self.ProcessReturnCode(return_Code)
-
-        # print(f"Process histogram")
-        histogram = [x for x in counts_ct]
-        return histogram
-
-    def Get_LibraryVersion(self):
-        """
-        extern int _stdcall PH_GetLibraryVersion(char* version);
-        """
-
-        libVersion_ct = ctypes.create_string_buffer(b"", 8)
-        self.phlib.PH_GetLibraryVersion(libVersion_ct)
-        lib_Version = libVersion_ct.value.decode("utf-8")
-
-        self.logger.info(f"Library version is {lib_Version}")
-        return lib_Version
-
-    def Get_Resolution(self):
-        """
-        extern int _stdcall PH_GetResolution(int devidx, double* resolution);
-        """
-
-        resolution = ctypes.c_double()
-        return_Code = self.phlib.PH_GetResolution(self.device_Number_ct,
-                                                  ctypes.byref(resolution))
-        self.ProcessReturnCode(return_Code)
-        return resolution.value
-
-#    def Get_RouterVersion(self):
-#        """
-#        extern int _stdcall PH_GetRouterVersion(int devidx, char* model,
-#        char* version);
-#        """
-#        raise NotImplementedError
-
-#    def Get_RoutingChannels(self):
-#        """
-#        extern int _stdcall PH_GetRoutingChannels(int devidx, int* rtchannels)
-#        """
-#        raise NotImplementedError
-
     def Get_SerialNumber(self):
         """
         extern int _stdcall PH_GetSerialNumber(int devidx, char* serial);
         """
         raise NotImplementedError
 
-    def Get_Warnings(self):
+    def Get_Features(self):
         """
-        extern int _stdcall PH_GetWarnings(int devidx, int* warnings);
+        extern int _stdcall PH_GetFeatures(int devidx, int* features);
         """
-        warnings_Code = ctypes.c_int()
-        return_Code = self.phlib.PH_GetWarnings(self.device_Number_ct,
-                                                ctypes.byref(warnings_Code))
+        raise NotImplementedError
+
+    def Get_BaseResolution(self):
+        """
+        extern int _stdcall PH_GetBaseResolution(int devidx,
+        double* resolution, int* binsteps);
+        """
+
+        base_Res_ct = ctypes.c_double()
+        return_Code = self.phlib.PH_GetBaseResolution(
+                                                    self.device_Number_ct,
+                                                    ctypes.byref(base_Res_ct))
         self.ProcessReturnCode(return_Code)
-        return warnings_Code
 
-    def Get_WarningsText(self, warnings_Code):
+        return base_Res_ct.value
+
+    def Get_HarwareDebugInfo(self):
         """
-        extern int _stdcall PH_GetWarningsText(int devidx, char* text,
-        int warnings);
+        extern int _stdcall PH_GetHardwareDebugInfo(int devidx,
+        char *debuginfo);
         """
-        warnings_Text = ctypes.create_string_buffer(32768)
-        return_Code = self.phlib.PH_GetWarningsText(self.device_Number_ct,
-                                                    ctypes.byref(warnings_Text),
-                                                    warnings_Code)
-        return_String = warnings_Text.value.decode("utf-8")
-        return return_String
-        
-    def Set_Binning(self, binning):
+        raise NotImplementedError
+
+    def Calibrate(self):
         """
-        extern int _stdcall PH_SetBinning(int devidx, int binning);
+        extern int _stdcall PH_Calibrate(int devidx);
         """
 
-        self.logger.debug("Set binning")
-        return_Code = self.phlib.PH_SetBinning(self.device_Number_ct,
-                                               ctypes.c_int(binning))
+        self.logger.info("Calibrate")
+        return_Code = self.phlib.PH_Calibrate(self.device_Number_ct)
         return self.ProcessReturnCode(return_Code)
 
     def Set_InputCFD(self, cfd0_level, cfd0_zerocross,
@@ -372,77 +215,6 @@ class LD_PharpDLL:
                                                  ctypes.c_int(cfd1_zerocross))
         return self.ProcessReturnCode(return_Code0), \
             self.ProcessReturnCode(return_Code1)
-
-#    def Set_MarkerEdges(self):
-#        """
-#        extern int _stdcall PH_SetMarkerEdges(int devidx, int me0, int me1,
-#        int me2, int me3);
-#        """
-#        raise NotImplementedError
-
-#    def Set_MarkerEnable(self):
-#        """
-#        extern int _stdcall PH_SetMarkerEnable(int devidx, int en0, int en1,
-#        int en2, int en3);
-#        """
-#        raise NotImplementedError
-
-#    def Set_MarkerHoldoffTime(self):
-#        """
-#        extern int _stdcall PH_SetMarkerHoldoffTime(int devidx,
-#        int holdofftime);
-#        """
-#        raise NotImplementedError
-
-    def Set_MultistopEnable(self):
-        """
-        extern int _stdcall PH_SetMultistopEnable(int devidx, int enable);
-        """
-        raise NotImplementedError
-
-    def Set_Offset(self):
-        """
-        extern int _stdcall PH_SetOffset(int devidx, int offset);
-        """
-        raise NotImplementedError
-
-#    def Set_PHR800CFD(self):
-#        """
-#        extern int _stdcall PH_SetPHR800CFD(int devidx, int channel,
-#        int level, int zc);
-#        """
-#        raise NotImplementedError
-
-#    def Set_PHR800Input(self):
-#        """
-#        extern int _stdcall PH_SetPHR800Input(int devidx, int channel,
-#        int level, int edge);
-#        """
-#        raise NotImplementedError
-
-#    def Set_RoutingChannelOffset(self):
-#        """
-#        extern int _stdcall PH_SetRoutingChannelOffset(int devidx, int channel
-#        , int offset);
-#        """
-#        raise NotImplementedError
-
-#    def Set_RoutingEnable(self):
-#        """
-#        extern int _stdcall PH_EnableRouting(int devidx, int enable);
-#        """
-#        raise NotImplementedError
-
-    def Set_StopOverflow(self):
-        """
-        extern int _stdcall PH_SetStopOverflow(int devidx, int stop_ovfl,
-        int stopcount);
-        """
-
-        return_Code = self.phlib.PH_SetStopOverflow(self.device_Number_ct,
-                                                    ctypes.c_int(1),
-                                                    ctypes.c_int(65535))
-        return self.ProcessReturnCode(return_Code)
 
     def Set_SyncDiv(self, sync_Divider):
         """
@@ -467,4 +239,277 @@ class LD_PharpDLL:
         self.logger.debug("Set Ch0 Offset")
         return_Code = self.phlib.PH_SetOffset(self.device_Number_ct,
                                               ctypes.c_int(sync_Offset))
+        return self.ProcessReturnCode(return_Code)
+
+    def Set_StopOverflow(self):
+        """
+        extern int _stdcall PH_SetStopOverflow(int devidx, int stop_ovfl,
+        int stopcount);
+        """
+
+        return_Code = self.phlib.PH_SetStopOverflow(self.device_Number_ct,
+                                                    ctypes.c_int(1),
+                                                    ctypes.c_int(65535))
+        return self.ProcessReturnCode(return_Code)
+
+    def Set_Binning(self, binning):
+        """
+        extern int _stdcall PH_SetBinning(int devidx, int binning);
+        """
+
+        self.logger.debug("Set binning")
+        return_Code = self.phlib.PH_SetBinning(self.device_Number_ct,
+                                               ctypes.c_int(binning))
+        return self.ProcessReturnCode(return_Code)
+
+    def Set_Offset(self):
+        """
+        extern int _stdcall PH_SetOffset(int devidx, int offset);
+        """
+        raise NotImplementedError
+
+    def Set_MultistopEnable(self):
+        """
+        extern int _stdcall PH_SetMultistopEnable(int devidx, int enable);
+        """
+        raise NotImplementedError
+
+    def ClearHistMem(self):
+        """
+        extern int _stdcall PH_ClearHistMem(int devidx, int block);
+        """
+        return_Code = self.phlib.PH_ClearHistMem(self.device_Number_ct,
+                                                 ctypes.c_int(0))
+        return self.ProcessReturnCode(return_Code)
+
+    def Start(self, tacq=1000):
+        """
+        extern int _stdcall PH_StartMeas(int devidx, int tacq);
+        """
+        return_Code = self.phlib.PH_StartMeas(self.device_Number_ct,
+                                              ctypes.c_int(tacq))
+        #self.logger.debug(f"Measuring for {tacq}ms")
+        return self.ProcessReturnCode(return_Code)
+
+    def Stop(self):
+        """
+        extern int _stdcall PH_StopMeas(int devidx);
+        """
+
+        return_Code = self.phlib.PH_StopMeas(self.device_Number_ct)
+        #self.logger.debug(f"Stopped")
+        return self.ProcessReturnCode(return_Code)
+
+    def Get_CTCStatus(self):
+        """
+        extern int _stdcall PH_CTCStatus(int devidx, int* ctcstatus);
+        """
+        ctc_Status_ct = ctypes.c_int(0)
+        return_Code = self.phlib.PH_CTCStatus(self.device_Number_ct,
+                                              ctypes.byref(ctc_Status_ct))
+        self.ProcessReturnCode(return_Code)
+        return ctc_Status_ct.value
+
+    def Get_Histogram(self, histogram_Channels):
+        """
+        extern int _stdcall PH_GetHistogram(int devidx, unsigned int* chcount,
+        int block);
+        """
+        # print(f"Get histogram")
+        counts_ct = (ctypes.c_uint * histogram_Channels)()
+        return_Code = self.phlib.PH_GetHistogram(self.device_Number_ct,
+                                                 ctypes.byref(counts_ct),
+                                                 ctypes.c_int(0))
+        self.ProcessReturnCode(return_Code)
+
+        # print(f"Process histogram")
+        histogram = [x for x in counts_ct]
+        return histogram
+
+    def Get_Resolution(self):
+        """
+        extern int _stdcall PH_GetResolution(int devidx, double* resolution);
+        """
+
+        resolution = ctypes.c_double()
+        return_Code = self.phlib.PH_GetResolution(self.device_Number_ct,
+                                                  ctypes.byref(resolution))
+        self.ProcessReturnCode(return_Code)
+        return resolution.value
+
+    def Get_CountRate(self):
+        """
+        extern int _stdcall PH_GetCountRate(int devidx, int channel,
+        int* rate);
+        """
+
+        countRate0_ct = ctypes.c_int()
+        countRate1_ct = ctypes.c_int()
+
+        return_Code0 = self.phlib.PH_GetCountRate(self.device_Number_ct,
+                                                  ctypes.c_int(0),
+                                                  ctypes.byref(countRate0_ct))
+        self.ProcessReturnCode(return_Code0)
+        return_Code1 = self.phlib.PH_GetCountRate(self.device_Number_ct,
+                                                  ctypes.c_int(1),
+                                                  ctypes.byref(countRate1_ct))
+        self.ProcessReturnCode(return_Code1)
+
+        return countRate0_ct.value, countRate1_ct.value
+
+    def Get_Flags(self):
+        """
+        extern int _stdcall PH_GetFlags(int devidx, int* flags);
+        """
+
+        flags_ct = ctypes.c_int()
+        return_Code = self.phlib.PH_GetFlags(self.device_Number_ct,
+                                             ctypes.byref(flags_ct))
+        self.ProcessReturnCode(return_Code)
+        return flags_ct.value
+
+    def Get_ElapsedMeasTime(self):
+        """
+        extern int _stdcall PH_GetElapsedMeasTime(int devidx, double* elapsed);
+        """
+        meas_Time_ct = ctypes.c_double()
+        return_Code = self.phlib.PH_GetElapsedMeasTime(
+                                                    self.device_Number_ct,
+                                                    ctypes.byref(meas_Time_ct))
+        self.ProcessReturnCode(return_Code)
+
+        return meas_Time_ct.value
+
+    def Get_Warnings(self):
+        """
+        extern int _stdcall PH_GetWarnings(int devidx, int* warnings);
+        """
+        warnings_Code = ctypes.c_int()
+        return_Code = self.phlib.PH_GetWarnings(self.device_Number_ct,
+                                                ctypes.byref(warnings_Code))
+        self.ProcessReturnCode(return_Code)
+        return warnings_Code
+
+    def Get_WarningsText(self, warnings_Code):
+        """
+        extern int _stdcall PH_GetWarningsText(int devidx, char* text,
+        int warnings);
+        """
+        warnings_Text = ctypes.create_string_buffer(32768)
+        return_Code = self.phlib.PH_GetWarningsText(self.device_Number_ct,
+                                                    ctypes.byref(warnings_Text),
+                                                    warnings_Code)
+        return_String = warnings_Text.value.decode("utf-8")
+        return return_String
+
+########################### Time Tagging modes
+
+#    def Set_MarkerEnable(self):
+#        """
+#        extern int _stdcall PH_SetMarkerEnable(int devidx, int en0, int en1,
+#        int en2, int en3);
+#        """
+#        raise NotImplementedError
+
+#    def Set_MarkerEdges(self):
+#        """
+#        extern int _stdcall PH_SetMarkerEdges(int devidx, int me0, int me1,
+#        int me2, int me3);
+#        """
+#        raise NotImplementedError
+
+#    def Set_MarkerHoldoffTime(self):
+#        """
+#        extern int _stdcall PH_SetMarkerHoldoffTime(int devidx,
+#        int holdofftime);
+#        """
+#        raise NotImplementedError
+
+#    def Read_FIFO(self):
+#        """
+#        extern int _stdcall PH_ReadFiFo(int devidx, unsigned int* buffer,
+#        int count, int* nactual);
+#        """
+#        raise NotImplementedError
+
+########################### Routing
+########################### Implemented by A. Lee, 2022
+
+    def Get_RouterVersion(self):
+        """
+        extern int _stdcall PH_GetRouterVersion(int devidx, char* model,
+        char* version);
+        """
+
+        routerModel_ct = ctypes.create_string_buffer(b"", 8)
+        routerVersion_ct = ctypes.create_string_buffer(b"", 8)
+
+        return_Code = self.phlib.PH_GetRouterVersion(self.device_Number_ct,
+                                                     routerModel_ct,
+                                                     routerVersion_ct)
+        if return_Code == 0:
+            routerModel = routerModel_ct.value.decode("utf-8")
+            routerVersion = routerVersion_ct.value.decode("utf-8")
+
+            self.logger.info(f"found router model: {routerModel}, version: {routerVersion}")
+        self.ProcessReturnCode(return_Code)
+
+        return {"model": routerModel,
+                "version": routerVersion}
+
+    def Get_RoutingChannels(self):
+        """
+        extern int _stdcall PH_GetRoutingChannels(int devidx, int* rtchannels)
+        """
+
+        rtchannels_ct = ctypes.c_int()
+        return_Code = self.phlib.PH_GetRoutingChannels(self.device_Number_ct, ctypes.byref(rtchannels_ct))
+        self.ProcessReturnCode(return_Code)
+
+        return rtchannels_ct.value
+
+    # return 0 if successfully enables the router
+    # return <-1 if cannot enable the router
+    def Set_RoutingEnable(self):
+        """
+        extern int _stdcall PH_EnableRouting(int devidx, int enable);
+        """
+
+        if self.router_Number_ct == 0: # if no router is used
+            return -1
+        else:
+            return_Code = self.phlib.PH_EnableRouting(self.device_Number_ct, ctypes.c_int(1))
+            return self.ProcessReturnCode(return_Code)
+
+    def Set_RoutingChannelOffset(self, ch, offset):
+        """
+        extern int _stdcall PH_SetRoutingChannelOffset(int devidx, int channel
+        , int offset);
+        """
+        return_Code = self.phlib.PH_SetRoutingChannelOffset(self.device_Number_ct,
+                                                            ctypes.c_int(ch),
+                                                            ctypes.c_int(offset))
+        return self.ProcessReturnCode(return_Code)
+
+    def Set_PHR800Input(self, ch, level, edge):
+        """
+        extern int _stdcall PH_SetPHR800Input(int devidx, int channel,
+        int level, int edge);
+        """
+        return_Code = self.phlib.PH_SetPHR800Input(self.device_Number_ct,
+                                                   ctypes.c_int(ch),
+                                                   ctypes.c_int(level),
+                                                   ctypes.c_int(edge))
+        return self.ProcessReturnCode(return_Code)
+
+
+    def Set_PHR800CFD(self, ch, level, zc):
+        """
+        extern int _stdcall PH_SetPHR800CFD(int devidx, int channel,
+        int level, int zc);
+        """
+        return_Code = self.phlib.PH_SetPHR800CFD(self.device_Number_ct,
+                                                   ctypes.c_int(ch),
+                                                   ctypes.c_int(level),
+                                                   ctypes.c_int(zc))
         return self.ProcessReturnCode(return_Code)

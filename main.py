@@ -156,6 +156,7 @@ class MyWindow(QtWidgets.QMainWindow):
         try:
             self.my_Pharp = LD_Pharp.LD_Pharp(
                 0,
+                0,
                 self.pharppy_Config.hw_Settings
                 )
         except (UnboundLocalError, FileNotFoundError) as e:
@@ -179,6 +180,7 @@ class MyWindow(QtWidgets.QMainWindow):
             if error_Response == QtWidgets.QMessageBox.Yes:
                 # Go get the simulator and launch it.
                 self.my_Pharp = LD_Pharp_Dummy.LD_Pharp(
+                    0,
                     0,
                     self.pharppy_Config.hw_Settings)
             else:
