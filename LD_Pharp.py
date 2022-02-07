@@ -26,27 +26,27 @@ phdefine_h = {
         "FEATURE_MARKERS": 0x0004,
         "FEATURE_LOWRES": 0x0008,
         "FEATURE_TRIGOUT": 0x0010,
-        "FLAG_FIFOFULL": 0x0003,
-        "FLAG_OVERFLOW": 0x0040,
-        "FLAG_SYSERROR": 0x0100,
+        "FLAG_FIFOFULL": 0x0003,    # T-modes
+        "FLAG_OVERFLOW": 0x0040,    # Histmode
+        "FLAG_SYSERROR": 0x0100,    # Hardware problem
         "BINSTEPSMAX": 8,
         "SYNCDIVMIN": 1,
         "SYNCDIVMAX": 8,
-        "ZCMIN": 0,
-        "ZCMAX": 20,
-        "DISCRMIN": 0,
-        "DISCRMAX": 800,
-        "OFFSETMIN": 0,
-        "OFFSETMAX": 1000000000,
-        "SYNCOFFSMIN": -99999,
-        "SYNCOFFSMAX": 99999,
-        "CHANOFFSMIN": -8000,
-        "CHANOFFSMAX": 8000,
-        "ACQTMIN": 1,
-        "ACQTMAX": 360000000,
-        "PHR800LVMIN": -1600,
-        "PHR800LVMAX": 2400,
-        "HOLDOFFMAX": 210480,
+        "ZCMIN": 0,    # mV
+        "ZCMAX": 20,    # mV
+        "DISCRMIN": 0,    # mV
+        "DISCRMAX": 800,    # mV
+        "OFFSETMIN": 0,    # ps
+        "OFFSETMAX": 1000000000,    # ps
+        "SYNCOFFSMIN": -99999,    # ps
+        "SYNCOFFSMAX": 99999,    # ps
+        "CHANOFFSMIN": -8000,    # ps
+        "CHANOFFSMAX": 8000,    # ps
+        "ACQTMIN": 1,    # ms
+        "ACQTMAX": 360000000,    # ms
+        "PHR800LVMIN": -1600,    # mV
+        "PHR800LVMAX": 2400,    # mV
+        "HOLDOFFMAX": 210480,    # ns
         "WARNING_INP0_RATE_ZERO": 0x0001,
         "WARNING_INP0_RATE_TOO_LOW": 0x0002,
         "WARNING_INP0_RATE_TOO_HIGH": 0x0004,
@@ -237,7 +237,7 @@ class LD_Pharp:
         # Strip any multiple newlines, and also the trailing newline.
         return warn_Text.replace("\n\n\n", "\n").replace("\n\n", "\n")[:-1]
 
-if __name__ == "__main__":    
+if __name__ == "__main__":
     my_LDPharp = LD_Pharp()
 
     print(f"Count rate: {my_LDPharp.Get_CountRate()}")

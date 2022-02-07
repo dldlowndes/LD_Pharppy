@@ -87,6 +87,7 @@ class AutoSave(QtCore.QObject):
         # Send dummy message
         self.socket.send_string("pico-control: dummy message...")
         # Get the reply.
+        # message is in the format: filename(,end)
         message = self.socket.recv().decode('utf-8')
         pair = message.split(',')
         if len(pair) > 1:
