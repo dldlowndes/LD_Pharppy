@@ -483,7 +483,9 @@ class LD_PharpDLL:
         else:
             boolean_ct = ctypes.c_int(0)
 
+        print(f"LD_PharpDLL.Set_RoutingEnable: {boolean}")
         return_Code = self.phlib.PH_EnableRouting(self.device_Number_ct, boolean_ct)
+        print(f"return code is {return_Code}")
         return self.ProcessReturnCode(return_Code)
 
     def Set_RoutingChannelOffset(self, ch, offset):

@@ -161,7 +161,7 @@ class MyWindow(QtWidgets.QMainWindow):
         try:
             self.my_Pharp = LD_Pharp.LD_Pharp(
                 0,
-                self.pharppy_Config.hw_Settings
+                self.pharppy_Config
                 )
         except (UnboundLocalError, FileNotFoundError) as e:
             # FileNotFoundError if the DLL can't be found
@@ -185,7 +185,7 @@ class MyWindow(QtWidgets.QMainWindow):
                 # Go get the simulator and launch it.
                 self.my_Pharp = LD_Pharp_Dummy.LD_Pharp(
                     0,
-                    self.pharppy_Config.hw_Settings)
+                    self.pharppy_Config)
             else:
                 # Fall over
                 raise e
@@ -657,6 +657,20 @@ class MyWindow(QtWidgets.QMainWindow):
         num_Channel = len(histogram_Data)
         # if self.my_Pharp.hw_Settings.router_Enabled:
 
+        # There are 65536 bins, but if (1/sync) is less than (65536*resolution)
+        # then there will just be empty bins at the end of the histogram array.
+        # Look from the END of the array and find the index of the first non
+        # empty bin you find.
+        #self.last_Full_Bin = histogram_Data.nonzero()[0][-1]
+        #print(f"self.last_Full_Bin: {self.last_Full_Bin}")
+
+        """self.binning = hw_Settings.binning
+        self.resolution = self.my_Pharp.base_Resolution * (2 ** self.binning)"""
+        self.last_Full_Bin = int(float(self.ui.max_t.text())/self.my_Pharp.resolution*1e3)
+        #print(f"last_Full_Bin: {self.last_Full_Bin}")
+        #last_Full_Bin = 1953
+
+
         # Trim the histogram data
         trimmed_data = np.empty((0,self.last_Full_Bin),int)
         for i in range(num_Channel):
@@ -672,18 +686,6 @@ class MyWindow(QtWidgets.QMainWindow):
         if self.count_Mode:
             return
 
-        # There are 65536 bins, but if (1/sync) is less than (65536*resolution)
-        # then there will just be empty bins at the end of the histogram array.
-        # Look from the END of the array and find the index of the first non
-        # empty bin you find.
-        #self.last_Full_Bin = histogram_Data.nonzero()[0][-1]
-        #print(f"self.last_Full_Bin: {self.last_Full_Bin}")
-
-        """self.binning = hw_Settings.binning
-        self.resolution = self.my_Pharp.base_Resolution * (2 ** self.binning)"""
-        self.last_Full_Bin = int(float(self.ui.max_t.text())/self.my_Pharp.resolution*1e3)
-        #print(f"last_Full_Bin: {self.last_Full_Bin}")
-        #last_Full_Bin = 1953
         self.x_Data = np.arange(0,
                         self.last_Full_Bin * self.my_Pharp.resolution,
                         self.my_Pharp.resolution
@@ -706,6 +708,7 @@ class MyWindow(QtWidgets.QMainWindow):
                                       plot_Y[i],
                                       # clear=True,
                                       pen=self.palette[i])
+            print(f"plot_Y[{i}][1:5]:{plot_Y[i][1:5]}")
 
         # Change the plot limits so that the auto scale doesn't go crazy with
         # the cursors (if they're on) (plus a little margin so the labels show)
