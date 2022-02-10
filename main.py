@@ -129,9 +129,14 @@ class MyWindow(QtWidgets.QMainWindow):
         # Init_UI has set up the normalize buttons, the last one is checked by
         # default, so this should be the initial state.
         self.normalize_This = len(self.normalize_Buttons)
-        self.last_Full_Bin = int(float(self.ui.max_t.text())/self.my_Pharp.resolution*1e3)
-        self.this_Data = np.zeros(self.last_Full_Bin)
-        self.last_Histogram = np.zeros(self.last_Full_Bin)
+        self.last_Full_Bin = int(float(self.ui.max_t.text())/self.my_Pharp.resolution*1e3) # number of data points in histogram
+
+        # Dummy data that at least makes the axes look sensible...
+        if self.my_Pharp.hw_Settings.router_Enabled:
+            self.this_Data = np.zeros((4,self.last_Full_Bin)) # initially no router is assumed..
+        else:
+            self.this_Data = np.zeros((1,self.last_Full_Bin)) # initially no router is assumed..
+        #self.last_Histogram = np.zeros(self.last_Full_Bin)
         self.x_Data = np.zeros(self.last_Full_Bin)
 
         # Members involved with plotting, then init them (and the plots)
@@ -156,7 +161,6 @@ class MyWindow(QtWidgets.QMainWindow):
         try:
             self.my_Pharp = LD_Pharp.LD_Pharp(
                 0,
-                0,
                 self.pharppy_Config.hw_Settings
                 )
         except (UnboundLocalError, FileNotFoundError) as e:
@@ -180,7 +184,6 @@ class MyWindow(QtWidgets.QMainWindow):
             if error_Response == QtWidgets.QMessageBox.Yes:
                 # Go get the simulator and launch it.
                 self.my_Pharp = LD_Pharp_Dummy.LD_Pharp(
-                    0,
                     0,
                     self.pharppy_Config.hw_Settings)
             else:
@@ -321,9 +324,13 @@ class MyWindow(QtWidgets.QMainWindow):
         # self.ui.graph_Widget.plotItem.showButtons() #does this do anything?
 
         # Dummy data that at least makes the axes look sensible...
-        self.ui.graph_Widget.plotItem.plot(self.x_Data,
-                                           np.ones_like(self.x_Data)
-                                           )
+        if self.my_Pharp.hw_Settings.router_Enabled:
+            for i in range(4):
+                self.ui.graph_Widget.plotItem.plot(self.x_Data,
+                                                   np.ones_like(self.x_Data))
+        else:
+            self.ui.graph_Widget.plotItem.plot(self.x_Data,
+                                               np.ones_like(self.x_Data))
 
         # Fix the plot area before anything else starts, otherwise the auto
         # scaler goes crazy with the cursors.
@@ -372,6 +379,12 @@ class MyWindow(QtWidgets.QMainWindow):
 # HARDWARE SETTINGS METHODS
 ##############################################################################
 
+    def boolean_to_int(self, boolean):
+        if boolean:
+            return 1
+        else:
+            return 0
+
     def Push_Settings_To_HW(self):
         """
         Get the settings from the UI and tell the picoharp to update them.
@@ -398,6 +411,7 @@ class MyWindow(QtWidgets.QMainWindow):
         hw_Settings.CFD1_ZeroCrossing = int(self.ui.CFD1_Zerocross.value())
         hw_Settings.CFD1_Level = int(self.ui.CFD1_Level.value())
         hw_Settings.acq_Time = int(self.ui.acq_Time.value())
+        hw_Settings.router_Enabled = int(self.boolean_to_int(self.ui.router_Enabled.isChecked()))
 
         self.logger.info(f"Push settings\n {hw_Settings}")
         self.my_Pharp.Update_Settings(hw_Settings)
@@ -454,6 +468,7 @@ class MyWindow(QtWidgets.QMainWindow):
         self.ui.CFD1_Level.setValue(hw_Settings.CFD1_Level)
         self.ui.CFD1_Zerocross.setValue(hw_Settings.CFD1_ZeroCrossing)
         self.ui.acq_Time.setValue(hw_Settings.acq_Time)
+        self.ui.router_Enabled.setChecked(hw_Settings.router_Enabled)
 
         self.ui.option_Cursor.setChecked(sw_Settings.show_Cursor)
         self.ui.option_Deltas.setChecked(sw_Settings.show_Deltas)
@@ -634,14 +649,25 @@ class MyWindow(QtWidgets.QMainWindow):
     def on_Histo_Signal(self, histogram_Data):
         """
         Handle the histogram when the hardware thread emits one.
+        datatype of histogram_Data is np.array
         """
 
+        # If num_Channel is 1, no router is used.
+        # If num_Channel is 4, PHR800 is used.
+        num_Channel = len(histogram_Data)
+        # if self.my_Pharp.hw_Settings.router_Enabled:
+
         # Trim the histogram data
-        trimed_data = histogram_Data[:self.last_Full_Bin]
+        trimmed_data = np.empty((0,self.last_Full_Bin),int)
+        for i in range(num_Channel):
+            trimmed_data = np.append(trimmed_data, [histogram_Data[i][:self.last_Full_Bin]], axis=0)
+        # trimmed_data = histogram_Data[:self.last_Full_Bin]
+
+        # print(f"trimmed data: {trimmed_data}")
         if self.ui.option_Cumulative.isChecked():
-            self.this_Data += trimed_data
+            self.this_Data += trimmed_data
         else:
-            self.this_Data = trimed_data
+            self.this_Data = trimmed_data
 
         if self.count_Mode:
             return
@@ -674,15 +700,19 @@ class MyWindow(QtWidgets.QMainWindow):
         if self.ui.option_LogY.isChecked():
             plot_Y = np.log10(plot_Y, where=plot_Y>0)
 
-        self.ui.graph_Widget.plot(plot_X,
-                                  plot_Y,
-                                  clear=True)
+        self.ui.graph_Widget.clear()
+        for i in range(num_Channel):
+            self.ui.graph_Widget.plot(plot_X,
+                                      plot_Y[i],
+                                      # clear=True,
+                                      pen=self.palette[i])
+
         # Change the plot limits so that the auto scale doesn't go crazy with
         # the cursors (if they're on) (plus a little margin so the labels show)
         self.ui.graph_Widget.plotItem.vb.setLimits(xMin=0,
                                                    yMin=0,
                                                    xMax=plot_X[-1] * 1.05,
-                                                   yMax=plot_Y.max() * 1.05)
+                                                   yMax=max(map(max,plot_Y)) * 1.05)
 
         if self.no_Data:
             pass
@@ -845,17 +875,28 @@ class MyWindow(QtWidgets.QMainWindow):
 
         # Zip the bins and counts together into a structured array so the
         # bins get output as floats and the counts as ints.
-        my_Type = [("Bin", float), ("Count", int)]
-        out_Histo = np.empty(self.last_Histogram.shape, dtype=my_Type)
+        # my_Type = [("Bin", float), ("Count", int)]
+        # out_Histo = np.empty(self.last_Histogram.shape, dtype=my_Type)
+        # out_Histo["Bin"] = self.last_X_Data
+        # out_Histo["Count"] = self.last_Histogram
+        out_Histo = {"Bin": [], "Count": []}
         out_Histo["Bin"] = self.last_X_Data
-        out_Histo["Count"] = self.last_Histogram
+        out_Histo["Count"] = np.transpose(self.last_Histogram)
 
-        np.savetxt(
-            filename,
-            out_Histo,
-            delimiter=", ",
-            fmt="%1.6e,%8i",
-            )
+        if len(last_Histogram) == 1:
+            np.savetxt(
+                filename,
+                out_Histo,
+                delimiter=", ",
+                fmt="%1.6e,%8i",
+                )
+        elif len(last_Histogram) == 4:
+            np.savetxt(
+                filename,
+                out_Histo,
+                delimiter=", ",
+                fmt="%1.6e,%8i,%8i,%8i,%8i",
+                )
 
         self.logger.info(f"Histogram saved as {filename}")
 
@@ -1013,8 +1054,15 @@ class MyWindow(QtWidgets.QMainWindow):
         Delete the data as well!
         """
         self.last_Full_Bin = int(float(self.ui.max_t.text())/self.my_Pharp.resolution*1e3)
-        self.this_Data = np.zeros(self.last_Full_Bin)
-        self.last_Histogram = np.zeros(self.last_Full_Bin)
+        # Dummy data that at least makes the axes look sensible...
+        if self.my_Pharp.hw_Settings.router_Enabled:
+            print("on_Clear_Histogram: router enabled")
+            self.this_Data = np.zeros((4,self.last_Full_Bin)) # initially no router is assumed..
+        else:
+            self.this_Data = np.zeros((1,self.last_Full_Bin)) # initially no router is assumed..
+
+        # self.last_Histogram = np.zeros(self.last_Full_Bin)
+        self.last_Histogram = None
         self.x_Data = np.zeros(self.last_Full_Bin)
         self.last_X_Data = None
         self.count_History.clear()

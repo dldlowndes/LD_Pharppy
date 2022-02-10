@@ -18,7 +18,7 @@ class LD_PharpDLL:
     phlib.h without the user having to worry about ctypes everywhere.
     """
 
-    def __init__(self, device_Number, router_Number, dll_Path=None):
+    def __init__(self, device_Number, dll_Path=None):
         """
         The examples seem to try and open all device numbers up to some limit
         (8?) and see what comes back. That seems weird so let's just have one
@@ -50,7 +50,6 @@ class LD_PharpDLL:
 
         self.phlib = ctypes.CDLL(dll_Path)
         self.device_Number_ct = ctypes.c_int(device_Number)
-        self.router_Number_ct = ctypes.c_int(router_Number)
 
     def ProcessReturnCode(self, return_Code):
         """
@@ -132,6 +131,9 @@ class LD_PharpDLL:
         extern int _stdcall PH_GetHardwareInfo(int devidx, char* model,
         char* partno, char* version);
         """
+        # hw_Model = "not-found"
+        # hw_Part = "not_found"
+        # hw_Vers = "not_found" # update later when hardware is properly located
 
         hwPartno_ct = ctypes.create_string_buffer(b"", 8)
         hwVersion_ct = ctypes.create_string_buffer(b"", 8)
@@ -310,7 +312,7 @@ class LD_PharpDLL:
         self.ProcessReturnCode(return_Code)
         return ctc_Status_ct.value
 
-    def Get_Histogram(self, histogram_Channels):
+    def Get_Histogram(self, ch, histogram_Channels):
         """
         extern int _stdcall PH_GetHistogram(int devidx, unsigned int* chcount,
         int block);
@@ -319,7 +321,7 @@ class LD_PharpDLL:
         counts_ct = (ctypes.c_uint * histogram_Channels)()
         return_Code = self.phlib.PH_GetHistogram(self.device_Number_ct,
                                                  ctypes.byref(counts_ct),
-                                                 ctypes.c_int(0))
+                                                 ctypes.c_int(ch))
         self.ProcessReturnCode(return_Code)
 
         # print(f"Process histogram")
@@ -470,16 +472,19 @@ class LD_PharpDLL:
 
     # return 0 if successfully enables the router
     # return <-1 if cannot enable the router
-    def Set_RoutingEnable(self):
+    def Set_RoutingEnable(self, boolean):
         """
         extern int _stdcall PH_EnableRouting(int devidx, int enable);
         """
 
-        if self.router_Number_ct == 0: # if no router is used
-            return -1
+        boolean_ct = None
+        if boolean:
+            boolean_ct = ctypes.c_int(1)
         else:
-            return_Code = self.phlib.PH_EnableRouting(self.device_Number_ct, ctypes.c_int(1))
-            return self.ProcessReturnCode(return_Code)
+            boolean_ct = ctypes.c_int(0)
+
+        return_Code = self.phlib.PH_EnableRouting(self.device_Number_ct, boolean_ct)
+        return self.ProcessReturnCode(return_Code)
 
     def Set_RoutingChannelOffset(self, ch, offset):
         """

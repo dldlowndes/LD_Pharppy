@@ -41,7 +41,11 @@ class Acq_Thread(QtCore.QThread):
 
             if self.histogram_Active and not self.histogram_Paused:
                 # If desired, get the histogram data from the device as well.
-                histo = self.my_Pharp.Get_A_Histogram()
+                # if self.my_Pharp.hw_Settings.router_Enabled:
+                #     histo = self.my_Pharp.Get_Histograms()
+                # else:
+                #     histo = self.my_Pharp.Get_A_Histogram()
+                histo = self.my_Pharp.Get_Histograms()
                 self.plot_Signal.emit(np.array(histo, dtype=np.int))
             else:
                 # Otherwise wait (roughly) as long as it would have taken for

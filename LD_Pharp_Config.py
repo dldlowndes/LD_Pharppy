@@ -10,6 +10,108 @@ behaviour
 import configparser
 import distutils.util
 
+# Dunno what to do with this right now but it's in the source code now
+# TODO: Use these?
+phdefine_h = {
+        "LIB_VERSION": "3.0",
+        "MAXDEVNUM": 8,
+        "HISTCHAN": 65536,
+        "TTREADMAX": 131072,
+        "MODE_HIST": 0,
+        "MODE_T2": 2,
+        "MODE_T3": 3,
+        "FEATURE_DLL": 0x0001,
+        "FEATURE_TTTR": 0x0002,
+        "FEATURE_MARKERS": 0x0004,
+        "FEATURE_LOWRES": 0x0008,
+        "FEATURE_TRIGOUT": 0x0010,
+        "FLAG_FIFOFULL": 0x0003,    # T-modes
+        "FLAG_OVERFLOW": 0x0040,    # Histmode
+        "FLAG_SYSERROR": 0x0100,    # Hardware problem
+        "BINSTEPSMAX": 8,
+        "SYNCDIVMIN": 1,
+        "SYNCDIVMAX": 8,
+        "ZCMIN": 0,    # mV
+        "ZCMAX": 20,    # mV
+        "DISCRMIN": 0,    # mV
+        "DISCRMAX": 800,    # mV
+        "OFFSETMIN": 0,    # ps
+        "OFFSETMAX": 1000000000,    # ps
+        "SYNCOFFSMIN": -99999,    # ps
+        "SYNCOFFSMAX": 99999,    # ps
+        "CHANOFFSMIN": -8000,    # ps
+        "CHANOFFSMAX": 8000,    # ps
+        "ACQTMIN": 1,    # ms
+        "ACQTMAX": 360000000,    # ms
+        "PHR800LVMIN": -1600,    # mV
+        "PHR800LVMAX": 2400,    # mV
+        "HOLDOFFMAX": 210480,    # ns
+        "WARNING_INP0_RATE_ZERO": 0x0001,
+        "WARNING_INP0_RATE_TOO_LOW": 0x0002,
+        "WARNING_INP0_RATE_TOO_HIGH": 0x0004,
+        "WARNING_INP1_RATE_ZERO": 0x0010,
+        "WARNING_INP1_RATE_TOO_HIGH": 0x0040,
+        "WARNING_INP_RATE_RATIO": 0x0100,
+        "WARNING_DIVIDER_GREATER_ONE": 0x0200,
+        "WARNING_TIME_SPAN_TOO_SMALL": 0x0400,
+        "WARNING_OFFSET_UNNECESSARY": 0x0800
+            # "PHR800Level": 1500,    # mV
+            # "PHR800Edge": 1,    # not sure about this value
+            # "PHR800CFDLevel": 0,    # mV , not sure about this value
+            # "PHR800CFDZeroCross": 0    # mV
+        }
+
+# TODO: Check the error handler in Pharp_DLL already uses these.
+errcodes_h = {
+        "ERROR_NONE": 0,
+        "ERROR_DEVICE_OPEN_FAIL": -1,
+        "ERROR_DEVICE_BUSY": -2,
+        "ERROR_DEVICE_HEVENT_FAIL": -3,
+        "ERROR_DEVICE_CALLBSET_FAIL ": -4,
+        "ERROR_DEVICE_BARMAP_FAIL": -5,
+        "ERROR_DEVICE_CLOSE_FAIL": -6,
+        "ERROR_DEVICE_RESET_FAIL": -7,
+        "ERROR_DEVICE_GETVERSION_FAIL": -8,
+        "ERROR_DEVICE_VERSION_MISMATCH ": -9,
+        "ERROR_DEVICE_NOT_OPEN": -10,
+        "ERROR_DEVICE_LOCKED": -11,
+        "ERROR_INSTANCE_RUNNING": -16,
+        "ERROR_INVALID_ARGUMENT": -17,
+        "ERROR_INVALID_MODE": -18,
+        "ERROR_INVALID_OPTION": -19,
+        "ERROR_INVALID_MEMORY": -20,
+        "ERROR_INVALID_RDATA": -21,
+        "ERROR_NOT_INITIALIZED": -22,
+        "ERROR_NOT_CALIBRATED": -23,
+        "ERROR_DMA_FAIL": -24,
+        "ERROR_XTDEVICE_FAIL": -25,
+        "ERROR_FPGACONF_FAIL": -26,
+        "ERROR_IFCONF_FAIL": -27,
+        "ERROR_FIFORESET_FAIL": -28,
+        "ERROR_STATUS_FAIL": -29,
+        "ERROR_USB_GETDRIVERVER_FAIL": -32,
+        "ERROR_USB_DRIVERVER_MISMATCH": -33,
+        "ERROR_USB_GETIFINFO_FAIL": -34,
+        "ERROR_USB_HISPEED_FAIL": -35,
+        "ERROR_USB_VCMD_FAIL": -36,
+        "ERROR_USB_BULKRD_FAIL": -37,
+        "ERROR_HARDWARE_F01 ": -64,
+        "ERROR_HARDWARE_F02": -65,
+        "ERROR_HARDWARE_F03": -66,
+        "ERROR_HARDWARE_F04": -67,
+        "ERROR_HARDWARE_F05": -68,
+        "ERROR_HARDWARE_F06": -69,
+        "ERROR_HARDWARE_F07": -70,
+        "ERROR_HARDWARE_F08": -71,
+        "ERROR_HARDWARE_F09": -72,
+        "ERROR_HARDWARE_F10": -73,
+        "ERROR_HARDWARE_F11": -74,
+        "ERROR_HARDWARE_F12": -75,
+        "ERROR_HARDWARE_F13": -76,
+        "ERROR_HARDWARE_F14": -77,
+        "ERROR_HARDWARE_F15": -78
+        }
+
 class Hardware_Settings():
     """
     Settings which are sent to the picoharp, these are almost directly passed
@@ -33,6 +135,12 @@ class Hardware_Settings():
         self._CFD1_ZeroCrossing = 10
         self._CFD1_Level = 50
         self._acq_Time = 500
+        self._router_Enabled = 1 # 0 for false, otherwise true
+        # self._router_Offset = [0, 0, 0, 0]
+        # self._PHR800_Level = [1500, 1500, 1500, 1500]  # mV
+        # self._PHR800_Edge = [1, 1, 1, 1]      # not sure about this value
+        # self._PHR800_CFD_Level = [0, 0, 0, 0] # mV, not sure about this value
+        # self._PHR800_CFD_ZC = [0, 0, 0, 0]     # mV
 
     def to_Dict(self):
         """
@@ -45,7 +153,13 @@ class Hardware_Settings():
                   "CFD0 Level": str(self.CFD0_Level),
                   "CFD1 Zero Crossing": str(self.CFD1_ZeroCrossing),
                   "CFD1 Level": str(self.CFD1_Level),
-                  "Acquisition Time": str(self.acq_Time)
+                  "Acquisition Time": str(self.acq_Time),
+                  "Router Enabled": str(self.router_Enabled)
+                  # "Router Offset": str(self.router_Offset),
+                  # "PHR800 Level": str(self.PHR800_Level),
+                  # "PHR800 Edge": str(self.PHR800_Edge),
+                  # "PHR800 CFD Level": str(self.PHR800_CFD_Level),
+                  # "PHR800 CFD ZC": str(self.PHR800_CFD_ZC)
                   }
         return params
 
@@ -127,6 +241,192 @@ class Hardware_Settings():
             value = 250
         self._acq_Time = value
 
+    @property
+    def router_Enabled(self):
+        return self._router_Enabled
+
+    @router_Enabled.setter
+    def router_Enabled(self, value):
+        self._router_Enabled = int(value)
+
+class Router_Settings():
+    """
+    Ahreum: Router settings which are sent to the picoharp, these are almost directly passed
+    in to the functions defined in phlib.
+    """
+
+    def __init__(self):
+        """
+        Set some super safe factory defaults, defining them in the code means
+        that they can be used as a complete fallback if no ini files can be
+        found anywhere.
+        """
+
+        # Defaults
+        # self._router_Enabled = 0 # 0 for false, otherwise true
+        self._router_Offset = [0, 0, 0, 0]
+        self._PHR800_Level = [1500, 1500, 1500, 1500]  # mV
+        self._PHR800_Edge = [1, 1, 1, 1]      # not sure about this value
+        self._PHR800_CFD_Level = [0, 0, 0, 0] # mV, not sure about this value
+        self._PHR800_CFD_ZC = [0, 0, 0, 0]     # mV
+
+    def to_Dict(self):
+        """
+        Mostly for printing but potentially useful in and of itself.
+        """
+        router_offset = {"router1": str(self.router_Offset[0]),
+                         "router2": str(self.router_Offset[1]),
+                         "router3": str(self.router_Offset[2]),
+                         "router4": str(self.router_Offset[3])}
+        phr800_level = {"router1": str(self.PHR800_Level[0]),
+                        "router2": str(self.PHR800_Level[1]),
+                        "router3": str(self.PHR800_Level[2]),
+                        "router4": str(self.PHR800_Level[3])}
+        phr800_edge = {"router1": str(self.PHR800_Edge[0]),
+                       "router2": str(self.PHR800_Edge[1]),
+                       "router3": str(self.PHR800_Edge[2]),
+                       "router4": str(self.PHR800_Edge[3])}
+        phr800_cfd_level = {"router1": str(self.PHR800_CFD_Level[0]),
+                            "router2": str(self.PHR800_CFD_Level[1]),
+                            "router3": str(self.PHR800_CFD_Level[2]),
+                            "router4": str(self.PHR800_CFD_Level[3])}
+        phr800_cfd_zc = {"router1": str(self.PHR800_CFD_ZC[0]),
+                         "router2": str(self.PHR800_CFD_ZC[1]),
+                         "router3": str(self.PHR800_CFD_ZC[2]),
+                         "router4": str(self.PHR800_CFD_ZC[3])}
+
+        return {"Router Offset": router_offset,
+                "PHR800 Level": phr800_level,
+                "PHR800 Edge": phr800_edge,
+                "PHR800 CFD Level": phr800_cfd_level,
+                "PHR800 CFD ZC": phr800_cfd_zc}
+
+    def __repr__(self):
+        """
+        Dictionary converted to a string is probably the laziest way of doing
+        this but it's effective and clear.
+        """
+        return str(self.to_Dict())
+
+    @property
+    def router_Offset(self):
+        return self._router_Offset
+
+    @router_Offset.setter
+    def router_Offset(self, valueDict):
+        # PH300 only supports up to 4 channels when using router
+        if len(valueDict) != 4:
+            print(f"Number of router offset not match with number of routers")
+            print(f"Offset set to 0 for all routers instead")
+            self._router_Offset = [0 for i in range(4)]
+            return
+
+        # print(valueDict)
+        value = []
+        for i in valueDict:
+            # print(f"valueDict[i]: {valueDict[i]}")
+            if int(valueDict[i]) > 8000:
+                print(f"Router offset {valueDict[i]} exceeds the maximum 8000")
+                print(f"Offset set to 8000 instead")
+                value.append(8000)
+                continue
+            elif int(valueDict[i]) < -8000:
+                print(f"Router offset {valueDict[i]} exceeds the minimum -8000")
+                print(f"Offset set to -8000 instead")
+                value.append(-8000)
+                continue
+            value.append(int(valueDict[i]))
+
+        self._router_Offset = value
+
+    @property
+    def PHR800_Level(self):
+        return self._PHR800_Level
+
+    @PHR800_Level.setter
+    def PHR800_Level(self, valueDict):
+
+        # if more or less than 4 levels are given
+        if len(valueDict) != 4:
+            print(f"Number of router levels not match with number of routers")
+            print(f"Levels set to defaults for all routers instead")
+            value = [1500 for i in range(4)]
+
+        for i in valueDict:
+            if int(valueDict[i]) < phdefine_h["PHR800LVMIN"]:
+                print(f'PHR800 level of {value} lower than limitation {phdefine_h["PHR800LVMIN"]}')
+                print(f'PHR800 level set to {phdefine_h["PHR800LVMIN"]}')
+                valueDict[i] = phdefine_h["PHR800LVMIN"]
+            if int(valueDict[i]) > phdefine_h["PHR800LVMAX"]:
+                print(f'PHR800 level of {value} greater than limitation {phdefine_h["PHR800LVMAX"]}')
+                print(f'PHR800 level set to {phdefine_h["PHR800LVMAX"]}')
+                valueDict[i] = phdefine_h["PHR800LVMAX"]
+
+        self._PHR800_Level = [int(valueDict[x]) for x in valueDict]
+
+    @property
+    def PHR800_Edge(self):
+        return self._PHR800_Edge
+
+    @PHR800_Edge.setter
+    def PHR800_Edge(self, valueDict):
+
+        # if more or less than 4 levels are given
+        if len(valueDict) != 4:
+            print(f"Number of router levels not match with number of routers")
+            print(f"Levels set to defaults for all routers instead")
+            value = [0 for i in range(4)]
+
+        self._PHR800_Edge = [int(valueDict[x]) for x in valueDict]
+
+    @property
+    def PHR800_CFD_Level(self):
+        return self._PHR800_CFD_Level
+
+    @PHR800_CFD_Level.setter
+    def PHR800_CFD_Level(self, valueDict):
+
+        # if more or less than 4 levels are given
+        if len(valueDict) != 4:
+            print(f"Number of router levels not match with number of routers")
+            print(f"Levels set to defaults for all routers instead")
+            value = [0 for i in range(4)]
+
+        # for i in valueDict:
+        #     if valueDict[i] < phdefine_h["PHR800LVMIN"]:
+        #         print(f'PHR800 level of {value} lower than limitation {phdefine_h["PHR800LVMIN"]}')
+        #         print(f'PHR800 level set to {phdefine_h["PHR800LVMIN"]}')
+        #         valueDict[i] = phdefine_h["PHR800LVMIN"]
+        #     if valueDict[i] > phdefine_h["PHR800LVMAX"]:
+        #         print(f'PHR800 level of {value} greater than limitation {phdefine_h["PHR800LVMAX"]}')
+        #         print(f'PHR800 level set to {phdefine_h["PHR800LVMAX"]}')
+        #         valueDict[i] = phdefine_h["PHR800LVMAX"]
+
+        self._PHR800_CFD_Level = [int(valueDict[x]) for x in valueDict]
+
+    @property
+    def PHR800_CFD_ZC(self):
+        return self._PHR800_CFD_ZC
+
+    @PHR800_CFD_ZC.setter
+    def PHR800_CFD_ZC(self, valueDict):
+            # if more or less than 4 levels are given
+            if len(valueDict) != 4:
+                print(f"Number of router levels not match with number of routers")
+                print(f"Levels set to defaults for all routers instead")
+                value = [0 for i in range(4)]
+
+            # for i in valueDict:
+            #     if valueDict[i] < phdefine_h["PHR800LVMIN"]:
+            #         print(f'PHR800 level of {value} lower than limitation {phdefine_h["PHR800LVMIN"]}')
+            #         print(f'PHR800 level set to {phdefine_h["PHR800LVMIN"]}')
+            #         valueDict[i] = phdefine_h["PHR800LVMIN"]
+            #     if valueDict[i] > phdefine_h["PHR800LVMAX"]:
+            #         print(f'PHR800 level of {value} greater than limitation {phdefine_h["PHR800LVMAX"]}')
+            #         print(f'PHR800 level set to {phdefine_h["PHR800LVMAX"]}')
+            #         valueDict[i] = phdefine_h["PHR800LVMAX"]
+
+            self._PHR800_CFD_ZC = [int(valueDict[x]) for x in valueDict]
 
 class Software_Settings():
     """
@@ -244,6 +544,7 @@ class LD_Pharp_Config():
 
         self.hw_Settings = Hardware_Settings()
         self.sw_Settings = Software_Settings()
+        self.router_Settings = Router_Settings()
 
         if config_File:
             self.Load_From_File(config_File)
@@ -258,13 +559,16 @@ class LD_Pharp_Config():
         # Separate dicts of the component parts
         hw = self.hw_Settings.to_Dict()
         sw = self.sw_Settings.to_Dict()
+        router = self.router_Settings.to_Dict()
 
         # Dict of both together. Keys here mirror the section titles in the
         # ini files.
         my_Dict = {
             "Hardware Settings": hw,
-            "Software Settings": sw
+            "Software Settings": sw,
+            **router
             }
+
         return my_Dict
 
     def __repr__(self):
@@ -297,6 +601,13 @@ class LD_Pharp_Config():
         self.hw_Settings.CFD1_ZeroCrossing = hw_Settings["CFD1 Zero Crossing"]
         self.hw_Settings.CFD1_Level = hw_Settings["CFD1 Level"]
         self.hw_Settings.acq_Time = hw_Settings["Acquisition Time"]
+        self.hw_Settings.router_Enabled = hw_Settings["Router Enabled"]
+
+        self.router_Settings.router_Offset = dict(config["Router Offset"])
+        self.router_Settings.PHR800_Level = dict(config["PHR800 Level"])
+        self.router_Settings.PHR800_Edge = dict(config["PHR800 Edge"])
+        self.router_Settings.PHR800_CFD_Level = dict(config["PHR800 CFD Level"])
+        self.router_Settings.PHR800_CFD_ZC = dict(config["PHR800 CFD ZC"])
 
         self.sw_Settings.show_Cursor = sw_Settings["Show Cursor"]
         self.sw_Settings.show_Deltas = sw_Settings["Show Deltas"]

@@ -87,6 +87,47 @@ class LD_Pharp:
 
         return final
 
+    # for routed case
+    def Get_Histograms(self, n_Channels=65536):
+        """
+        Returns the time tagging histogram as a python list. It's always the
+        full number of channels that can be supplied by the Picoharp. They can
+        be trimmed later.
+        """
+
+        histogram = np.empty((0,65536),int)
+        if self.hw_Settings.router_Enabled:
+            for i in range(4):
+                gaussian = scipy.signal.gaussian(25000, 1000) * 25000
+
+                moved = np.roll(gaussian, np.random.randint(-255,255))
+
+                noise = np.random.normal(0, 1000, 25000)
+                noise -= noise.min()
+
+                final = gaussian + noise
+
+                final = np.pad(final, (0, 65536-25000), "constant", constant_values=0)
+
+                histogram = np.append(histogram, np.array([final]),axis=0)
+        else:
+            gaussian = scipy.signal.gaussian(25000, 1000) * 25000
+
+            moved = np.roll(gaussian, np.random.randint(-255,255))
+
+            noise = np.random.normal(0, 1000, 25000)
+            noise -= noise.min()
+
+            final = gaussian + noise
+
+            final = np.pad(final, (0, 65536-25000), "constant", constant_values=0)
+
+            histogram = np.append(histogram, np.array([final]),axis=0)
+
+        time.sleep(self.hw_Settings.acq_Time / 1000)
+        # print(f"length of histogram: {len(histogram)})
+        return histogram
+
     def Get_Warnings(self):
         return "No device detected, displaying dummy data"
 
