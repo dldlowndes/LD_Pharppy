@@ -43,6 +43,7 @@ class LD_Pharp:
             self.logger.debug("HW Settings passed in")
             self.hw_Settings = pharp_Config.hw_Settings
             self.router_Settings = pharp_Config.router_Settings
+            print(f"router setting: {self.router_Settings}")
 
         # Connect to the Picoharp device.
         self.my_PharpDLL = LD_PharpDLL.LD_PharpDLL(device_Number, dll_Path)
@@ -100,13 +101,13 @@ class LD_Pharp:
 
         if self.hw_Settings.router_Enabled:
             self.my_PharpDLL.Set_RoutingEnable(True)
-            print("LD_Pharp: router enabled")
             for i in range(4):
                 # The number of routing channels is hard-coded for now.
                 # Only TTL mode is supported.
                 self.my_PharpDLL.Set_RoutingChannelOffset(i, self.router_Settings.router_Offset[i])
                 self.my_PharpDLL.Set_PHR800Input(i, self.router_Settings.PHR800_Level[i], self.router_Settings.PHR800_Edge[i])
-                self.my_PharpDLL.Set_PHR800CFD(i, self.router_Settings.PHR800_CFD_Level[i], self.router_Settings.PHR800_CFD_ZC[i])
+                # self.my_PharpDLL.Set_PHR800CFD(i, self.router_Settings.PHR800_CFD_Level[i], self.router_Settings.PHR800_CFD_ZC[i])
+                # print(f"{i}-th channel: offset: {self.router_Settings.router_Offset[i]}, phr800 level: {self.router_Settings.PHR800_Level[i]}, phr800 edge: {self.router_Settings.PHR800_Edge[i]}, cfd level: {self.router_Settings.PHR800_CFD_Level[i]}, cfd zc: {self.router_Settings.PHR800_CFD_ZC[i]}")
         else:
             self.my_PharpDLL.Set_RoutingEnable(False)
 
@@ -160,7 +161,11 @@ class LD_Pharp:
         # If this isn't called, the histogram is a cumulative one rather than
         # a single shot.
         # TODO: Optionally be able to clear this?
-        self.my_PharpDLL.ClearHistMem()
+        if self.hw_Settings.router_Enabled:
+            for ch in range(4):
+                self.my_PharpDLL.ClearHistMem(ch)
+        else:
+            self.my_PharpDLL.ClearHistMem(0)
 
         self.my_PharpDLL.Start(self.hw_Settings.acq_Time)
 
@@ -178,7 +183,7 @@ class LD_Pharp:
         if self.hw_Settings.router_Enabled:
             for ch in range(4):
                 histogram = np.append(histogram, np.array([self.my_PharpDLL.Get_Histogram(ch, n_Channels)]),axis=0)
-                print(f"Get_RouterVersion: {self.my_PharpDLL.Get_RouterVersion()}")
+                # print(f"Get_RouterVersion: {self.my_PharpDLL.Get_RouterVersion()}")
         else:
             histogram = np.append(histogram, np.array([self.my_PharpDLL.Get_Histogram(0, n_Channels)]),axis=0)
 
@@ -187,7 +192,7 @@ class LD_Pharp:
         # flags = self.my_PharpDLL.Get_Flags()
         # time = self.my_PharpDLL.Get_ElapsedMeasTime()
         # print(f"Flags {flags}")
-        print(histogram)
+        # print(histogram)
         return histogram
 
     def Get_Warnings(self):

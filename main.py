@@ -708,13 +708,14 @@ class MyWindow(QtWidgets.QMainWindow):
                                       plot_Y[i],
                                       # clear=True,
                                       pen=self.palette[i])
-            print(f"plot_Y[{i}][1:5]:{plot_Y[i][1:5]}")
+        # print(f"trimmed_data: {trimmed_data}")
+        # print(f"plot_Y: {plot_Y}")
 
         # Change the plot limits so that the auto scale doesn't go crazy with
         # the cursors (if they're on) (plus a little margin so the labels show)
         self.ui.graph_Widget.plotItem.vb.setLimits(xMin=0,
                                                    yMin=0,
-                                                   xMax=plot_X[-1] * 1.05,
+                                                   xMax=plot_X[-1] * 1.02,
                                                    yMax=max(map(max,plot_Y)) * 1.05)
 
         if self.no_Data:

@@ -276,12 +276,12 @@ class LD_PharpDLL:
         """
         raise NotImplementedError
 
-    def ClearHistMem(self):
+    def ClearHistMem(self,ch):
         """
         extern int _stdcall PH_ClearHistMem(int devidx, int block);
         """
         return_Code = self.phlib.PH_ClearHistMem(self.device_Number_ct,
-                                                 ctypes.c_int(0))
+                                                 ctypes.c_int(ch))
         return self.ProcessReturnCode(return_Code)
 
     def Start(self, tacq=1000):
@@ -326,6 +326,7 @@ class LD_PharpDLL:
 
         # print(f"Process histogram")
         histogram = [x for x in counts_ct]
+        print(f"Get_Histogram: {histogram[0:20]}")
         return histogram
 
     def Get_Resolution(self):
@@ -480,12 +481,12 @@ class LD_PharpDLL:
         boolean_ct = None
         if boolean:
             boolean_ct = ctypes.c_int(1)
+            self.logger.debug("Enable router")
         else:
             boolean_ct = ctypes.c_int(0)
+            self.logger.debug("Disable router")
 
-        print(f"LD_PharpDLL.Set_RoutingEnable: {boolean}")
         return_Code = self.phlib.PH_EnableRouting(self.device_Number_ct, boolean_ct)
-        print(f"return code is {return_Code}")
         return self.ProcessReturnCode(return_Code)
 
     def Set_RoutingChannelOffset(self, ch, offset):
@@ -493,6 +494,7 @@ class LD_PharpDLL:
         extern int _stdcall PH_SetRoutingChannelOffset(int devidx, int channel
         , int offset);
         """
+        self.logger.debug(f"Set PHR800 ch {ch+1} offset to {offset}")
         return_Code = self.phlib.PH_SetRoutingChannelOffset(self.device_Number_ct,
                                                             ctypes.c_int(ch),
                                                             ctypes.c_int(offset))
@@ -503,6 +505,7 @@ class LD_PharpDLL:
         extern int _stdcall PH_SetPHR800Input(int devidx, int channel,
         int level, int edge);
         """
+        self.logger.debug(f"Set PHR800 ch {ch+1} level {level}, edge {edge}")
         return_Code = self.phlib.PH_SetPHR800Input(self.device_Number_ct,
                                                    ctypes.c_int(ch),
                                                    ctypes.c_int(level),
@@ -515,6 +518,7 @@ class LD_PharpDLL:
         extern int _stdcall PH_SetPHR800CFD(int devidx, int channel,
         int level, int zc);
         """
+        self.logger.debug(f"Set PHR800 ch {ch+1} discrimination {level}, zero-crossing {zc}")
         return_Code = self.phlib.PH_SetPHR800CFD(self.device_Number_ct,
                                                    ctypes.c_int(ch),
                                                    ctypes.c_int(level),
