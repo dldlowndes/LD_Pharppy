@@ -326,7 +326,7 @@ class LD_PharpDLL:
 
         # print(f"Process histogram")
         histogram = [x for x in counts_ct]
-        print(f"Get_Histogram: {histogram[0:20]}")
+        # print(f"Get_Histogram: {histogram[0:20]}")
         return histogram
 
     def Get_Resolution(self):
